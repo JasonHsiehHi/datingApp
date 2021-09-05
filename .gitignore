@@ -1,0 +1,16 @@
+# Default ignored files
+
+.vscode/
+.idea/
+.env
+.DS_Store
+
+tutorial/
+
+# tutorial - node.js and webpack
+package.json
+package-lock.json
+webpack.config.js
+index.bundle.js
+index.js
+node_modules/
