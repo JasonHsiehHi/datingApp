@@ -75,7 +75,7 @@ class Question(models.Model):
 
 
 class Dialogue(models.Model):
-    dialog = models.JSONField(max_length=200)  # list type, sentences could be more than one
+    dialog = models.JSONField(null=True)  # list, sentences could be more than one
     action = models.CharField(max_length=30)
     sub = models.CharField(max_length=10, null=True, default=None)
     number = models.IntegerField()

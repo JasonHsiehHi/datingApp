@@ -4,12 +4,16 @@ from .models import Room, Player, School, Question, Dialogue
 from .exceptions import DatabaseError
 import json
 from random import randint, sample
+import sys
 
 
 @database_sync_to_async
-def create_player(uuid):
-    player = Player.objects.create(uuid=uuid)
-    player.save()
+def get_player(uuid):
+    try:
+        player = Player.objects.get(uuid=uuid)
+    except Player.DoesNotExist:
+        player = Player.objects.create(uuid=uuid)
+        player.save()
     return player
 
 
@@ -126,7 +130,7 @@ def get_dialogue_dialog(action, sub=None, n=None):
     if n is None:
         dialogues = Dialogue.objects.filter(action=action).filter(Q(sub=sub) | Q(sub=None))
         num = len(dialogues)
-        dialogue = dialogues[randint(1, num)]
+        dialogue = dialogues[randint(0, num-1)]
     else:
         dialogue = Dialogue.objects.get(action=action, sub=sub, number=n)
 

@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css'%}"/>
     <script src="{% static 'js/bootstrap.bundle.min.js'%}"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.min.css'%}"/>
+    <script src="{% static '/js/jquery-ui.min.js'%}"></script>
     <script src="{% static '/js/jquery.fileupload.js'%}"></script>
 
     <link rel="stylesheet" href="{% static 'css/chatroom.css'%}"/>
@@ -115,10 +117,10 @@
                         </p>
                     </div>
 
-                    <div class="mb-2 d-none d-flex">
+                    <div id='writing' class="mb-2 d-none d-flex">
                         <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
                             <span class="a-tri a-matcher"></span>
-                            <span id='writing' class="a-writing">正在輸入...</span>
+                            <span  class="a-writing">正在輸入...</span>
                             
                         </p>
                     </div>

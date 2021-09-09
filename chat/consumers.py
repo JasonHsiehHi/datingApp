@@ -6,10 +6,10 @@ from . import utils
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
-        self.player_data = {}
+        self.player_data = None
         await self.accept()
 
-        # await self.close() 可觸發webSocket.onclose() 可用於拒絕連線
+        # await self.close() to reject connection
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -47,32 +47,30 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             # todo 還有/reset, /adult兩種
 
-        elif 'wn' in content and self.player_data['inRoom']:
-            await self.channel_layer.group_send(self.player_data['room'], {
+        elif 'wn' in content and self.player_data.inRoom:
+            await self.channel_layer.group_send(self.player_data.room, {
                 'type': 'is_waiting',
                 'boolean': content['wn']
             })
 
-        elif 'msg' in content and self.player_data['inRoom']:
-            await self.channel_layer.group_send(self.player_data['room'], {
+        elif 'msg' in content and self.player_data.inRoom:
+            await self.channel_layer.group_send(self.player_data.room, {
                 'type': 'chat_message',
                 'message': content['msg']
             })
 
     # 主要用於調用資料庫 且調用結束後仍須通知對方 self.channel_layer.group_send()
     # 每個command最後都需回傳給client端 提供UI做回應 self.send_json()
-    # called by receive_json to response client side
 
+    # called by receive_json to response client side
     async def cmd_open(self, uuid):
         await self.channel_layer.group_add(
             uuid,
             self.channel_name
         )
-        player = await utils.create_player(uuid)
-        self.player_data['uuid'] = uuid
-        self.player_data['player'] = player
-        self.player_data['create_date'] = player.create_date
-        time = player.create_date.strftime('%H')
+        player = await utils.get_player(uuid)
+        self.player_data = player
+        time = int(player.create_date.strftime('%H'))
         # consumers.py傳入的action 需包含時間資訊才能回傳早上晚上不同的資料
         if 5 <= time < 17:
             dialog, robot = await utils.get_dialogue_dialog('GREET', 'mo')

@@ -27,6 +27,11 @@ span.a-cmd{
     color: darkblue;  /* darkblue */
 }
 
+span.a-writing{
+    color: gray;  /* grey */
+    font-style: italic;
+}
+
 .a-dialogdiv{
     position: relative;
     margin-bottom: 0px;

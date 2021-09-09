@@ -3475,7 +3475,7 @@ websocket_urlpatterns = [  # 此設定會被asgi.py所引用
 (但傳給views.py則作為request之後的第二參數來引用 ex: index(request,pk))
 (而傳給consumers.py則以self.scope['url_route']['kwargs']['room_name']來使用)
 
-已命名的(?P<room_name>\w+)和 以編號的(\w+):
+已命名的(?P<room_name>\w+)和 已編號的(\w+):
 self.scope['url_route']['kwargs']為一dict 包含所有已命名(named)的正則變數
 亦有：self.scope['url_route']['args']為一list 包含所有編號(numbered)的正則變數 兩者不能同時使用
 
@@ -3516,6 +3516,8 @@ accept()會觸發js中的WebSocket.onopen() 而close()則觸發WebSocket.onclose
         "text": text_data,
       })
 
+後端的self.close()會先觸發前端的chatSocket.onclose() 最後才會觸發disconnect()
+當執行disconnect()時 就已經跟前端沒有關係了 故為後續處理
 
 receive()包辦了所有從clinet端的互動方法 
 可在text_data['command']中設置client聯繫server的所有方法
@@ -3768,12 +3770,12 @@ CTRL+R (reverse-i-search) 用於輸入關鍵字收尋過去的指令
 
 vim為terminal中的文字編輯器
 vim中常見模式為NORMAL, INSERT, REPLACE:
---NORMAL--:w存檔, q離開, wq存檔後離開
+--NORMAL--: 加上:w存檔, :q離開, :wq存檔後離開
 此模式下無法新增內容但能做複製剪下貼上 或進入其他模式
 配合鼠標可做:y(yank)複製, d(delete)剪下, p(paste)刪除
 
 進入其他模式時可按ESC可退出回NORMAL
---INSERT--：在NORMAL中選擇i插入, a添加, o新一行 
+--INSERT--：在NORMAL中選擇i,a,o 即可進入insert模式 
 則進入INSERT 此時輸入字符會插入其中
 
 --REPLACE--：在NORMAL中選擇r或R 

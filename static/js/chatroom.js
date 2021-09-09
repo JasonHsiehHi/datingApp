@@ -13,16 +13,16 @@ function chatroomWS(){
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
             switch (data.type){
-                case typeSet.greet: // 是否需要做使用導引 即先使用後使用哪些指令等等
+                case typeSet.greet: 
                     localData.anonName=data.anonName, localStorage.anonName=data.anonName;
-                    dialogList = JSON.parse(data.dialog),theUI.showDialogsAsync(dialogList,function(){
+                    theUI.showDialogsAsync(data.dialog,function(){
                         localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
                     });
                     break;
                 case typeSet.goto:
                     theUI.gotoSchoolAsync(data.school,function(){
                         localData.school = termSchool, localStorage.school = termSchool;
-                        dialogList = JSON.parse(data.dialog),theUI.showDialogsAsync(dialogList,function(){
+                        theUI.showDialogsAsync(data.dialog,function(){
                             localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
                         });
                     });
@@ -83,7 +83,7 @@ function chatroomWS(){
             }
         };
         chatSocket.onclose = function(e) {
-            console.log('code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
+            console.log('WS disconnected code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
             // 若user沒有被禁用時, 即!0==localData.retry 則自動重連 chatSocket=null ,chatroomWS() 
             // 自動重連:用setInterval() 或setTimeout()
         };
@@ -187,28 +187,54 @@ function disableBackSpace() {
     })
 }
 
+
 function bindMsgSending() {
-    $("#send-text").on('keypress',function(a) {
-        // todo: 注意html注入問題 用django處理
-        var text = $("#send-text").val();
-        (13 == a.which || 13 == a.keyCode) && a.preventDefault() && 
-        (void 0 != text && null != text &&"" != text) && text.match(/^\//i)? (!0==localData.cmdEnabled&&theTerminal.command(text)):(!0==localData.inRoom)?theWS.msgSendWs(text):theUI.showSys('你還未與其他人完成配對');
-        $("#send-text").val('');
+    $("#send-text").on('keypress',function(a) { // todo: input的資料是否可能構成XSS攻擊
+        if (13 == a.which || 13 == a.keyCode){
+            a.preventDefault();
+            var text = $("#send-text").val();
+            (void 0 != text && null != text &&"" != text) && text.match(/(\/[a-zA-Z]+)/i)? (!0==localData.cmdEnabled && theTerminal.command(text)) : (!0==localData.inRoom) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!');
+            $("#send-text").val('');
+            $("#send-text").blur(), $("#send-text").focus();
+        }
     })
-    $("#send-text").on('focus',function(a) { //改成'oninput'
-        theUI.scrollToNow(), theUI.unreadTitle(!0), theWS.writingNowWs(!0);
-        return false
+    $("#send-text").on('input',function(a){
+        if (!1 == toggle.wn){
+            theWS.writingNowWs(!0), toggle.wn = !0;
+        }
+    })
+    $("#send-text").on('focus',function(a) {
+        theUI.scrollToNow(), theUI.unreadTitle(!0);
     })
     $("#send-text").on('blur',function(a) {
-        theWS.writingNowWs(!1);
-        // toggle.wn由true轉false或由false轉true才會執行 為防止連續觸發 測試階段在研究 
-        // 或改用$("#send-text").val()變動來判斷
-        return false
+        if (!0 == toggle.wn){
+            theWS.writingNowWs(!1), toggle.wn = !1;
+        }
     })
     $("#send-btn").on('click',function(a){
         var e = $.Event("keypress");
-        e.which =13, $("#send-text").trigger(e);
+        e.which = 13, $("#send-text").trigger(e);
+        $("#send-text").focus();
     })
+}
+
+var chatWS = function(){
+    function ms(msg){
+        chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror 而webSocket自動關閉
+            'msg':msg
+        }))
+    }
+    function wn(isWriting){
+        isWriting = isWriting?'true':'false'
+        chatSocket.send(JSON.stringify({
+            'wn':isWriting
+        }))
+    }
+
+    return{
+        msgSendWs:ms,
+        writingNowWs:wn,
+    }
 }
 
 function bindFileUpload(){
@@ -223,16 +249,6 @@ function bindFileUpload(){
             //theUI.showSelfImg(data.result['img_url'])
         }
     })
-}
-
-function timeFormatAMPM(date) {
-    var hours = date.getHours(), minutes = date.getMinutes();
-    var ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    minutes = minutes < 10 ? '0'+minutes : minutes;
-    var strTime = hours + ':' + minutes + ' ' + ampm;
-    return strTime;
 }
 
 function processTest(questions){
@@ -362,45 +378,54 @@ var chatTerminal = function(){
     }
 }
 
-var chatWS = function(){
-    function ms(msg){
-        chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror而webSocket自動關閉
-            'msg':msg
-        }))
-    }
 
-    function wn(isWriting){
-        isWriting = isWriting?'true':'false'
-        chatSocket.send(JSON.stringify({
-            'wn':isWriting
-        }))
-    }
+function timeAMPM(date) {
+    var hours = date.getHours(), minutes = date.getMinutes();
+    var ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    minutes = minutes < 10 ? '0'+minutes : minutes;
+    var strTime = hours + ':' + minutes + ' ' + ampm;
+    return strTime;
+}
 
-    return{
-        msgSendWs:ms,
-        writingNowWs:wn,
-    }
+function msgReplacing(msg){
+    msg = msg.replace(/(\/[a-zA-Z]+ )/g,"<span class=\"a-cmd\">$1 </span>");
+    msg = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, "<a onclick=\"window.open('$1','_blank')\">$1</a>");
+    return msg
 }
 
 var chatUI = function(){
     function sm(msg){
-        msg = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, "<a onclick=\"window.open('$1','_blank')\">$1</a>"); 
-        var newElmt = '<div class="mb-2"><p class="dialogdiv a-line a-pa-dl"><span class="a-self">' + localData.name + '：</span><span>'+ msg +'</span><span class="a-status"></span></p></div>';
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'self',localStorage.lastSaid='self', localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [0,msg],localStorage.chatLogs[localStorage.chatNum] = [0,msg]
+        var status = null;
+        var newElmt = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
+        st(newElmt,1);
+        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'self',localStorage.lastSaid='self';
+        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [0,newElmt],localStorage.chatLogs[localStorage.chatNum] = [0,newElmt];
         return newElmt
 
     }
+    /* chatLogs只儲存msg
     function m(msg){
+        msg = msg.replace(/(\/[a-zA-Z]+ )/g,"<span class=\"a-cmd\">$1 </span>");
         msg = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, "<a onclick=\"window.open('$1','_blank')\">$1</a>");
-        var newElmt = '<div class="mb-2"><p class="dialogdiv a-line a-pa-dl"><span class="a-name">'+localData.anonName+'：</span><span>'+msg+'</span><span class="a-status"></span></p></div>';
+        var newElmt = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msg+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [1,msg],localStorage.chatLogs[localStorage.chatNum] = [1,msg]
+        return newElmt
+    }
+    */
+
+    function m(msg){
+        var newElmt = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
+        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [1,newElmt],localStorage.chatLogs[localStorage.chatNum] = [1,newElmt];
         return newElmt
     }
 
     function sy(msg){
-        msg = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, "<a onclick=\"window.open('$1','_blank')\">$1</a>");
-        var newElmt ='<div class="mb-2 text-center"><p class="dialogdiv"><span class="a-sys">'+msg+'</span></p></div>';
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'sys',localStorage.lastSaid = 'sys',localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [2,msg],localStorage.chatLogs[localStorage.chatNum] = [2,msg]
+        var newElmt = '<div class="mb-2 text-center"><p class="a-dialogdiv a-sys a-pa a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>'
+        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'sys',localStorage.lastSaid = 'sys';
+        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [2,newElmt],localStorage.chatLogs[localStorage.chatNum] = [2,newElmt];
         return newElmt
     }
     function wn(isWriting){
@@ -410,7 +435,7 @@ var chatUI = function(){
         var st ={
             2:'(已送達)',1:'(傳送中)',0:'(未送達)'
         }
-        myElmt.find('.a-status').text(st[num])   
+        myElmt.find('.a-status:eq(0)').text(st[num])   
     }
     function n(){
         $('#outer-dialog').animate({
@@ -436,12 +461,22 @@ var chatUI = function(){
     function cl(){
         $('#dialog').empty(),localData.chatLogs={},localStorage.chatLogs={},localData.chatNum=0,localStorage.chatNum=0
     }
+    /* chatlog只儲存msg 直接儲存html()比較快 如果只儲存text()資料那需要一個一個元素慢慢生成
     function ll(){
-        // 直接儲存html()比較快 如果只儲存text()資料那需要一個一個元素慢慢生成
         if (void 0 === typeof(Storage)){
             $('#dialog').empty();
             for (let l in localData.chatLogs)
-                2===l[0]?sy(l[1]):1===l[0]?m(l[1]):sm(l[1])  // 之後可加上每個對話匡的timestamp   
+                2===l[0]?sy(l[1]):1===l[0]?m(l[1]):sm(l[1]) 
+        }
+        n();
+    }
+    */
+
+    function ll(){
+        if (void 0 === typeof(Storage)){
+            $('#dialog').empty();
+            for (let l in localData.chatLogs)
+                $('#writing').before(l[1]);
         }
         n();
     }
@@ -494,7 +529,6 @@ var chatUI = function(){
 
     }
 }
-
 
 
 !function(a){
@@ -702,7 +736,8 @@ var TITLE = "ACard - AnonCard",
         image:['/image','/@']
     },
     toggle ={  // 不會放在localData中 只為配合eventHandler 只在同一個function有效
-        wn : !1
+        wn : !1,
+        click : !1
     },
     chatSocket = null,
     theUI = chatUI(),
