@@ -1,7 +1,6 @@
 from channels.db import database_sync_to_async
 from django.db.models import Q
 from .models import Room, Player, School, Question, Dialogue
-from .exceptions import DatabaseError
 import json
 from random import randint, sample
 import sys
@@ -24,14 +23,15 @@ def delete_player(uuid):
 
 
 @database_sync_to_async
-def get_school_url(name):
-    school = School.objects.get(name=name)
-    return school.url
+def set_player_school(player, school_name):
+    school = School.objects.get(name=school_name)
+    player.school = school
+    player.save()
+    return player
 
 
 @database_sync_to_async
-def set_player_profile(pk_uuid, name, matchType=None):
-    player = Player.objects.get(uuid=pk_uuid)
+def set_player_profile(player, name, matchType=None):
     player.name = name
     if matchType is not None:
         player.matchType = matchType
@@ -85,27 +85,24 @@ def process_player_match(someone_pk_uuid):
     match_type = someone.matchType
     players_in = Player.objects.filter(Q(school=someone.school) & Q(isWaiting=True))
 
-    if match_type is None:
-        raise DatabaseError("WARNING:match_type hasn't be filled")
+    if match_type == 'fm' or match_type == 'mf':
+        players_in = players_in.filter(matchType=match_type[1]+match_type[0])
     else:
-        if match_type == 'fm' or match_type == 'mf':
-            players_in = players_in.filter(matchType=match_type[1]+match_type[0])
-        else:
-            players_in = players_in.exclude(uuid=someone_pk_uuid).filter(matchType=match_type)
-        num = len(players_in)
-        if num < 1:
-            return None
-        scores = [p.score for p in players_in]
-        waitingTimes = [p.waitingTime for p in players_in]
-        someone_score = someone.score
-        li = list(map(lambda x, y: abs(x - someone_score) - waitingTime_to_score(y), zip(scores, waitingTimes)))
-        min_li = min(li)
-        matches = []
-        for i, j in zip(waitingTimes, li):
-            match = i if j == min_li else 0
-            matches.append(match)
-        matcher = players_in[matches.index(max(matches))]
-        return matcher.uuid, matcher.name
+        players_in = players_in.exclude(uuid=someone_pk_uuid).filter(matchType=match_type)
+    num = len(players_in)
+    if num < 1:
+        return None
+    scores = [p.score for p in players_in]
+    waitingTimes = [p.waitingTime for p in players_in]
+    someone_score = someone.score
+    li = list(map(lambda x, y: abs(x - someone_score) - waitingTime_to_score(y), zip(scores, waitingTimes)))
+    min_li = min(li)
+    matches = []
+    for i, j in zip(waitingTimes, li):
+        match = i if j == min_li else 0
+        matches.append(match)
+    matcher = players_in[matches.index(max(matches))]
+    return matcher.uuid, matcher.name
 
 
 def waitingTime_to_score(waitingTime):
@@ -126,9 +123,9 @@ def check_players_num(school_id, target_matchType):  # 應與其他process合併
 
 
 @database_sync_to_async
-def get_dialogue_dialog(action, sub=None, n=None):
+def get_dialogue_dialog(speaker, action, sub=None, n=None):
     if n is None:
-        dialogues = Dialogue.objects.filter(action=action).filter(Q(sub=sub) | Q(sub=None))
+        dialogues = Dialogue.objects.filter(action=action).filter(Q(sub=sub) | Q(sub=None)).filter(speaker=speaker)
         num = len(dialogues)
         dialogue = dialogues[randint(0, num-1)]
     else:

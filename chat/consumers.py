@@ -2,26 +2,30 @@ from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import json
 from . import utils
+from random import randint
+import sys
+import time
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
         self.player_data = None
+        self.robot = randint(0, 1)
         await self.accept()
 
         # await self.close() to reject connection
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
-            self.player_data['uuid'],
+            str(self.player_data.uuid),
             self.channel_name
         )
-        if self.player_data['inRoom']:
+        if self.player_data.inRoom:
             await self.channel_layer.group_discard(
-                self.player_data['room'],
+                int(self.player_data.room),
                 self.channel_name
             )
-        await utils.delete_player(self.player_data['uuid'])
+        await utils.delete_player(self.player_data.uuid)
 
     # receive from client side first
     async def receive_json(self, content):
@@ -70,12 +74,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
         player = await utils.get_player(uuid)
         self.player_data = player
-        time = int(player.create_date.strftime('%H'))
-        # consumers.py傳入的action 需包含時間資訊才能回傳早上晚上不同的資料
-        if 5 <= time < 17:
-            dialog, robot = await utils.get_dialogue_dialog('GREET', 'mo')
+        t = int(time.strftime('%H', time.localtime()))
+        if 5 <= t < 17:
+            dialog, robot = await utils.get_dialogue_dialog(1, 'GREET', 'mo')
         else:
-            dialog, robot = await utils.get_dialogue_dialog('GREET', 'ev')
+            dialog, robot = await utils.get_dialogue_dialog(1, 'GREET', 'ev')
         await self.send_json({
             'type': 'GREET',
             'dialog': dialog,
@@ -83,27 +86,25 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         })
 
     async def cmd_goto(self, school_id):
-        self.player_data['school'] = school_id
-        image_url = await utils.get_school_url(school_id)
+        school_id = school_id.lower()
+        await utils.set_player_school(self.player_data, school_id)
+        dialog, robot = await utils.get_dialogue_dialog(1, 'GOTO', school_id)
         await self.send_json({
             'type': 'GOTO',
-            'school': image_url,
-            'dialog': await utils.get_dialogue_dialog('GOTO')
+            'dialog': dialog  # todo 存入database的dialogue需要能夠挖空 並可放入name變數
         })
 
     async def cmd_profile(self, name, match_type=None):
         if match_type is None:
             action = 'NAME'
-            self.player_data['player'] = await utils.set_player_profile(
-                self.player_data['uuid'], name)
+            self.player_data = await utils.set_player_profile(
+                self.player_data, name)
 
         else:
             action = 'PROFILE'
-            self.player_data['player'] = await utils.set_player_profile(
-                self.player_data['uuid'], name, match_type)
-            self.player_data['matchType'] = match_type
-        self.player_data['name'] = name
-        # todo 存入database的dialogue需要能夠挖空 並可放入name變數
+            self.player_data = await utils.set_player_profile(
+                self.player_data, name, match_type)
+
         await self.send_json({
             'type': action
         })

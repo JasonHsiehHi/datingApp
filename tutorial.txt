@@ -1202,7 +1202,8 @@ values和values_list都是返回被篩選到物件的list
 
 book1 = Book(title="goodbook", author="goodman", summary="it is a good book.")
 book1.save()
-可在view.py進行創建 並最後要存入database中
+可在view.py進行創建 並最後要存入database中 
+如果欄位是ForeignKey 則也可直接填外表的pk值 (author為ForeignKey 而"goodman"為此Author模型的主鍵)
 
 Book.objects.create(title="goodbook", author="goodman", summary="it is a good book.")
 或用create 便可直接存入database中
@@ -1588,7 +1589,7 @@ let iterable = [3, 5, 7];
 for (let i of iterable) {  
   console.log(i); //output:3, 5, 7  // 若為array則可直接改用for-of讀取value
 }
-一般物件使用for-in 而array則使用for-of
+一般物件使用for-in 而array則使用for-of (array中的key就是list的index)
 因為in主要用於key 而of是針對value
 
 此方法更適何用於switch-case:  
@@ -2097,14 +2098,6 @@ $("#right").click(function () {
 第一參數放css 用以表示動畫目的的樣式
 第二參數為動畫速度"slow","normal","fast" 或 可用動畫時長(秒) 1000
 
-$("#tunnel").animate([
-  { transform: 'translateY(0px)' }, // keyframes 兩個以上的關鍵幀 表示動畫會在其之間迭代
-  { transform: 'translateY(-300px)' }
-], {
-  duration: 1000,  // timing options:除了duration之外 也可加上iterations迭代次數
-  iterations: Infinity
-});
-
 animate()的其他options:
 {
   delay:1000, //開始動畫前的延遲時間
@@ -2140,18 +2133,19 @@ alternate 正向撥放後再反向播放  alternate-reverse 反向撥放後再�
 此外:scrollTop本身也是css的屬性 可直接放入animate({})中
 不加參數時為取值:$(window).scrollTop() 常用於找目前視窗$('window')的相對於$('body')的位置
 
-inconsistency相互牴觸:
+相互牴觸inconsistency:
 $('body').animate({})會有不同瀏覽器不支援的問題(相互性問題interchangeability)
 使用$('html,body')取代$('body') 是為了讓firefox和chrome都能夠支援
-
 
 常用於animate()的變數：
 var winTop = $(window).scrollTop();  //獲取當前視窗距離頂端$(body)的距離
 var objTop = $("#obj1").offset().top; //獲取當前物件的x座標
 
 
-~css_animation: 不同於js 可直接由css實現動畫效果
-針對一次性的轉場應使用css 而需對動畫過程做追蹤或存在互動性的動畫則使用js
+~css_animation ~css_transition: 不同於js 可直接由css實現動畫效果
+jquery的animate()不能用transform屬性 只有transition才行 因此css動畫更實用
+
+針對一次性的轉場應使用css 而需對動畫過程做追蹤或存在較高互動性的動畫則使用js
 搭配css的animation和transition兩個屬性： animation是持續進行的動畫 transition則為過渡到另一配置
 
 使用2個class_name的元素通常是指含有動畫：前者為此元素 後者為加上的動畫
@@ -2180,6 +2174,7 @@ var objTop = $("#obj1").offset().top; //獲取當前物件的x座標
 }
 用偽元素before,after其目的是讓原元素heart的內部子元素與屬性不會隨動畫而改變
 偽元素就等同是內部為空的原元素heart
+
 
 transform屬性：必須配合keyframes才能以迭代來完成動畫
 可用於在瀏覽器視窗內設計3d元素 但前提是元素必須放在transform-style:3d的父元素內部
@@ -2237,20 +2232,21 @@ $(window).scroll(function(){  //$(window).scroll()為處理瀏覽器的"scroll"�
 即只要滾軸滾到下面時($(window).scrollTop()>=last)) 就會把$(".down")做隱藏
 
 
-
-
 jQuery有attr()和prop()之分：
-前者用於原生html的屬性值value 後者用於jQuery加上的屬性值value
-prop()的用法基本與attr()相同
+前者用於原生html的屬性值:只能是字串 後者用於DOM的屬性值(寫在JS中的元素):可為任何變數型態
 $("ul li:eq(0)").attr("title") 返回屬性值value
 $("ul li:eq(0)").attr("title",function(){ return this.name});
 可直接放入function來返回屬性值
 $("ul li:eq(0)").attr({title:"主題名",name:"對象名"});
 或是用{}對象形式 一次修改多個屬性
 
-另外.attr("sytle1",'') 可用於抓取沒有屬性值的attribute
-<body style1> 有時html中會有空的屬性 其目的只是為了方便抓取
+prop()則較常用於只有屬性名而無屬性值的元素 會回傳true,false
+但因為是bool值而非字串 故並不適合用attr()
+<input class='form-control' id='send-img' type='file' name='send-img' multiple>
+$("ul li:eq(0)").prop("multiple") 會回傳true
 
+由於常見的class屬性有多個 因而延伸出addClass()和removeClass():
+如此就不需用attr('class','d-none')導致取代掉原先的class屬性值
 
 JSON(JavaScript Object Notation): 
 即將JS的物件轉換成字串形式以利於傳輸 故使用時在做轉換
@@ -5075,7 +5071,7 @@ input-group則為使<input>元素有<span>與<button>可作為前綴或後綴的
 data-url為html5的標籤名(不是bootstrap) 是data-*的一種
 data-後面的標籤名能夠自訂 其目的是為能在JS被引用 屬於dataset屬性
 可用：$('#upload-photo-input').dataset.url 或 $('#upload-photo-input').data(url)
-jquery的data()也可用於儲存資料
+可用此方法在JS中存取資料 即jquery的data()
 $('#upload-photo-input').data(url, 'upload/photo_nocrop')
 $('#upload-photo-input').data(url:'upload/photo_nocrop')
 此方法的好處是讓任何html元素都能自存資料
@@ -5499,7 +5495,7 @@ thumbnail縮圖會有1px的邊框
 .row_center{
   align-items:center; row元素交叉軸對齊 即垂直對齊
   justify-content: center; row元素主軸對齊 因為flexbox的預設將row視為主軸故即為水平對齊
-  (justify-content和align-items都只能用在flex元素)
+  (justify-content和align-items都只能用在flex元素 留有空格做佈局 這也是flex內部元素不會將父元素填滿的原因)
 
   text-align:center; 不僅適用於文字置中 也適用於任何行內子元素(inline)
   (text-align:justify左右兩邊都對齊 常用於將inline元素平均分配在content上)
@@ -5515,7 +5511,7 @@ align-items:stretch 將同列(content)的子元素拉到相同的高度
 align-items:baseline 將同列(content)的子元素
 
 justify-content:end和text-align:right的差異：兩者都是把內部元素往後排列
-justify-content適用於內部有多個block的時候(<div>) 此外justify-content只能用於flexbox
+justify-content適用於內部有多個block的時候(<div>) 此外justify-content只能用於flexbox父元素
 而text-align則用於內部都是inline元素的時候(<span>)
 
 用start-end取代left-right 

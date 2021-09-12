@@ -7,6 +7,8 @@
 
 tutorial/
 
+term-chatroom.js
+
 # tutorial - node.js and webpack
 package.json
 package-lock.json

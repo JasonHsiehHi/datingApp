@@ -53,7 +53,6 @@ class Player(models.Model):
 
 class School(models.Model):
     name = models.CharField(max_length=10, primary_key=True)
-    url = models.URLField(max_length=200)
 
     femaleNumForMale = models.IntegerField(default=0)
     maleNumForFemale = models.IntegerField(default=0)
