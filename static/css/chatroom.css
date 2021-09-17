@@ -1,14 +1,28 @@
+.a-widget{
+    background:gery;
+}
+.a-clock{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    color: #17D4FE;
+    font-size: 60px;
+    font-family: Orbitron;
+    letter-spacing: 7px;
+}
+
 .a-invisible-frame{
     opacity: 0;
     transform:scale(1);
 }
 
 .a-invisible-frame.a-fadein{
-    -webkit-transition: all 1.5s; 
-    -moz-transition: all 1.5s; 
-    -ms-transition: all 1.5s; 
-    -o-transition: all 1.5s; 
-    transition: all 1.5s; 
+    -webkit-transition: all 1.5s;
+    -moz-transition: all 1.5s;
+    -ms-transition: all 1.5s;
+    -o-transition: all 1.5s;
+    transition: all 1.5s;
     opacity: 1;
     transform:scale(1.1);
 }

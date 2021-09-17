@@ -40,15 +40,15 @@ function chatroomWS(){
                     localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
                     delete term.name, delete term.matchType;
                     break;                
-                case typeSet.name:
+                case typeSet.rename:
                     localData.name = term.name, localStorage.name = term.name;
                     theUI.showSys('名稱：'+term.name+' 已修改完畢');
                     localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
                     delete term.name;
                     break;
                 case typeSet.test:
-                    const testQuestions = data.questions;
-                    processTest(testQuestions);
+                    term.testQuestions = data.questions;
+                    processTest(data.questions);
                     localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
                     break;
                 case typeSet.wait:
@@ -103,17 +103,16 @@ function LocalData(){
     this.name = '',
     this.isBanned = !1,
     this.isWaiting = !1,
-    this.inRoom = !1,
+    this.inRoom = !1, // 等同this.room='' 而this.inRoom表示狀態
     this.hasTested = !1,
-    this.unreadMsg = 0,
+    this.unreadMsg = 0, //是否移到下面
     this.lastSaid = 'sys',
     this.textEnabled = !0, // bootbox觸發時不能輸入
     this.cmdEnabled = !0, // 不能重複輸入command
     this.anonName = '',
     this.room = '',
     this.school = '',
-    this.schoolImg = '', // LocalStorage也要加上
-    this.matchType = 'mf',
+    this.matchType = '',
     this.testResult = [],
     this.chatLogs = {},
     this.chatNum = 0
@@ -125,7 +124,7 @@ function getLocalData(){
         if ('true'==localStorage.isSaved){ 
             data.uuid = localStorage.uuid,
             data.name = localStorage.name,
-            data.isWaiting = ('true'===localStorage.isBanned)?!0:!1,
+            data.isBanned = ('true'===localStorage.isBanned)?!0:!1,
             data.isWaiting = ('true'===localStorage.isWaiting)?!0:!1,
             data.inRoom = ('true'===localStorage.inRoom)?!0:!1,
             data.hasTested = ('true'===localStorage.inRoom)?!0:!1,
@@ -161,26 +160,11 @@ function getLocalData(){
             localStorage.isSaved = 'true'
         }
     }else{
-        //bootbox 推薦使用最新版的chrome或safari瀏覽器 能支持保留頁面功能 
+        //todo: 開頭頁面推薦使用最新版的chrome或safari瀏覽器 能支持保留頁面功能 
     }
     return data
 }
 
-function setLocalStorage(dataObj){
-    for (var prop in dataObj){
-        var value = dataObj[prop], valueType = typeof(value);
-        if ('string' === valueType)
-            localStorage.setItem(prop, value);
-        else if ('boolean' === valueType)
-            !0==value?localStorage.setItem(prop, 'true'):localStorage.setItem(prop, 'false');
-        else if ('number' === valueType)
-            localStorage.setItem(prop, value.toString());
-        else if ('object' === valueType)
-            localStorage.setItem(prop, JSON.stringify(value));
-        else
-            console.log(prop+": unable to convert string.")
-    }
-}
 
 function installToolTip() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -261,34 +245,75 @@ function bindFileUpload(){
 }
 
 function processTest(questions){
-    for (let q of questions){ //q為{content:... ,choice:....}的物件
-        
+    for (let q of questions){ //q為{content:... ,choices:[y,n]}的物件
+        theUI.showQuestion(q.content, q.choice, q.type);
     }
-    
-    // 不使用 theUI.showMsg() 因為對話框不一樣且必須能回傳答案 改用theUI.showQuestion()
+    theUI.showQuestion('是否提交答案?', ['提交'], 1).removeClass('.a-0').addClass('.a-submit')
+    localData.testResult = [], localData.testResult.length = questions.length;
+    localStorage.testResult=JSON.stringify(localData.testResult);
 
-    $('#dialog').find('.a-question').each(function(){ //每一個都要加上eventhandler
-        // 先用.addClass('d-none')藏起來 在慢慢放出來.removeClass('d-none') 
-        $(this).find('.yes').on('click',function(e) {
-
+    for (let s = 0;s<4;s++){
+        var classStr = '.a-' + s.toString();
+        $(classStr).on('click',function(e) {
+            e.preventDefault;
+            var parent = $(this).parent('.a-q');
+            var index = $('#dialog>.a-q').index(parent);
+            answerList[index] = s.toString();
+            localData.testResult[index] = s.toString();
+            localStorage.testResult=JSON.stringify(localData.testResult);
+            parent.next('.a-q').length>0 && parent.next('.a-q').hasClass('.d-none') && parent.next('.a-q').removeClass('.d-none');
         })
-        $(this).find('.no').on('click',function(e) {
-
-        })
+    }
+    $('.a-submit').on('click', function(e){
+        theTerminal.wait(),theUI.clearChatLogs(),theUI.showClock();
     })
-    // 當localData.testResult.length >= questions.length時觸發傳送並清除題目
-    // theTerminal.wait() 和 theUI.clearChatLogs()
-
 }
-// todo:增加中繼站概念 在每次執行玩指令後查看localData 提醒玩家下一步要做什麼
+
+var checkGate = function(){
+    // todo:增加中繼站概念 在每次執行玩指令後查看localData 提醒玩家下一步要做什麼 用於取代目前後端dialog
+    // 也可作為二次到訪用戶的動態開頭 會紀錄上一次玩家的設定值(存放在localStorage)
+
+    function upd(step = currentStep){
+        for (let x in step){
+            term[x] && (step[x] = (term[x] === localData[x])?1:2); // 直接在指令中判別就好 之後刪掉
+            step[x] = (0===localData[x].length)?0:1;
+        }
+    }
+    function resp(){
+        var dialogs = [];
+        if (localData.school.length===0){
+            dialogs.push('請先移動到你想交友的學校吧！ 輸入/goto xxx (學校縮寫例如:NTU, NCCU等)')
+        }else if(localData.name.length===0){
+            dialogs.push('接者請輸入你的配對名稱與配對類型。 輸入/profile name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
+        }else if(localData.matchType.length===0){
+            dialogs.push('請重新輸入你的配對類型與名稱。 輸入/profile name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
+        }else if(localData.testResult.length===0){
+            dialogs.push('已確認你所選擇的學校('+localData.school+')與基本資料('+localData.name+', '+localData.matchType +')接者請開始配對吧！ 輸入/match')
+        }else if(localData.room.length===0){
+            dialogs.push('是否要進行下一次配對 輸入/match \n或選擇重新測試 輸入/retest \n或更改配對用的名稱 輸入/rename \n或移動到其他學校 輸入/goto')
+        }
+        return dialogs // array is better in expansibility
+    }
+    function run(){
+        upd(nextStep);
+        var dialogs = resp();
+        currentStep = {...nextStep};
+        return dialogs
+    }
+
+    return {
+        update:upd,
+        response:resp,
+        run:run
+    }
+}
+
 var chatTerminal = function(){
     function cmd(totalStr){  // 若由'#send-text'發出 則必須透過command()作分流 若由UI發出 則直接調用方法
         var listStr = totalStr.split(' ');
         var cmdStr = listStr[0];
         if (commandSet.goto.includes(cmdStr))
-            (2==listStr.length)?go(listStr[1]):theUI.showSys('未符合指令格式'); // todo:可改為多了或少了會有不同的狀況
-        else if (commandSet.test.includes(cmdStr))
-            t();
+            (2==listStr.length)?go(listStr[1]):theUI.showSys('未符合 '+cmdStr+ ' 指令格式'); // todo:可改為多了或少了會有不同的狀況
         else if (commandSet.adult.includes(cmdStr))
             a();
         else if (commandSet.leave.includes(cmdStr))
@@ -296,9 +321,11 @@ var chatTerminal = function(){
         else if (commandSet.change.includes(cmdStr))
             cg();
         else if (commandSet.profile.includes(cmdStr))
-            (3==listStr.length)?p(listStr[1], listStr[2]):theUI.showSys('未符合指令格式');
-        else if (commandSet.name.includes(cmdStr))
-            (2==listStr.length)?n(listStr[1]):theUI.showSys('未符合指令格式');
+            (3==listStr.length)?p(listStr[1], listStr[2]):theUI.showSys('未符合 '+cmdStr+ ' 的指令格式');
+        else if (commandSet.rename.includes(cmdStr))
+            (2==listStr.length)?n(listStr[1]):theUI.showSys('未符合 '+cmdStr+' 的指令格式');
+        else if (commandSet.retest.includes(cmdStr))
+            t();
         else if (commandSet.match.includes(cmdStr))
             m();
         else if (commandSet.reset.includes(cmdStr))
@@ -306,7 +333,7 @@ var chatTerminal = function(){
         else if (commandSet.image.includes(cmdStr))
             _a();
         else
-            console.log(cmdStr+" isn't a command.");
+            console.log(cmdStr+" isn't a command."), theUI.showSys('目前沒有 '+cmdStr+' 這項指令😭');
     }
 
     function go(schoolId){
@@ -323,7 +350,7 @@ var chatTerminal = function(){
     }
     function p(name, matchType){
         if (!(['mf','mm','fm','ff'].includes(matchType.toLowerCase()))){
-            theUI.showSys('只能選擇: mf(男找女), mm(男找男), fm(女找男), ff(女找女)');
+            theUI.showSys('配對類型只能選擇: mf(男找女), mm(男找男), fm(女找男), ff(女找女)');
             return false
         }
         chatSocket.send(JSON.stringify({
@@ -336,7 +363,7 @@ var chatTerminal = function(){
     }
     function n(name){
         chatSocket.send(JSON.stringify({
-            'cmd':'profile',
+            'cmd':'rename',
             'name':name,
         }));
         term['name'] = name;
@@ -352,7 +379,6 @@ var chatTerminal = function(){
         localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
     }
     function w(){
-        // test全部的問題填答完後會自動發送theTerminal.wait()
         chatSocket.send(JSON.stringify({
             'cmd':'wait',
             'result':localData.testResult
@@ -384,7 +410,7 @@ var chatTerminal = function(){
         command:cmd,
         goto:go,
         profile:p,
-        name:n,
+        rename:n,
         match:m,
         test:t,
         wait:w,
@@ -426,7 +452,7 @@ var chatUI = function(){
 
     }
 
-    function m(msg){
+    function m(msg){  // todo: 特殊符號', ", <, >等會不會有問題
         var newElmt = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
         localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [1,newElmt],localStorage.chatLogs[localStorage.chatNum] = [1,newElmt];
@@ -440,10 +466,33 @@ var chatUI = function(){
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'sys',localStorage.lastSaid = 'sys';
         localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [2,newElmt],localStorage.chatLogs[localStorage.chatNum] = [2,newElmt];
         ut(!1);
-        
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
         return newElmt
     }
+
+    function q(question, choice_list, choice_num=2){
+        if (2 == choice_num){
+            var newElmt = 
+            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="w-100 m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p></p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
+        }else if(4 == choice_num){
+            var newElmt =  
+            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="w-100 m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p></p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p></p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
+        }else if(1 == choice_num){
+            var newElmt =
+            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="w-100 m-2">'+msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
+        }else{
+            console.log('不符合格式')
+            return false
+        }
+        newElmt.addClass('d-none');
+        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
+        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [1,newElmt],localStorage.chatLogs[localStorage.chatNum] = [1,newElmt];
+        ut(!1);
+        toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
+        return newElmt
+    }
+
+
     function wn(isWriting){
         0!==isWriting ?$('#writing').removeClass('invisible'):$('#writing').addClass('invisible')
         (toggle.focus = !0)&& (n(), ut(!0));
@@ -475,7 +524,21 @@ var chatUI = function(){
     }
 
     function c(){
-
+        function showTime(){
+            var date = new Date();
+            var offsetTime = (date-start)/ 1000;
+            var s = parseInt(offsetTime % 60), m = parseInt((offsetTime / 60) % 60), h = parseInt(offsetTime / 60 / 60);
+            h = (h < 10) ? ("0" + h) : h;
+            m = (m < 10) ? ("0" + m) : m;
+            s = (s < 10) ? ("0" + s) : s;
+            
+            var duration = h + ":" + m + ":" + s;
+            $(".a-clock").text(duration);
+            
+            setTimeout(showTime, 1000);
+        }   
+        var start = new Date();
+        showTime();
     }
 
     function ut(hasRead){
@@ -498,8 +561,24 @@ var chatUI = function(){
 
     function go(school_id, callback){  //async function
         var img_url = school_url+school_id+'.png';
+        var time1,time2;
         $('#mark-after>img').attr('src', img_url);
-        
+        $('#circle').addClass('.a-fadein')
+
+        time1 = $('#circle').css('transition-duration');
+        setTimeout(function(){
+            $('#circle').removeClass('.a-invisible-frame').addClass('.a-visible-frame');
+            $('#mark-before').addClass('d-none'),$('#mark-after').removeClass('d-none');
+            $('#mark-before>img').attr('src', img_url);
+            $('#circle').removeClass('.a-fandein').addClass('.a-fadeout');
+            time2 = $('#circle').css('transition-duration');
+        },time1)
+        setTimeout(function(){
+            $('#circle').removeClass('.a-visible-frame').addClass('.a-invisible-frame');
+            $('#mark-after').addClass('d-none'),$('#mark-before').removeClass('d-none');
+            $('#circle').removeClass('.a-fandeout');
+            callback()
+        }, time1+time2);
     }
 
     function d(dialogList, callback){  // async function: callback after function has completed.
@@ -516,9 +595,7 @@ var chatUI = function(){
             }, i*500);
         }
     }
-    function q(){
 
-    }
 
     return{
         showSelfMsg:sm,
@@ -557,7 +634,7 @@ var TITLE = "ACard - AnonCard",
         greet:'GREET',
         goto:'GOTO',
         profile:'PROFILE',
-        name:'NAME',
+        rename:'RENAME',
         test:'TEST',
         wait:'WAIT',
         enter:'ENTER',
@@ -734,9 +811,9 @@ var TITLE = "ACard - AnonCard",
         leave:['/leave','/le'],
         change:['/change','/cg'],
         profile:['/profile','/p'],
-        name:['/name','/n'],
-        test:['/test','/t'],
+        rename:['/rename','/n'],
         match:['/match','/m'],
+        retest:['/retest','/t'],
         reset:['/reset','/r'],
         image:['/image','/@']
     },
@@ -744,14 +821,26 @@ var TITLE = "ACard - AnonCard",
         writing:!1,
         click:!1,
         focus:!1,
-        scroll:!1
+        scroll:!1,
+        cmd:!0,  // 是否取代localData.cmdEnabled和localData.textEnabled 差別在於是否需要離線保存或每次上線都重新載入
+        text:!0 // todo 當出現bootbox時 離線後上線是否還要停留在bootbox
     },
+    unreadMsg = 0, // 是否取代 localData.unreadMsg
     term = {},
     chatSocket = null,
     theUI = chatUI(),
     theWS = chatWS(),
     theTerminal = chatTerminal(),
+    theGate = checkGate(),
     localData = getLocalData(),
+    currentStep = {
+        name:(0===localData.name.length) ? 0 : 1,
+        school:(0===localData.school.length) ? 0 : 1,
+        matchType:(0===localData.matchType.length) ? 0 : 1,
+        testResult:(0===localData.testResult.length) ? 0 : 1,
+        room:(0===localData.room.length) ? 0 : 1
+    },
+    nextStep = {...currentStep},
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
 
 $(document).ready(function() {

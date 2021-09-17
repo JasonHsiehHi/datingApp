@@ -37,7 +37,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.cmd_goto(content['school'])
             elif command == 'profile':
                 await self.cmd_profile(content['name'], content['matchType'])
-            elif command == 'name':
+            elif command == 'rename':
                 await self.cmd_profile(content['name'])
             elif command == 'test':
                 await self.cmd_test()
@@ -49,7 +49,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.cmd_leave()
                 await self.cmd_wait()
 
-            # todo 還有/reset, /adult兩種
+            # todo 還有/reset, /adult
 
         elif 'wn' in content and self.player_data.inRoom:
             await self.channel_layer.group_send(self.player_data.room, {
@@ -96,7 +96,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def cmd_profile(self, name, match_type=None):
         if match_type is None:
-            action = 'NAME'
+            action = 'RENAME'
             self.player_data = await utils.set_player_profile(
                 self.player_data, name)
 
