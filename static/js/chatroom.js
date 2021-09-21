@@ -11,45 +11,51 @@ function chatroomWS(){
             $("#send-text").focus();
         };
         // todo 可增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
+        // todo 處理後端的自動斷線問題
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
             switch (data.type){
                 case typeSet.greet: 
                     localData.anonName=data.anonName, localStorage.anonName=data.anonName;
-                    theUI.showDialogsAsync(data.dialog,function(){
-                        localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
+                    theUI.showMsgsAsync(data.dialog,function(){
+                        toggle.cmd = !0;
                     });
                     break;
+
                 case typeSet.goto:
                     theUI.gotoSchoolAsync(term.schoolId,function(){
                         localData.school = term.schoolId, localStorage.school = term.schoolId;
-                        theUI.showDialogsAsync(data.dialog,function(){
-                            localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
+                        delete term.schoolId;
+                        theUI.showMsg('已抵達'+localData.school + schoolSet[localData.school] +'了😎');
+                        theUI.showMsgsAsync(data.dialog,function(){
+                            toggle.cmd = !0;
                         });
                     });
-                    delete term.schoolId;
                     break;
+
                 case typeSet.profile:
                     localData.name = term.name, localStorage.name = term.name, localData.matchType = term.matchType, localStorage.matchType = term.matchType;
+                    delete term.name, delete term.matchType;
                     var m = [];
-                    for (x of term.matchType){
+                    for (x of localData.matchType){
                         'm'==x?m.push('(男)'):m.push('(女)')
                     }
-                    theUI.showSys('名稱：'+term.name+' 配對：'+term.matchType[0]+m[0] +'找'+ term.matchType[1]+m[1]+' 基本資料已確認完畢'); // todo:輸入的關鍵字要變色
-                    localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
-                    delete term.name, delete term.matchType;
-                    break;                
+                    theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 配對：<span class="a-point">'+localData.matchType[0]+m[0] +'找'+ localData.matchType[1]+m[1]+'</span> 基本資料已確認完畢');
+                    toggle.cmd = !0;
+                    break;
+
                 case typeSet.rename:
                     localData.name = term.name, localStorage.name = term.name;
-                    theUI.showSys('名稱：'+term.name+' 已修改完畢');
-                    localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
                     delete term.name;
+                    theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 已修改完畢');
+                    toggle.cmd = !0;
                     break;
+
                 case typeSet.test:
                     term.testQuestions = data.questions;
                     processTest(data.questions);
-                    localData.cmdEnabled = !0, localStorage.cmdEnabled = 'true';
+                    toggle.cmd = !0;
                     break;
                 case typeSet.wait:
                     // 加上等待計時時鐘 theUI.showClock()
@@ -91,7 +97,7 @@ function chatroomWS(){
             }
         };
         chatSocket.onclose = function(e) {
-            console.log('WS disconnected code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
+            console.log('WS disconnected. code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
             // 若user沒有被禁用時, 即!0==localData.retry 則自動重連 chatSocket=null ,chatroomWS() 
             // 自動重連:用setInterval() 或setTimeout()
         };
@@ -105,17 +111,16 @@ function LocalData(){
     this.isWaiting = !1,
     this.inRoom = !1, // 等同this.room='' 而this.inRoom表示狀態
     this.hasTested = !1,
-    this.unreadMsg = 0, //是否移到下面
     this.lastSaid = 'sys',
-    this.textEnabled = !0, // bootbox觸發時不能輸入
-    this.cmdEnabled = !0, // 不能重複輸入command
     this.anonName = '',
     this.room = '',
     this.school = '',
     this.matchType = '',
     this.testResult = [],
-    this.chatLogs = {},
-    this.chatNum = 0
+    this.chatLogsNum = 0,
+    this.chatLogsMaxNum = 250
+    for (let i = 0;i<5;i++)
+        this['chatLogs'+i.toString()] = ''
 }
 
 function getLocalData(){
@@ -128,36 +133,35 @@ function getLocalData(){
             data.isWaiting = ('true'===localStorage.isWaiting)?!0:!1,
             data.inRoom = ('true'===localStorage.inRoom)?!0:!1,
             data.hasTested = ('true'===localStorage.inRoom)?!0:!1,
-            data.unreadMsg = +localStorage.unreadMsg,
             data.lastSaid = localStorage.lastSaid,
-            data.textEnabled = ('true'===localStorage.textEnabled)?!0:!1,
-            data.cmdEnabled = ('true'===localStorage.cmdEnabled)?!0:!1,
             data.anonName = localStorage.anonName,
             data.room = localStorage.room,
             data.school = localStorage.school,
             data.matchType = localStorage.matchType,
             data.testResult = JSON.parse(localStorage.testResult),
-            data.chatLogs = JSON.parse(localStorage.chatLogs),
-            data.chatNum = +localStorage.chatNum
+            data.chatLogsNum = +localStorage.chatLogsNum,
+            data.chatLogsMaxNum = +localStorage.chatLogsMaxNum
+            for (let i = 0;i<5;i++)
+                data['chatLogs'+i.toString()] = localStorage['chatLogs'+i.toString()]
         }else{
+            localStorage.isSaved = 'true',
             localStorage.uuid = data.uuid,
             localStorage.name = '',
             localStorage.isBanned = 'false',
             localStorage.isWaiting = 'false',
             localStorage.inRoom = 'false',
             localStorage.hasTested = 'false',
-            localStorage.unreadMsg = '0',
             localStorage.lastSaid = 'sys',
-            localStorage.textEnabled = 'true',
-            localStorage.cmdEnabled = 'true',
             localStorage.anonName = '',
             localStorage.room = '',
             localStorage.school = '',
             localStorage.matchType = 'mf',
             localStorage.testResult = JSON.stringify(data.testResult),
-            localStorage.chatLogs = JSON.stringify(data.chatLogs),
-            localStorage.chatNum = '0',
-            localStorage.isSaved = 'true'
+            localStorage.chatLogsNum = '0',
+            localStorage.chatLogsMaxNum = '250'
+            for (let i = 0;i<5;i++)
+                localStorage['chatLogs'+i.toString()] = ''
+            
         }
     }else{
         //todo: 開頭頁面推薦使用最新版的chrome或safari瀏覽器 能支持保留頁面功能 
@@ -180,11 +184,11 @@ function disableBackSpace() {
 }
 
 function bindMsgSending() {
-    $("#send-text").on('keypress',function(a) { // todo: input的資料是否可能構成XSS攻擊 以及直接用console提交資料的問題
+    $("#send-text").on('keypress',function(a) { // todo: input的資料是否可能構成XSS攻擊
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
             var text = $("#send-text").val();
-            (void 0 != text && null != text &&"" != text) && text.match(/(\/[a-zA-Z]+)/i)? (!0==localData.cmdEnabled && theTerminal.command(text)) : (!0==localData.inRoom) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!');
+            (void 0 != text && null != text &&"" != text) && text.match(/(\/[a-zA-Z]+)/i)? (!0==toggle.cmd && theTerminal.command(text)) : (!0==localData.inRoom) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!');
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
         }
@@ -312,8 +316,9 @@ var chatTerminal = function(){
     function cmd(totalStr){  // 若由'#send-text'發出 則必須透過command()作分流 若由UI發出 則直接調用方法
         var listStr = totalStr.split(' ');
         var cmdStr = listStr[0];
+        var wrongMsg = '指令為：<span class="a-point">'+totalStr+'</span> 未符合 '+cmdStr+ ' 指令格式';
         if (commandSet.goto.includes(cmdStr))
-            (2==listStr.length)?go(listStr[1]):theUI.showSys('未符合 '+cmdStr+ ' 指令格式'); // todo:可改為多了或少了會有不同的狀況
+            (listStr.length===2 && listStr[1].length>0) ? go(listStr[1]) : theUI.showSys(wrongMsg+'：空格後加上前往的學校縮寫哦 <span class="a-point">/go xxx</span>')
         else if (commandSet.adult.includes(cmdStr))
             a();
         else if (commandSet.leave.includes(cmdStr))
@@ -321,9 +326,9 @@ var chatTerminal = function(){
         else if (commandSet.change.includes(cmdStr))
             cg();
         else if (commandSet.profile.includes(cmdStr))
-            (3==listStr.length)?p(listStr[1], listStr[2]):theUI.showSys('未符合 '+cmdStr+ ' 的指令格式');
+            (listStr.length===3 &&listStr[1].length>0 && listStr[2].length>0) ? p(listStr[1], listStr[2]) : theUI.showSys(wrongMsg+'：必須依序填入配對用的名稱與配對類型 <span class="a-point">/p 我的名字 fm</span>');
         else if (commandSet.rename.includes(cmdStr))
-            (2==listStr.length)?n(listStr[1]):theUI.showSys('未符合 '+cmdStr+' 的指令格式');
+            (listStr.length==2 &&listStr[1].length>0) ? n(listStr[1]) : theUI.showSys(wrongMsg+'：空格後填入欲修改的名稱 <span class="a-point">/n 我的名字</span>');
         else if (commandSet.retest.includes(cmdStr))
             t();
         else if (commandSet.match.includes(cmdStr))
@@ -333,24 +338,29 @@ var chatTerminal = function(){
         else if (commandSet.image.includes(cmdStr))
             _a();
         else
-            console.log(cmdStr+" isn't a command."), theUI.showSys('目前沒有 '+cmdStr+' 這項指令😭');
+            console.log(cmdStr+" isn't a command."), theUI.showMsg('目前沒有 <span class="a-point">'+cmdStr+'</span> 這項指令😭');
     }
 
     function go(schoolId){
-        if (!(schoolId.toUpperCase() in schoolSet)){
-            theUI.showSys('目前尚未開放: '+schoolId);
+        schoolId = schoolId.toUpperCase();
+        if (!(schoolId in schoolSet)){
+            theUI.showSys('目前尚未開放此學校: <span class="a-point">'+schoolId+'</span>');
+            return false
+        }
+        if (schoolId === localData.school){
+            theUI.showMsg('你目前已經在 <span class="a-point">'+schoolId +schoolSet[schoolId] +'</span> 了哦');
             return false
         }
         chatSocket.send(JSON.stringify({
             'cmd':'goto',
             'school':schoolId.toLowerCase()
         }));
-        term['schoolId'] = schoolId;
-        localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
+        term['schoolId'] = schoolId.toUpperCase();
+        toggle.cmd = !1;
     }
     function p(name, matchType){
         if (!(['mf','mm','fm','ff'].includes(matchType.toLowerCase()))){
-            theUI.showSys('配對類型只能選擇: mf(男找女), mm(男找男), fm(女找男), ff(女找女)');
+            theUI.showSys('配對類型只能選擇: <span class="a-point">fm, mf, mm, ff </span> 四種(分別為女找男, 男找女, 男找男, 女找女)');
             return false
         }
         chatSocket.send(JSON.stringify({
@@ -359,7 +369,7 @@ var chatTerminal = function(){
             'matchType':matchType.toLowerCase()
         }));
         term['name'] = name, term['matchType'] = matchType;
-        localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
+        toggle.cmd = !1;
     }
     function n(name){
         chatSocket.send(JSON.stringify({
@@ -367,7 +377,7 @@ var chatTerminal = function(){
             'name':name,
         }));
         term['name'] = name;
-        localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
+        toggle.cmd = !1;
     }
     function m(){
         (!1==localData.hasTested)?t():w()
@@ -376,26 +386,26 @@ var chatTerminal = function(){
         chatSocket.send(JSON.stringify({
             'cmd':'test'
         }));
-        localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
+        toggle.cmd = !1;
     }
     function w(){
         chatSocket.send(JSON.stringify({
             'cmd':'wait',
             'result':localData.testResult
         }));
-        localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
+        toggle.cmd = !1;
     }
     function le(){
         chatSocket.send(JSON.stringify({
             'cmd':'leave'
         }));
-        localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
+        toggle.cmd = !1;
     }
     function cg(){
         chatSocket.send(JSON.stringify({
             'cmd':'change'
         }));
-        localData.cmdEnabled = !1, localStorage.cmdEnabled = 'false';
+        toggle.cmd = !1;
     }
     function a(){
 
@@ -445,8 +455,7 @@ var chatUI = function(){
         var newElmt = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
         st(newElmt,1);
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'self',localStorage.lastSaid='self';
-        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [0,newElmt],localStorage.chatLogs[localStorage.chatNum] = [0,newElmt];
-        ut(!1);
+        sl(newElmt),ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
         return newElmt
 
@@ -455,8 +464,7 @@ var chatUI = function(){
     function m(msg){  // todo: 特殊符號', ", <, >等會不會有問題
         var newElmt = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
-        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [1,newElmt],localStorage.chatLogs[localStorage.chatNum] = [1,newElmt];
-        ut(!1);
+        sl(newElmt),ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
         return newElmt
     }
@@ -464,8 +472,7 @@ var chatUI = function(){
     function sy(msg){
         var newElmt = '<div class="mb-2 text-center"><p class="a-dialogdiv a-sys a-pa a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>'
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'sys',localStorage.lastSaid = 'sys';
-        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [2,newElmt],localStorage.chatLogs[localStorage.chatNum] = [2,newElmt];
-        ut(!1);
+        sl(newElmt),ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
         return newElmt
     }
@@ -486,8 +493,7 @@ var chatUI = function(){
         }
         newElmt.addClass('d-none');
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
-        localData.chatNum++,localStorage.chatNum++,localData.chatLogs[localData.chatNum] = [1,newElmt],localStorage.chatLogs[localStorage.chatNum] = [1,newElmt];
-        ut(!1);
+        sl(newElmt),ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
         return newElmt
     }
@@ -542,46 +548,67 @@ var chatUI = function(){
     }
 
     function ut(hasRead){
-        hasRead?(localData.unreadMsg=0,localStorage.unreadMsg=0, document.title=TITLE):(localData.unreadMsg+=1,localStorage.unreadMsg+=1, document.title='('+localData.unreadMsg+')' + TITLE)
+        hasRead?(unreadMsg=0, document.title=TITLE):(unreadMsg+=1, document.title='('+unreadMsg+')' + TITLE)
     }
 
     function cl(){
-        $('#dialog').empty(),localData.chatLogs={},localStorage.chatLogs={},localData.chatNum=0,localStorage.chatNum=0
+        var first = $('#clock'), last = $('#writing');
+        for (let i = 0;i<5;i++)
+            localData['chatLogs'+i.toString()] = '', localStorage['chatLogs'+i.toString()] = '';
+        localData.chatLogsMaxNum = 250,localStorage.chatLogsMaxNum = localData.chatLogsMaxNum.toString() ,localData.chatLogsNum=0,localStorage.chatLogsNum='0';
+        $('#dialog').empty();
+        $('#dialog').append(first), $('#dialog').append(last);
     }
 
-
     function ll(){
-        if (void 0 === typeof(Storage)){
-            $('#dialog').empty();
-            for (let l in localData.chatLogs)
-                $('#writing').before(l[1]);
+        if (void 0 !== typeof(Storage)){
+            var index = (localData.chatLogsNum>=250)?((localData.chatLogsNum/50)%5)+1 : 0 ;
+            var first = $('#clock'), last = $('#writing');
+            $('#dialog').empty(), $('#dialog').append(first), $('#dialog').append(last);
+            for (let i = 0;i<5;i++){
+                (index>=5)&&(index=index-5);
+                $('#writing').before(localData['chatLogs'+index.toString()]);
+                index++;
+            }
         }
-        n();
+    }
+    function sl(elmt){ // todo 目前先用50個dialogdiv換行 塞滿200個dialogdiv後開始刪減 之後在用Blob找準確大小
+        var index = (localData.chatLogsNum/50) % 5, isFull = (localData.chatLogsNum>=localData.chatLogsMaxNum)?!0:!1;
+        if (isFull){
+            localData['chatLogs'+index.toString()] = '',localStorage['chatLogs'+index.toString()] = '';
+            localData.chatLogsMaxNum = localData.chatLogsMaxNum +50, localStorage.chatLogsMaxNum = localData.chatLogsMaNum.toString();
+        }
+        localData['chatLogs'+index.toString()] = localData['chatLogs'+index.toString()]+elmt, localStorage['chatLogs'+index.toString()] = localStorage['chatLogs'+index.toString()]+elmt;
+        localData.chatLogsNum++, localStorage.chatLogsNum = localData.chatLogsNum.toString();
     }
 
     function go(school_id, callback){  //async function
-        var img_url = school_url+school_id+'.png';
+        var extn = '.png';
+        var img_url = school_url+school_id+extn;
         var time1,time2;
         $('#mark-after>img').attr('src', img_url);
-        $('#circle').addClass('.a-fadein')
+        $('#circle').addClass('a-fadein')
 
-        time1 = $('#circle').css('transition-duration');
+        time1 = $('#circle.a-fadein').css('transition-duration');
+        time1 = parseFloat(time1)*1000;
         setTimeout(function(){
-            $('#circle').removeClass('.a-invisible-frame').addClass('.a-visible-frame');
+            $('#circle').removeClass('a-invisible-frame').addClass('a-visible-frame');
             $('#mark-before').addClass('d-none'),$('#mark-after').removeClass('d-none');
             $('#mark-before>img').attr('src', img_url);
-            $('#circle').removeClass('.a-fandein').addClass('.a-fadeout');
-            time2 = $('#circle').css('transition-duration');
+            $('#circle').removeClass('a-fadein').addClass('a-fadeout');
+            time2 = $('#circle.a-fadeout').css('transition-duration');
+            time2 = parseFloat(time2)*1000;
+            setTimeout(function(){
+                $('#circle').removeClass('a-visible-frame').addClass('a-invisible-frame');
+                $('#mark-after').addClass('d-none'),$('#mark-before').removeClass('d-none');
+                $('#circle').removeClass('a-fadeout');
+                callback()
+            }, time2);
         },time1)
-        setTimeout(function(){
-            $('#circle').removeClass('.a-visible-frame').addClass('.a-invisible-frame');
-            $('#mark-after').addClass('d-none'),$('#mark-before').removeClass('d-none');
-            $('#circle').removeClass('.a-fandeout');
-            callback()
-        }, time1+time2);
+
     }
 
-    function d(dialogList, callback){  // async function: callback after function has completed.
+    function ms(dialogList, callback){  // async function: callback after function has completed
         var i = 0; 
         for (let dialog of dialogList){
             setTimeout(function(){
@@ -611,9 +638,9 @@ var chatUI = function(){
         unreadTitle:ut,
         clearChatLogs:cl,
         loadChatLogs:ll,
+        storeChatLogs:sl,
         gotoSchoolAsync:go,
-        showDialogsAsync:d
-
+        showMsgsAsync:ms
     }
 }
 
@@ -822,10 +849,10 @@ var TITLE = "ACard - AnonCard",
         click:!1,
         focus:!1,
         scroll:!1,
-        cmd:!0,  // 是否取代localData.cmdEnabled和localData.textEnabled 差別在於是否需要離線保存或每次上線都重新載入
+        cmd:!0,  // 取代localData.cmdEnabled和localData.textEnabled 差別在於需要離線保存或每次上線都重新載入
         text:!0 // todo 當出現bootbox時 離線後上線是否還要停留在bootbox
     },
-    unreadMsg = 0, // 是否取代 localData.unreadMsg
+    unreadMsg = 0, // 取代 localData.unreadMsg
     term = {},
     chatSocket = null,
     theUI = chatUI(),

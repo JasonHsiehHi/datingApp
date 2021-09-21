@@ -111,7 +111,7 @@ def waitingTime_to_score(waitingTime):
 
 
 @database_sync_to_async
-def check_players_num(school_id, target_matchType):  # 應與其他process合併 減少訪問database的機會
+def check_players_num(school_id, target_matchType):  # todo 應與其他process合併 減少訪問database的機會
     school = School.objects.get(name=school_id)
     players_in = Player.objects.filter(Q(school=school) & Q(isWaiting=True) & Q(matchType=target_matchType))
     num = len(players_in)
@@ -123,7 +123,7 @@ def check_players_num(school_id, target_matchType):  # 應與其他process合併
 
 
 @database_sync_to_async
-def get_dialogue_dialog(speaker, action, sub=None, n=None):
+def get_dialogue_dialog_and_speaker(speaker, action, sub=None, n=None):
     if n is None:
         dialogues = Dialogue.objects.filter(action=action).filter(Q(sub=sub) | Q(sub=None)).filter(speaker=speaker)
         num = len(dialogues)

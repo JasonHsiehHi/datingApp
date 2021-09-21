@@ -638,7 +638,7 @@ web上傳的文件或cookies都一定要經過資料清洗：以避免XSS攻擊(
 在inputfield欄中寫入可能惡意連接的代碼 進而影響伺服器後台
 
 表單加上{% csrf_token %} 可以確保上傳資料時一定要由特定頁面進行：
-以避免XSRF(cross-site request forgery) 即將惡意上傳文件丟給管理員並誘使他啟用
+以避免CSRF(cross-site request forgery) 即將惡意上傳文件丟給管理員並誘使他啟用
 
 SSL(Secure Sockets Layer)即保證 網路連接安全 與 將資料加密保護直到送到指定端點
 TSL (Transport Layer Security)同樣是SSL 只是使用更新的技術
@@ -1591,6 +1591,7 @@ for (let i of iterable) {
 }
 一般物件使用for-in 而array則使用for-of (array中的key就是list的index)
 因為in主要用於key 而of是針對value
+for-in變數位置在裡面 故表示key或index for-of為屬於物件的變數 故為value
 
 此方法更適何用於switch-case:  
 case有多種狀況 此時就可以用此物件來紀錄狀況 (類似於 C#的emun類別)
@@ -1676,6 +1677,10 @@ JS的命名風格比較傾向用"===" 取代 "==" 因為一且已清楚為標準
 
 parstInt(str),parseFloat(str)與Number(str)都能將string轉成number型態
 而差別在於parstInt('123jason') = 123, Number('123jason') = NaN (即not a number)
+
+另外toString()與String()的差異為：
+false.toString() = 'false' 0.toString() = '5' 除了null和undefined外的所有資料類型
+String(null) = 'null' String(undefined) = 'undefined' 用於處理例外的這二項
 
 嚴格比較將null與undefined視為不同 寬鬆比較將兩者視為相同
 任何還未設值的變數都是undefined 非常好用
@@ -2079,6 +2084,11 @@ var sayWelcomeIIFEs = (function(name) {
 JQuery的好用之處就在於他的便捷性
 $("ul").text() 回傳中間的文本內容(textContent)
 $("ul").empty()可以清除<ul>元素中所有的子元素
+
+針對移出方式 jquery還分為:empty(), remove(), detach()三種：
+remove()用於刪除自身元素 但可在DOM結構(JS檔)中用變數保留完整元素內容
+empty()不刪除自身但會清空內部子元素 此時DOM結構就不會有內部子元素內容 
+detach()幾乎等同remove() 但會保留綁定的事件 如果用remove()刪除則需要重新綁定事件
 
 $("ul").append(content)表示直接插在子元素中的最後一個 可取代JS的appendChild()
 $("ul").append(content).scrollTop($("ul").prop('scrollHeight')); // 滾軸移動到$("ul")的下方
@@ -3114,9 +3124,11 @@ function getCookie('csrftoken')
 
 
 CSRF(Cross-Site Request Forgery) 中文翻為跨站請求攻擊或跨站偽造請求
-csrf_token：用於確認請求是來自上一頁正確的表單 以此避免在站外連結
-當在登陸頁面時 會自動生成一組安全代碼
-因此當接受數據時 必須要有該組代碼才會通過
+攻擊者會偽造請求(不知名連結...等)給其他被攻擊者 讓被攻擊者在"不知情"的情況下送出請求
+如此一來就會通過該網站後端的身分認證機制 因為也確實是被攻擊者所發送的請求
+
+csrf_token：用於確認請求是來自上一頁正確的表單 以此避免在站外連結所送出的請求
+當在登陸頁面時 會自動生成一組安全代碼 而當後端接受數據時 必須要有該組代碼才會通過
 
 為防止CSRF 應避免任何只要輸入網址就可以執行的動作(GET)
 所有的"GET" 應該都只能是唯獨的動作
@@ -3226,7 +3238,7 @@ firstof 表示前一變數只要存在 就會優先輸出前一變數
 而當var1,var2,var3都不存在時 就會輸出"fallback value" 
 
 
-轉義escape的目的：
+轉譯escape的目的：
 即為避免python的字串變數中有html語法("<", ">"...) 而導致錯誤
 
 以下兩者處理轉譯的方法 其結果相同：
@@ -3250,6 +3262,7 @@ value為"Joel\nis a slug"
 {% firstof var1 var2 var3 "<strong>fallback value</strong>"|safe %}
 {% autoescape %}
 而用|safe 則直接略過該變數 不做自動轉譯 (escape和safe兩者用途相反)
+因為django會預設防injection的保護機制 反而是要用|safe才能避開轉譯
 
 {{ some_list|safeseq|join:", " }} 
 |safeseq則用於list中 可一次對list內的多個變數做|safe
@@ -3281,6 +3294,9 @@ value={'key': name}
   const data = JSON.parse(document.getElementById('data').textContent);
   ...
 </script>
+
+<img src={{ profile_photo }}> 不要把html的標籤屬性值作為變數 供外部使用者input
+若input為"/img/home-bg.jpg onload=alert(1)" 就會導致django的轉譯無法防範
 
 django template comment {#...#} 
 就是放於html的註解
@@ -3351,14 +3367,14 @@ apt-get與pipㄧ樣都是套件管理工具 Linux系統較常使用apt-get
 IaaS(Infrastructure as a Service)
 主要包含：虛擬伺服器VPS,虛擬雲端VPC兩大功能
 VPS只用於個人 而VPC用於公司或開發團隊 提供分配或調整各項運算資源
-IaaS即提供伺服器與機房等硬體設備 使用者可以自行架設作業系統與主要應用程式
+IaaS即提供伺服器,貯存與機房等硬體設備 使用者可以自行架設作業系統與主要應用程式
 
 PaaS(Platform as a Service)
-除了IaaSd的硬體設備之外 提供商還規範作業系統與開發程式環境
-使用者專注在資料處理與應用程式
+除了IaaSd的硬體設備之外 提供商還規範作業系統與開發環境 
+用戶可使用已經構建完成的作業系統平台 故只需專注於資料處理與應用程式  
 
 SaaS(Software as a Service)
-提供商提供完整的應用服務 使用者直接購買服務 ex:Gmail,Evernote...
+提供商提供完整的應用服務 使用者直接購買服務 ex:Gmail, Evernote, Youtube...
 
 主要思考網站的所需流量的多寡以及如何满足该需求？
 必須要能支持Django框架
@@ -3383,10 +3399,39 @@ Docker使用簡易版Linux環境：大致上就是分為user space和kernel spac
 兩者有獨立性:一般而言user無權訪問kernel 以確保使用者不會傷害到核心
 
 Heroku是PaaS 而 Kubernetes是container tool 這三樣工具都是屬於不同層面的工具
-Heroku的競爭對手是AWS,Azure,GAE 其中的AWS才是目前的龍頭
+Heroku的競爭對手是EB ,Azure ,GAE 其中的AWS的EB才是目前的PaaS龍頭
 
-redis 全名為remote diction server 與MySQL同樣是資料庫
-但為Key-Value Database：即利用鍵值的格式儲存資料 屬於非關聯式資料庫
+其中Elastic Beanstalk(EB) 是AWS雲端環境的快速部署與管理平台(PaaS) 
+可使用任何AWS組件 像是Elastic Load Balancer負載均衡, Auto-Scaling Group自動擴充和Security Group等
+而Elastic Computer Cloud(EC2) 則讓用戶在上面自行建置伺服器 為AWS的雲端空間(IaaS)
+
+circleCI用於自動化雲端環境的測試,整合和部署 需要有配合的雲端平台PaaS
+Continuous Integration & Delivery (CI/CD) 持續整合與持續交付
+可自動偵測GitHub上的程式碼 若有更新則自動整合支線,自動建置Docker環境,自動測試,再自動部署到EB上
+且circleCI的自動化測試結果也會在GitHub上顯示 只要有新的push都會執行 無論最後有沒有pull到owner的帳號
+
+在專案Repo中新增circle.yml
+其中包含machine:設置環境 dependencies:相依套件與框架 test:需進行的測試
+
+Git-Flow 為針對開發時git使用流程的規範(workflow)
+通常以release分支為基礎 每個release分支會有一隻develop分支 
+最後會將開發完成的develop併回release 此時release是已完成新功能且已修復完bug 確認後再併回master
+
+Github-Flow 也是一種git流程規範(workflow)
+但以master為基礎 只要是master上的版本都一定要通過測試 
+且任何開發功能或修復bug等所有分支都必須從master延伸 不會在分為release和develop兩分支
+
+Github-Flow與Git-Flow最大的差異：
+在於Github-Flow是以CI/CD為目的 強調上線部署後仍能不中斷開發
+
+常見資料庫系統：
+MySQL和SQLite都是關聯式資料庫(RDBMS) 追求一致性與準確性且能處理大量資料
+MySQL則適合高流量大規模的網站 接受多個客戶同時訪問同一資料庫
+SQLite屬於輕量型資料庫 適合中低流量的網站 且會有資料庫需單個寫入的侷限性
+
+MongoDB 則為文件型資料庫 屬於非關聯式資料庫(NoSQL,not only SQL) 追求即時性
+redis 全名為remote diction server 同樣是資料庫的一種
+但為Key-Value Database：即利用鍵值的格式儲存資料 屬於非關聯式資料庫(NoSQL)
 常用於需要快取cache的場合 幾乎是聊天室架設必備的工具
 
 
@@ -4743,6 +4788,10 @@ MVVM模式取代傳統的MVC模式
 同理在view上觸發事件時 會將狀態用物件表示的方式回存至model(DOM Listeners)
 ViewModel框架即具有即時性 進而取代Controller
 
+Django所使用的是MVT模式 也就是Template取代Controller 
+當要從資料庫model中抓取資料並呈現在view上時 可藉由Template的模板語言實現
+所有的view都必須將一個template做為參數(html檔)
+
 為了可以在不同裝置上使用
 一般都會使用響應式設計(RWD) 可直接使用bootstrap-responsive.css
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5630,6 +5679,7 @@ fnt_250{
   (font-size:250%; 比父元素字體大250%)
 }
 font-size字體大小 font-weight字體粗細 font-style斜體
+font-variant針對某些字元做變形 slashed-zero為處理'0''O'太相似問題 common-ligatures英文中的連字
 font-family 用於決定預設字體：
 但不會做下載動作 故要選擇各種瀏覽器都通用的字體
 

@@ -3,14 +3,14 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import json
 from . import utils
 from random import randint
-import sys
 import time
+import sys
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
         self.player_data = None
-        self.robot = randint(0, 1)
+        self.robot = 2  # randint(0, 1)
         await self.accept()
 
         # await self.close() to reject connection
@@ -76,9 +76,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.player_data = player
         t = int(time.strftime('%H', time.localtime()))
         if 5 <= t < 17:
-            dialog, robot = await utils.get_dialogue_dialog(1, 'GREET', 'mo')
+            dialog, robot = await utils.get_dialogue_dialog_and_speaker(self.robot, 'GREET', 'mo')
         else:
-            dialog, robot = await utils.get_dialogue_dialog(1, 'GREET', 'ev')
+            dialog, robot = await utils.get_dialogue_dialog_and_speaker(self.robot, 'GREET', 'ev')
         await self.send_json({
             'type': 'GREET',
             'dialog': dialog,
@@ -88,7 +88,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def cmd_goto(self, school_id):
         school_id = school_id.lower()
         await utils.set_player_school(self.player_data, school_id)
-        dialog, robot = await utils.get_dialogue_dialog(1, 'GOTO', school_id)
+        dialog, robot = await utils.get_dialogue_dialog_and_speaker(1, 'GOTO', school_id)
         await self.send_json({
             'type': 'GOTO',
             'dialog': dialog  # todo 存入database的dialogue需要能夠挖空 並可放入name變數

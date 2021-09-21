@@ -1,5 +1,5 @@
 .a-widget{
-    background:gery;
+    background:gray;
 }
 .a-clock{
     position: absolute;
@@ -47,7 +47,7 @@
 }
 
 .navbar.a-clr{
-    background: #4e6a82bf; /* like SteelBlue*/
+    background: #4e6a82bf; /* like SteelBlue #4e6a82bf*/
 }
 
 .navbar-toggler.a-clr:focus{
@@ -199,19 +199,27 @@ span.a-writing{
     font-style:italic;
 }
 
-.a-matcher.a-font{
-    font-weight:bold;
-    color:blue;
+.a-self.a-title{
+    font-weight: bold;
+    color:Navy;
+}
+.a-matcher.a-title{
+    font-weight: bold;
+    color:Crimson;
 }
 
-.a-self.a-font{
-    font-weight:bold;
-    color:#c70000;
+.a-sys{
+    font-weight: bold;
+    color:DimGray; /* DimGray */
 }
 
-.a-sys.a-font{
-    font-weight:bold;
-    color:rgb(6 139 160);
+.a-sys .a-point{
+    color: DarkCyan;  /* DarkCyan*/
+}
+
+.a-matcher .a-point{
+    font-weight: bold;
+    color: darkorange;  /* DarkOrange*/
 }
 
 .input-group.a-pa{
@@ -235,7 +243,7 @@ span.a-writing{
 }
 
 .input-group.a-clr{
-    background: #6299c7; /* like SteelBlue*/
+    background: #6299c7; /* like SteelBlue #6299c7*/
 }
 
 .a-input.a-clr{
@@ -248,15 +256,15 @@ span.a-writing{
 }
 
 .a-sys.a-clr{
-    background: white;
+    background: Snow ; /*Snow*/
 }
 
 .a-matcher.a-clr{
-    background: #fff8dc;
+    background: #fff8dc; /*like Cornsilk #fff8dc*/
 }
 
 .a-self.a-clr{
-    background: #ffe34d;
+    background: #ffe34d; /*like Gold #ffe34d*/
 }
 
 .a-section{
