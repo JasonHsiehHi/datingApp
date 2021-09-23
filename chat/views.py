@@ -1,8 +1,10 @@
 from django.shortcuts import render
 from .forms import PhotoModelForm
+from .models import Photo
 from django.http import JsonResponse
 import os
 from django.conf import settings
+import sys
 
 
 def chatroom(request):
@@ -11,6 +13,11 @@ def chatroom(request):
 
 def upload_image(request):
     if request.is_ajax and request.method == "POST":
+        print(request.POST, file=sys.stderr)
+        print(request.FILES, file=sys.stderr)
+        # request.FILES['send-img']
+        # photo = Photo.objects.create(image=request.FILES['send-img'],uploader=)
+
         form = PhotoModelForm(request.POST)
         if form.is_valid():
             instance = form.save(commit=False)

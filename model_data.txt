@@ -1,0 +1,50 @@
+Dialogue model:
+action sub number speaker dialog
+GREET mo 1 1 
+["歡迎來到Acard！😂",
+ "這是一個由多位學生因興趣而自主開發的陌生交友平台",
+ "這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ 輸入\/goto 學校縮寫 (例如:NTU, NCCU等)"
+]
+GREET mo 2 1 
+GREET mo 3 2
+["哈囉你好～",
+"Acard是一個由多位好友因興趣而自架的學生交友平台",
+"這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ 輸入\/goto 學校縮寫 (例如:NCCU, TKU, FJU等)"
+GREET mo 4 2
+
+目前GREET-ev皆與GREET-mo相同即可
+GREET ev 1 1
+GREET ev 2 1
+GREET ev 3 2
+GREET ev 4 2
+
+
+Robot model:
+id name 
+1 '正在念大六的Acard開發者'
+2 '愛喝拿鐵的社畜OL'
+
+參考:
+'大刀面前耍關公'
+'鉛筆盒裡沒筆'
+
+
+Question model:
+content id type choice
+ 1s s
+
+性向問題-動漫,電影,遊戲,知名人物 你比較信任誰？ 
+梗圖問題-色色柴犬
+生活知識問題-致命毒師 哪位人物符合敘述？
+指考專科問題-歷史題與國文題
+調情問題-螺絲釘(內容較長)
+
+
+==
+所有內容都必須跟學生習習相關 dcard會是很重要的參考依據
+大致上來源於梗圖版與有趣版
+
+女性腳色要在對話中夾帶食物與日常生活
+
+回答完題目後要有回饋 
+恭喜你與多少人的回答相同等等

@@ -93,8 +93,8 @@ class Robot(models.Model):
 
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
-    upload_date = models.DateTimeField(default=timezone.now)
     uploader = models.ForeignKey('Player', null=True, on_delete=models.SET_NULL, default=None)
+    upload_date = models.DateTimeField(default=timezone.now)
 
     @property
     def name(self):

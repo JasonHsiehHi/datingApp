@@ -1136,7 +1136,7 @@ return HttpResponse(t.render(content, request))
 
 因此render()用於回傳完整template資料 
 而HttpResponse('You have been login' + status) 只用於ajax這種只需要回傳部分字串的資料
-此外JsonResponse(content) 則直接回傳json格式的資料
+此外JsonResponse(content) 則直接回傳json格式的資料(dict)
 這些回傳的資料可在ajax的success callback中提取
 $.ajax({
   success:function(data){
@@ -1377,8 +1377,8 @@ class ExpenseModelForm(forms.ModelForm):  # 通常Form類別會與Model類別同
     model = Expense  
     fields = ('name', 'price') # 表示可供輸入的資料欄 若為全部則用fields = '__all__'
 
-    widgets = {  # 表示輸入格式 attrs使用html的屬性
-      'name': forms.TextInput(attrs={'class': 'form-control'}),
+    widgets = {  # 表示顯示在html上的輸入格式 (用在form = ExpenseModelForm()) 
+      'name': forms.TextInput(attrs={'class': 'form-control'}),  # attrs使用html的屬性 
       'price': forms.NumberInput(attrs={'class': 'form-control'})
     }  # widgets屬性本來就有預設 額外加上是為了後面option的參數
 
@@ -1397,7 +1397,7 @@ def index(request):
 
   if request.method == "POST":  # 用url將client端的request作為參數引入此view 故可用request.method來判別請求方法
     form = ExpenseModelForm(request.POST)  # 為將POST表單資料傳入Form
-    if form.is_valid():  # 可能為資料不充許留空null 且又沒有預設值
+    if form.is_valid():  # 可能為資料不充許留空null 且又沒有預設值 必須要完全符合對應的model格式才會通過
       # 直接save()比較好：
       # 一般處理資料應放在client端 好處是不用另外從databnase調資料
       form.save()
@@ -1430,7 +1430,10 @@ author.save()  # 最後還是要記得儲存
 if HttpRequest.method == 'POST':  # 可使用相關的屬性做判別
   do_something()
 
-
+request.POST和request.GET雖然都是表單dict物件 但兩者不會同時出現
+僅會針對client端發出的request類型來出現相對應的物件
+form元素並不一定要做POST 也可用於提交URL來實現GET <form action="GET">
+www.google.com?AGetKey=3&AnotherOne=hello
 
 =============================================
 ~api.py
@@ -2396,11 +2399,15 @@ $('#draggable').bind("dragstart",function(e){  //在事件觸發後自動生成e
 	e.dataTransfer.setData('text/plain', 'This text may be dragged')
   dragTemp = e.target // draggable物件
 })
-$('#draggable').("drop",function(e){
+$('#draggable').bind("drop",function(e){
   let dragText = e.dataTransfer.getData('text/plain') //setData與getData分別在不同的event中 以此傳遞資料
   dragTemp.append(dragText) // 將getData()的資料附在draggable物件上
   e.target.style.color="#fff"
 })
+
+drag事件由可拖曳元素綁定 drop事件則由可放置元素綁定
+而dragstart, dragend同樣由可拖曳元素綁定
+但dragover, dragenter, dragleave則改由可放置元素綁定(用於表示經過這此元素)
 
 $.ajax({
     url: '/photo',
@@ -2416,7 +2423,6 @@ $.ajax({
 contentType 用 !1 取代 "multipart/form-data" 
 其原因為 "multipart/form-data" 只適合直接寫在html的<form>POST請求 
 其為符合多項<input>的表單 因此不同input資料之間會有boundary 
-
 
 
 通常與$.ajax()一同出現的非同步方法：
@@ -2838,7 +2844,6 @@ var data = {
 HttpResponse(json.dumps(data)) 等同JsonResponse(data)
 直接用JsonResponse()就是內建JSON格式轉換
 JS中所有的物件都是dict的形式 設計上就是為了易於傳輸
-
 
 request.onload = function() {
   var superHeroes = request.response;
@@ -3785,6 +3790,9 @@ port:8000用於查看本地端 每一個port碼都是不同的協定服務 (port
 FTP:21Port DNS:53Port HTTP:80Port
 一般上網只需要輸入域名就行 因為瀏覽器會自動補足所對應的port碼
 而server端會針對所提供的服務來監聽所對應的port端口 如架網站就是提供80Port
+
+print('len(dialogues):'+str(num), file=sys.stderr)
+用於在runserver的情況下做除錯
 
 python manage.py shell 進入django的互動模式 可用於手動操作database
 如同在網頁上操作資料或呈現view.py裡面的訊息 可按CTRL+D離開

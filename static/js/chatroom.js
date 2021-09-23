@@ -99,7 +99,7 @@ function chatroomWS(){
         chatSocket.onclose = function(e) {
             console.log('WS disconnected. code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
             // 若user沒有被禁用時, 即!0==localData.retry 則自動重連 chatSocket=null ,chatroomWS() 
-            // 自動重連:用setInterval() 或setTimeout()
+            // todo 自動重連:用setInterval() 或setTimeout() 最後用theUI.showSys來表示已經斷線且目前連不上
         };
     }
 }
@@ -184,11 +184,11 @@ function disableBackSpace() {
 }
 
 function bindMsgSending() {
-    $("#send-text").on('keypress',function(a) { // todo: input的資料是否可能構成XSS攻擊
+    $("#send-text").on('keypress',function(a) {
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
-            var text = $("#send-text").val();
-            (void 0 != text && null != text &&"" != text) && text.match(/(\/[a-zA-Z]+)/i)? (!0==toggle.cmd && theTerminal.command(text)) : (!0==localData.inRoom) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!');
+            var text = $("#send-text").val();  
+            (void 0 != text && null != text &&"" != text) && text.match(/(\/[a-zA-Z@1-9]+)/i)? (!0==toggle.cmd && theTerminal.command(text)) : (!0==localData.inRoom) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!');
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
         }
@@ -209,6 +209,7 @@ function bindMsgSending() {
         }
     })
     $("#send-btn").on('click',function(a){
+        a.preventDefault();
         var e = $.Event("keypress");
         e.which = 13, $("#send-text").trigger(e);
         $("#send-text").focus();
@@ -236,16 +237,15 @@ var chatWS = function(){
 
 function bindFileUpload(){
     $("#send-img").fileupload({
-        url:'/chat/upload_photo',
-        type:'POST',
         dataType: "json",
-        headers: {
-            'X-CSRFToken': csrftoken
-        },
+        formData:[{name:'send-uuid',value:localData.uuid}],
         done: function(e, data) {
             //theUI.showSelfImg(data.result['img_url'])
         }
     })
+    $(document).on('drop dragover', function (e) {
+        e.preventDefault();
+    });
 }
 
 function processTest(questions){
@@ -414,7 +414,7 @@ var chatTerminal = function(){
 
     }
     function _a(){
-         
+        $('#send-img').click();
     }
     return{
         command:cmd,
