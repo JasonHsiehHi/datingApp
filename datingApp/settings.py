@@ -70,6 +70,17 @@ TEMPLATES = [
     },
 ]
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient'
+        },
+        "KEY_PREFIX": "caches"
+    }
+}
+
 WSGI_APPLICATION = 'datingApp.wsgi.application'
 
 ASGI_APPLICATION = "datingApp.asgi.application"
@@ -137,7 +148,7 @@ MEDIA_URL = '/media/'
 
 
 STATICFILES_DIRS = [
-    BASE_DIR / 'static'
+    BASE_DIR / 'static',
 ]
 # 用於收集不同app資料夾中的static檔 並用manage.py collectstatic執行 轉入STATIC_ROOT中
 # 當development時應直接使用STATICFILES_DIRS 但當deployment時應用manage.py collectstatic做部署
@@ -160,4 +171,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # for chat app
 CORRECT_RESULT = [True, True, False, True, False]  # compare player's result  with it
+# caches:QUESTION_ID_LIST is a list of 5 question_ids
+# caches:QUESTION_CORRECT_RESULT = [True, True, True, True, True]
+
+CACHE_TTL = 60 * 15  # 用於緩衝內存相同的dialog
+DELETE_PHOTO_LEAVING_ROOM = False
+DELETE_PHOTO_CERTAIN_TIME = False
 

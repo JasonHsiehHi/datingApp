@@ -73,6 +73,13 @@ function chatroomWS(){
                         theUI.showSys('可用/match開始下一次的配對 或用/goto前往其他學校')
                     },1000)
                     break;
+                case typeSet.wn:
+                    // 處理toggle.writing問題 是否內入localData
+                    if (data.wn)
+                    theUI.showWritingNow(!0);
+                    else
+                    theUI.showWritingNow(!1); // 可能：打到一半突然停下來 或 將#send-text訊息刪掉
+                    break;
                 case typeSet.msg:
                     theUI.showWritingNow(!1);
                     theUI.showMsg(data.msg);
@@ -85,15 +92,15 @@ function chatroomWS(){
                         subdata = data.msgs[i], theUI.showMsg(subdata.msg);
                     theUI.unreadTitle($('#send-text').is(':focus'));
                     break;
-                case typeSet.wn:
-                    // 處理toggle.writing問題 是否內入localData
-                    if (data.wn)
-                    theUI.showWritingNow(!0);
-                    else
-                    theUI.showWritingNow(!1); // 可能：打到一半突然停下來 或 將#send-text訊息刪掉
+                case typeSet.img:
+                    theUI.showWritingNow(!1);
+                    theUI.showImg(data.img);
+                    theUI.unreadTitle($('#send-text').is(':focus'));
                     break;
+
                 case typeSet.error:
-                    console.log(data.error);
+                    console.log(data.error); 
+                    // 最後會刪掉 不符合的指令在前端就被擋下來 或 若用戶成功繞過前端傳入後讓server自動斷線
             }
         };
         chatSocket.onclose = function(e) {
@@ -229,18 +236,32 @@ var chatWS = function(){
         }))
     }
 
+    function is(imgUrl){
+        chatSocket.send(JSON.stringify({
+            'img':imgUrl
+        }))
+    }
+
     return{
         msgSendWs:ms,
         writingNowWs:wn,
+        imgSendWs:is
     }
 }
 
 function bindFileUpload(){
     $("#send-img").fileupload({
         dataType: "json",
-        formData:[{name:'send-uuid',value:localData.uuid}],
+        formData:function (form) {
+            $('#send-hidden').attr('value',localData.uuid);  // todo 為預防重複與洩漏uuid 改傳uuid前8碼
+            return form.serializeArray();
+        },
         done: function(e, data) {
-            //theUI.showSelfImg(data.result['img_url'])
+            if (localData.inRoom)
+                ('img_url' in data.result) ? (theUI.showSelfImg(data.result['img_url']),theWS.imgSendWs(data.result['img_url'])):console.log(data.result['error']);
+        },
+        always:function(e, data) {
+            $('#send-hidden').attr('value','');
         }
     })
     $(document).on('drop dragover', function (e) {
@@ -358,7 +379,7 @@ var chatTerminal = function(){
         term['schoolId'] = schoolId.toUpperCase();
         toggle.cmd = !1;
     }
-    function p(name, matchType){
+    function p(name, matchType){ //todo name必須有字數限制 才不會發生問題
         if (!(['mf','mm','fm','ff'].includes(matchType.toLowerCase()))){
             theUI.showSys('配對類型只能選擇: <span class="a-point">fm, mf, mm, ff </span> 四種(分別為女找男, 男找女, 男找男, 女找女)');
             return false
@@ -414,7 +435,8 @@ var chatTerminal = function(){
 
     }
     function _a(){
-        $('#send-img').click();
+        if (localData.inRoom)
+            $('#send-img').click();
     }
     return{
         command:cmd,
@@ -451,14 +473,12 @@ function msgReplacing(msg){
 
 var chatUI = function(){
     function sm(msg){
-        var status = null;
         var newElmt = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
         st(newElmt,1);
         newElmt = $('#writing').before(newElmt), localData.lastSaid = 'self',localStorage.lastSaid='self';
         sl(newElmt),ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
         return newElmt
-
     }
 
     function m(msg){  // todo: 特殊符號', ", <, >等會不會有問題
@@ -477,7 +497,7 @@ var chatUI = function(){
         return newElmt
     }
 
-    function q(question, choice_list, choice_num=2){
+    function q(question, choice_list, choice_num=2){  // todo 回答完題目後要有回饋 像是你與多少人的回答相同
         if (2 == choice_num){
             var newElmt = 
             '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="w-100 m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p></p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
@@ -522,11 +542,22 @@ var chatUI = function(){
     }
 
     function si(imgUrl){
-
+        var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
+        var newElmt = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgElmt+'</span></p></div>';
+        st(newElmt,1);
+        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'self',localStorage.lastSaid='self';
+        sl(newElmt),ut(!1);
+        toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
+        return newElmt
     }
 
     function i(imgUrl){
-
+        var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
+        var newElmt = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgElmt+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
+        sl(newElmt),ut(!1);
+        toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
+        return newElmt
     }
 
     function c(){
@@ -669,6 +700,7 @@ var TITLE = "ACard - AnonCard",
         left:'LEFT',
         msg: 'MSG',
         msgs:'MSGS',
+        img:'IMG',
         wn:'WN',
         error:'ERROR'
     }, 

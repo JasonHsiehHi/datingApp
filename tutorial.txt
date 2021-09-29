@@ -782,8 +782,11 @@ USE_L10N只影響時間格式 USE_TZ與TIME_ZONE才會影響網頁呈現的時�
 USE_TZ 為使用TIME_ZONE的設定作為預設時間 
 所有與時間相關的內部處理都是以TIME_ZONE的時間為準 但在最後渲染時會轉換成當地時間
 常見作法為統一使用USE_TZ=true且TIME_ZONE='UTC' 當要使用不同地區的時間時要做轉換
+USE_TZ=false 則等同使用python預設的時區作當前時間(即等同datetime.datetime.now())
 
-
+timezone.now() 無論TIME_ZONE設在哪都會用'UTC'時區的時間 用於存入資料庫
+統一時區 表示不會因為用戶所在時區不同而導致重疊
+timezone.localtime()則依據TIME_ZONE的值而反賄當地時間
 
 在其他py檔中使用settings.py的設定：
 from django.conf import settings
@@ -983,10 +986,15 @@ null=False和blank=False:
 null=False表示資料庫內的該欄不能用null儲存(預設) blank=False表示在admin或view輸入時會經過驗證不能填空
 另外null=True常用於sparse model 可節省許多不用的空間
 
-pub_date = DateField(auto_now=True, auto_new_add=True)
+last_modified = DateField(auto_now=True)
+create_date = DateField(auto_new_add=True)
 auto_now表示每次QuerySet.save()時都會自動以當前時間來儲存
-但auto_now只能以當前時間作為參數 若想用其他格式則必須加上auto_now_add
-像是： default=date.today - from datetime.date.today()
+auto_now_add則表示只在建立物件的當下儲存
+但auto_now和auto_now_add都會自動附上editable=False 和 blank=True 導致不能做更改
+
+pub_date = models.DateTimeField(default=timezone.now)
+故可改用default的方式 如此就能事後修改
+亦可用：default=datetime.date.today (即datetime.date.today())
 
 DateField 儲存python的datetime.date變數
 DateTimeField 則儲存python的datetime.datetime變數
@@ -1022,6 +1030,7 @@ self.image.name  //output: 'uploads/originalName.jpg'
 self.image.path  //output: '/media/uploads/originalName.jpg' 
 self.image.url  //output: 'http://media.example.com/uploads/originalName.jpg''
 path是在FileSystem的位置 url是真正client端要取用的位置
+只要改變image.name後image.path和image.url都會改變
 
 
 image的編碼方式(base64): 編碼的主要目的是將字元都位元化(0,1)以方便傳輸
@@ -1195,10 +1204,14 @@ output : {'pk': 4, 'name': 'Beatles Blog', 'tagline': 'All the latest Beatles ne
 Book.objects.get(pk=4).values('pk','name') 只選擇其中幾項field
 output : {'pk': 4, 'name': 'Beatles Blog'}
 
+Book.objects.filter(type='s').values('pk','name') 如果querySet有多個instance 則會以list形式返回
+output : [{'pk': 4, 'name': 'Beatles Blog'},{'pk': 5, 'name': 'Jason Blog'}]
+
 Book.objects.get(pk=4).values('pk','name',lower_name=Lower('name')) 如同annotate 可自行增加field
 Book.objects.get(pk=4).values_list('pk','name')
 output: (4, 'Beatles Blog') tuple取代dict
-values和values_list都是返回被篩選到物件的list
+Book.objects.filter(genre='math').values_list('id', flat=True) 會將多組tuple壓成list
+
 
 book1 = Book(title="goodbook", author="goodman", summary="it is a good book.")
 book1.save()
@@ -1219,6 +1232,11 @@ Q()可實現'AND'和'OR'的應用 通常filter()與Q()連用
 from django.db.models import Q
 Book.objects.filter(Q(genre__contains="science")|Q(genre__contains="nature"))
 
+QuerySet也可直接用'|' '&'來做合併
+book_math = Book.objects.filter(genre='math')
+book_science = Book.objects.filter(genre='science')
+books = book_math | book_science
+
 一般用QuerySet查找的格式(Field Lookups)為：field__lookuptype=value
 用雙底線'__'取代單底線'_'的原因是避免field中已用單底線命名
 
@@ -1233,6 +1251,7 @@ Book.objects.filter(pk__in=[1,4,7]) 在list中的其中一個
 Book.objects.filter(pk__gt=14) pk>14
 gt: greater than 和 gte: greater than or equal 
 lt: less than 和 lte: less than or equal
+
 
 
 from django.db.models import F  # F()為field的意思 可用於將同model不同field值來比較
@@ -2314,16 +2333,20 @@ var jqxhr = $.ajax("example.php")  // 單一參數為url
     alert( "success" );
   })
 
-若要引用jqXHR參數則其先後位置為： 
+若要引用jqXHR參數則其先後位置為： 最後會回傳jqXHR是為了可以做'重傳'動作
 jqXHR.done(function(data, textStatus, jqXHR){...})
 jqXHR.fail(function(jqXHR, textStatus, errorThrown){...})
 jqXHR.always(function(data|jqXHR, textStatus, jqXHR|errorThrown){...}) // always()依據成功與否而有不同的參數
 
-client端本身觸發errorThrown (與server或網路無關):
-if (errorThrown === 'abort') {
-    alert('File Upload has been canceled');
-}
-$('button.cancel').click(function (e) {  // 用於取消上傳
+textStatus的可能值為：null, "timeout", "error", "abort", "parsererror" 五種
+當最後觸發done時 textStatus只會回傳null 
+
+而client端本身觸發fail (與server或網路無關):
+if (textStatus === 'abort') {
+    alert(errorThrown + ': File Upload has been canceled'); 
+}//errorThrown則為error的文字敘述 ex: "Not Found" 或 "Internal Server Error."
+
+$('button.cancel').on('click', function (e) {  // 用於取消上傳
     jqXHR.abort();
 });
 
@@ -2352,6 +2375,8 @@ $.each($('#form').serializeArray(), function(a, t) {  // 或用serializeArray()�
   formData.append(t.name, t.value)
 }
 
+其中serializeArray()和serialize()都是jquery物件$('#form')的方法
+但是append(),delete()...等則是JS原生物件FormData()的方法 兩者不能混用
 
 FileReader物件唯一目的為讀取用戶上傳的檔案內容 使用事件來傳遞數據以減少從記憶體讀取的時間
 可用File物件或Blob物件來指定需讀取的資料 Flie繼承自Blob
@@ -2450,7 +2475,7 @@ $.when(d1,d2).done(function (v1, v2) {  // 必須等d1.done()和d2.done()都執�
 });
 
 
-非同步方法的success和fail:
+非同步方法的success和error:
 dfd.done(function() {   
     alert('it is success');
 });
@@ -2650,10 +2675,11 @@ $(function() {  // 用法即為eventHandler 直接綁定(binding)即可
       progressall:function(e, data) {}  // 全域性上傳處理事件觸發(用於進度條顯示)
     }) 
     
+    fileupload之option項的done,fail,always 等同於ajax之option項的success, error, complete
     相關參數與$.ajax()類似： ($.ajax()會回傳jqXHR物件)
-    ( jqXHR.done(function(data, textStatus, jqXHR){...}) )
+    jqXHR.done(function(data, textStatus, jqXHR){...})
     可用data.result, data.textStatus, data.jqXHR 來使用以上參數
-    ( jqXHR.fail(function(jqXHR, textStatus, errorThrown){...}) )
+    jqXHR.fail(function(jqXHR, textStatus, errorThrown){...})
     可用data.errorThrown, data.textStatus, data.jqXHR 來取用
 
     //也可以將綁定的callback function寫在外面
@@ -3781,8 +3807,6 @@ python3 manage.py sqlmigrate myapp 0001 查看myapp中makemigrations所生成的
 python3 manage.py flush 將還未migrate的數據刪除
 manage.py migrate myapp zero 則用於刪除myapp的所有data
 
-python manage.py shell 進入shell操作環境
-
 python manage.py runserver
 可用本地端查看localhost：http://127.0.0.1:8000/ (為根目錄)
 直接用CTRL+C 關閉terminal程式 即可終止runserver
@@ -3795,6 +3819,7 @@ print('len(dialogues):'+str(num), file=sys.stderr)
 用於在runserver的情況下做除錯
 
 python manage.py shell 進入django的互動模式 可用於手動操作database
+關鍵是可以在網站運行時做變更 sqlite資料庫和redis資料庫都能使用
 如同在網頁上操作資料或呈現view.py裡面的訊息 可按CTRL+D離開
 
 python manage.py collectstatic
@@ -3804,6 +3829,15 @@ python manage.py collectstatic
 python manage.py validate
 用於驗證model
 
+
+~redis-server 用於架設django的緩沖系統:
+pip django-redis 必須安裝django-redis (不同於channel內建的redis庫)
+redis-server 開啟Redis伺服器 
+redis-cli ping 開啟Redis的CLI介面(command-line interface) 可檢查目前內存內的key-value對
+redis-cli -n 1 只開啟db1資料庫(redis分為16個資料庫db0~db16)
+必須在settings.py中設置CASHES
+
+loadtest -n 100 -k  http://localhost:8000/index/ 用於做網站載入速度測試 用來測試cache的實用性
 
 ~pip套件管理工具:
 pip的名稱為python package index(pypi) 本身就是以python寫成的工具

@@ -1,9 +1,8 @@
-from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-import json
 from . import utils
-from random import randint
+from django.core.cache import cache
 import time
+import json
 import sys
 
 
@@ -50,18 +49,22 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.cmd_wait()
 
             # todo 還有/reset, /adult
-
-        elif 'wn' in content and self.player_data.inRoom:
-            await self.channel_layer.group_send(self.player_data.room, {
-                'type': 'is_waiting',
-                'boolean': content['wn']
-            })
-
-        elif 'msg' in content and self.player_data.inRoom:
-            await self.channel_layer.group_send(self.player_data.room, {
-                'type': 'chat_message',
-                'message': content['msg']
-            })
+        elif self.player_data.inRoom:
+            if 'wn' in content:
+                await self.channel_layer.group_send(self.player_data.room, {
+                    'type': 'is_waiting',
+                    'boolean': content['wn']
+                })
+            elif 'msg' in content:
+                await self.channel_layer.group_send(self.player_data.room, {
+                    'type': 'chat_message',
+                    'message': content['msg']
+                })
+            elif 'img' in content:
+                await self.channel_layer.group_send(self.player_data.room, {
+                    'type': 'chat_image',
+                    'image': content['img']
+                })
 
     # 主要用於調用資料庫 且調用結束後仍須通知對方 self.channel_layer.group_send()
     # 每個command最後都需回傳給client端 提供UI做回應 self.send_json()
@@ -72,8 +75,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             uuid,
             self.channel_name
         )
-        player = await utils.get_player(uuid)
-        self.player_data = player
+        self.player_data = await utils.get_player(uuid)
         t = int(time.strftime('%H', time.localtime()))
         if 5 <= t < 17:
             dialog, robot = await utils.get_dialogue_dialog_and_speaker(self.robot, 'GREET', 'mo')
@@ -109,51 +111,32 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'type': action
         })
 
-    async def cmd_leave(self):
-        await self.channel_layer.group_send(self.player_data['room'], {
-            'type': 'leave_room',
-            'active': False
-        })
-        await self.leave_room({'active': True})  # your matcher and you do the same thing
-
-        '''
-        await self.channel_layer.group_discard(
-            self.player_data['room'],
-            self.channel_name
-        )
-        self.player_data['room'] = None
-        self.player_data['inRoom'] = False
-        '''
-
     async def cmd_test(self):
+        id_list = cache.get_or_set('QUESTION_ID_LIST', await utils.get_question_id_list_randomly(), None)
+        question_list = cache.get_or_set('QUESTION_LIST', await utils.get_question_content_list(id_list), None)
+        # how to change questions : update QUESTION_ID_LIST and then delete QUESTION_LIST
         await self.send_json({
             'type': 'TEST',
-            'questions': await utils.get_question_content_list(settings.CORRECT_RESULT),
+            'questions': question_list,
         })
 
-    async def cmd_wait(self, result=None):
-        if result is None:
-            score = self.player_data['score']
-        else:
-            score = await utils.set_player_score(self.player_data['uuid'], result, settings.CORRECT_RESULT)
-            self.player_data['result'] = result
-            self.player_data['score'] = score
+    async def cmd_wait(self, result=None):  # 即使client端的testResult存在 仍再次傳入
+        correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', [True, True, True, True, True], None)
+        if self.player_data.result != result:
+            self.player_data = await utils.set_player_score(self.player_data, result, correct_result)
+        self.player_data = await utils.process_player_wait(self.player_data, True)
 
-        isWaiting = True
-        await utils.process_player_wait(self.player_data['uuid'], isWaiting)
-        self.player_data['isWaiting'] = isWaiting
-
-        matcher_uuid, matcher_name = await utils.process_player_match(self.player_data['uuid'])
+        matcher_uuid, matcher_name = await utils.process_player_match(self.player_data)
         if matcher_uuid is None:
             await self.send_json({
                 'type': 'WAIT'
             })
         else:
-            room_match_type = 'mf' if self.player_data['matchType'] == 'fm' else self.player_data['matchType']
-            room = await utils.create_room(room_match_type, self.player_data['school'])
+            room_match_type = 'mf' if self.player_data['matchType'] == 'fm' else self.player_data.matchType
+            room = await utils.create_room(room_match_type, self.player_data.school)
             await self.channel_layer.group_send(matcher_uuid, {
                 'type': 'enter_room',
-                'name': self.player_data['name'],
+                'name': self.player_data.name,
                 'room': room.group_name
             })
             await self.enter_room({  # your matcher and you do the same thing
@@ -176,6 +159,22 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             })
             '''
 
+    async def cmd_leave(self):
+        await self.channel_layer.group_send(self.player_data['room'], {
+            'type': 'leave_room',
+            'active': False
+        })
+        await self.leave_room({'active': True})  # you do the same thing : you're active and your matcher is passive
+
+        '''
+        await self.channel_layer.group_discard(
+            self.player_data['room'],
+            self.channel_name
+        )
+        self.player_data['room'] = None
+        self.player_data['inRoom'] = False
+        '''
+
     # receive from other chatConsumers
     async def enter_room(self, event):
         name, room_name = event['name'], event['room']
@@ -183,9 +182,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             room_name,
             self.channel_name
         )
-        self.player_data['room'] = room_name
-        self.player_data['inRoom'] = True
-        self.player_data['isWaiting'] = False
+        self.player_data = await utils.set_player_room(self.player_data, room_name)
         await self.send_json({
             'type': 'ENTER',
             'room': room_name,
@@ -197,9 +194,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.player_data['room'],
             self.channel_name
         )
+        self.player_data = await utils.set_player_room(self.player_data, None)
         action = 'LEAVE' if event['active'] else 'LEFT'
-        self.player_data['room'] = None
-        self.player_data['inRoom'] = False
         await self.send_json({
             'type': action
         })
@@ -209,6 +205,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({
             'type': 'MSG',  # todo 'MSG'和'MSGS'之差異
             'msg': message
+        })
+
+    async def chat_image(self, event):
+        imgUrl = event['image']
+        await self.send_json({
+            'type': 'IMG',
+            'img': imgUrl
         })
 
     async def is_waiting(self, event):

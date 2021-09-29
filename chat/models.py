@@ -93,12 +93,12 @@ class Robot(models.Model):
 
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
-    uploader = models.ForeignKey('Player', null=True, on_delete=models.SET_NULL, default=None)
+    uploader = models.UUIDField(null=True, default=None)  # todo 為防uuid洩漏 只取前8碼
     upload_date = models.DateTimeField(default=timezone.now)
 
     @property
     def name(self):
-        return '{0}{1}'.format(self.uploader.uuid, self.upload_date.strftime('%m%d%H%M%S'))
+        return '{0}{1}'.format(self.uploader, self.upload_date.strftime('%m%d%H%M%S%f'))
 
     def __str__(self):
         return self.name

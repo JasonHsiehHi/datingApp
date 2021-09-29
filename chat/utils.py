@@ -38,6 +38,18 @@ def set_player_profile(player, name, matchType=None):
     player.save()
     return player
 
+@database_sync_to_async
+def set_player_room(player, room_name):
+    if room_name is None:
+        player.room = None
+        player.inRoom = False
+    else:
+        player.room = room_name
+        player.inRoom = True
+        player.isWaiting = False
+    player.save()
+    return player
+
 
 @database_sync_to_async
 def create_room(matchType, school_id):
@@ -47,9 +59,8 @@ def create_room(matchType, school_id):
 
 
 @database_sync_to_async
-def set_player_score(pk_uuid, result, correct_result):
-    player = Player.objects.get(uuid=pk_uuid)
-    player.result = json.dumps(result)
+def set_player_score(player, result, correct_result):
+    player.result = result
     count = 0
     for i, j in zip(result, correct_result):
         count = count + 1 if (i == j) else count
@@ -59,8 +70,7 @@ def set_player_score(pk_uuid, result, correct_result):
 
 
 @database_sync_to_async
-def process_player_wait(pk_uuid, isWaiting):  # todo 直接讓self.user_data儲存QuerySet物件 就不用找uuid
-    player = Player.objects.get(uuid=pk_uuid)
+def process_player_wait(player, isWaiting):
     school, matchType = player.school, player.matchType
     if all([school, matchType]) & player.isWaiting != isWaiting:
         player.isWaiting = isWaiting
@@ -77,18 +87,18 @@ def process_player_wait(pk_uuid, isWaiting):  # todo 直接讓self.user_data儲�
             school.maleNumForMale = school.maleNumForMale + 1 if isWaiting else school.maleNumForMale - 1
         player.save()
         school.save()
+    return player
 
 
 @database_sync_to_async
-def process_player_match(someone_pk_uuid):
-    someone = Player.objects.get(uuid=someone_pk_uuid)
+def process_player_match(someone):
     match_type = someone.matchType
     players_in = Player.objects.filter(Q(school=someone.school) & Q(isWaiting=True))
 
     if match_type == 'fm' or match_type == 'mf':
         players_in = players_in.filter(matchType=match_type[1]+match_type[0])
     else:
-        players_in = players_in.exclude(uuid=someone_pk_uuid).filter(matchType=match_type)
+        players_in = players_in.exclude(uuid=someone.uuid).filter(matchType=match_type)
     num = len(players_in)
     if num < 1:
         return None
@@ -98,7 +108,7 @@ def process_player_match(someone_pk_uuid):
     li = list(map(lambda x, y: abs(x - someone_score) - waitingTime_to_score(y), zip(scores, waitingTimes)))
     min_li = min(li)
     matches = []
-    for i, j in zip(waitingTimes, li):
+    for i, j in zip(waitingTimes, li):  # consider more one matchers with same score.
         match = i if j == min_li else 0
         matches.append(match)
     matcher = players_in[matches.index(max(matches))]
@@ -106,12 +116,12 @@ def process_player_match(someone_pk_uuid):
 
 
 def waitingTime_to_score(waitingTime):
-    score = int(waitingTime / 1000 / 60 / 20)
-    return score
+    score_reduction = int(waitingTime / 1000 / 60 / 20)
+    return score_reduction
 
 
 @database_sync_to_async
-def check_players_num(school_id, target_matchType):  # todo 應與其他process合併 減少訪問database的機會
+def check_players_num(school_id, target_matchType):  # todo 應與其他process合併 減少訪問資料庫
     school = School.objects.get(name=school_id)
     players_in = Player.objects.filter(Q(school=school) & Q(isWaiting=True) & Q(matchType=target_matchType))
     num = len(players_in)
@@ -135,11 +145,20 @@ def get_dialogue_dialog_and_speaker(speaker, action, sub=None, n=None):
 
 
 @database_sync_to_async
-def get_question_content_list(correct_result):  # todo 抓過一次要進cache 以避免一直重複抓取
-    answers_num = len(correct_result)
-    short_questions = Question.objects.filter(type='s').values('content', 'choice')
-    long_questions = Question.objects.filter(type='l').values('content', 'choice')
-    questions = sample(list(short_questions), k=int(answers_num-answers_num/2))
-    questions.extend(sample(list(long_questions), k=int(answers_num/2)))
+def get_question_id_list_randomly(n=5, s_l_ratio=None):
+    if s_l_ratio is None:
+        s_l_ratio = [3, 2]
+    id_list = []
+    for x, i in zip(['s', 'l'], s_l_ratio):
+        questions = Question.objects.filter(type=x)
+        all_id = questions.values_list('id', flat=True)
+        random_id = sample(all_id, i)
+        id_list.extend(random_id)
+    return id_list
+
+
+@database_sync_to_async
+def get_question_content_list(id_list):
+    questions = Question.objects.filter(id__in=id_list).values('content', 'choice')
     return questions
 

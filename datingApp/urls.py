@@ -29,6 +29,8 @@ urlpatterns = [
 from django.conf import settings
 from django.conf.urls.static import static
 
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-# 僅在開發期間使用 為啟用靜態文件的服務
+
+if settings.DEBUG:  # 僅在開發期間使用 為開啟static和media檔案
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

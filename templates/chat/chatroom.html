@@ -147,7 +147,7 @@
 
                     <div class="mb-2 flex-column d-flex a-q">
                         <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
-                            <p class='w-100 m-2'> 這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
+                            <p class='w-100 m-2'>這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
                         </div>
                         <div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex">
                             <p class='a-choice a-left d-inline-flex a-0'>是</p><p></p><p class='a-choice a-right d-inline-flex a-1'>否</p>
@@ -156,7 +156,19 @@
 
                     <div class="mb-2 flex-column d-flex a-q">
                         <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
-                            <p class='w-100 m-2'> 這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
+                            <p class='w-100 m-2'> 
+                            這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ it's a question?
+                            <p class="text-center"><img class="img-fluid a-img" src="/media/photo/802bd4a9-7759-4bf2-b079-c8e4423819a30923152355.jpg" alt="send again please!"></img></p>
+                            </p>
+                        </div>
+                        <div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex">
+                            <p class='a-choice a-left d-inline-flex a-0'>是</p><p></p><p class='a-choice a-right d-inline-flex a-1'>否</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-2 flex-column d-flex a-q">
+                        <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
+                            <p class='w-100 m-2'>這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
                         </div>
                         <div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex">
                             <p class='a-choice a-top d-inline-flex a-0'>前往</p>
@@ -165,7 +177,7 @@
 
                     <div class="mb-2 flex-column d-flex a-q">
                         <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
-                            <p class='w-100 m-2'> <span class="a-point">這裡的所有動作</span>都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
+                            <p class='w-100 m-2'><span class="a-point">這裡的所有動作</span>都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
                         </div>
                         <div class="a-dialogdiv a-matcher a-answer a-mid a-pa a-clr justify-content-evenly d-flex">
                             <p class='a-choice a-left d-inline-flex a-0'>1</p><p></p><p class='a-choice a-right d-inline-flex a-1'>2</p>
@@ -174,6 +186,26 @@
                             <p class='a-choice a-left d-inline-flex a-2'>3</button><p></p><p class='a-choice a-right d-inline-flex a-3'>4</button>
                         </div>
                     </div>
+                    
+                    <div class="mb-2 justify-content-end d-flex">
+                        <span class="a-status a-self text-end">
+                            <span class='d-block'>(已送達)</span>
+                            <span class='d-block'>10:00 PM</span>
+                        </span>
+                        <p class="a-dialogdiv a-self a-pa a-clr d-inline-flex">
+                            <span class='a-tri a-self'></span>
+                            <span><img class="img-fluid a-img" src="/media/photo/802bd4a9-7759-4bf2-b079-c8e4423819a30923152355.jpg" alt="send again please!"></img></span>
+                        </p>
+                    </div>
+
+                    <div class="mb-2 d-flex">
+                        <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
+                            <span class='a-tri a-matcher'></span>
+                            <span><img class="img-fluid a-img" src="/media/photo/802bd4a9-7759-4bf2-b079-c8e4423819a30923152355.jpg" alt="send again please!"></img></span>
+                        </p>
+                        <span class="a-status a-matcher">8:30 AM</span>
+                    </div>
+
                     <div id='writing' class="mb-2 d-none d-flex">
                         <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
                             <span class="a-tri a-matcher"></span>
@@ -187,9 +219,10 @@
     <form id="send-form" target="_hidden" class="a-footer">
         {% csrf_token %} 
         <div class="input-group a-pa a-clr">
-            <input class="a-input a-clr form-control" id="send-text" type='text' placeholder="說什麼呢..." name="send-text">
+            <input class="a-input a-clr form-control" id="send-text" type="text" placeholder="說什麼呢..." name="send-text">
+            <input class="d-none form-control" id="send-hidden" type="text" name="send-hidden">
             <button class="btn" id="send-btn" type="button">傳送</button>
-            <input class='d-none form-control' id='send-img' type='file' name='send-img' data-url='upload_photo' accept='image/*' multiple>
+            <input class="d-none form-control" id="send-img" type="file" name="send-img" data-url="upload_photo" accept="image/*" multiple>
         </div>
     </form>
 </body>
