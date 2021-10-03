@@ -64,16 +64,16 @@ class School(models.Model):
 
 
 class Question(models.Model):
-    content = models.CharField(max_length=200)
     id = models.CharField(max_length=5, primary_key=True)
     type = models.CharField(max_length=1)
+    content = models.CharField(max_length=200)
     choice = models.JSONField(max_length=200)
 
     def __str__(self):
         return self.id
 
 
-class Dialogue(models.Model):
+class Dialogue(models.Model):  # todo 修改成能生成動態資訊 像是哪個地區使用者多...
     dialog = models.JSONField(null=True)  # list, sentences could be more than one
     action = models.CharField(max_length=30)
     sub = models.CharField(max_length=10, null=True, default=None)
@@ -93,7 +93,7 @@ class Robot(models.Model):
 
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
-    uploader = models.UUIDField(null=True, default=None)  # todo 為防uuid洩漏 只取前8碼
+    uploader = models.CharField(max_length=8, null=True, default=None)
     upload_date = models.DateTimeField(default=timezone.now)
 
     @property

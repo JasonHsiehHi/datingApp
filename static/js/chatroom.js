@@ -18,15 +18,17 @@ function chatroomWS(){
             switch (data.type){
                 case typeSet.greet: 
                     localData.anonName=data.anonName, localStorage.anonName=data.anonName;
+                    theUI.refreshProfile();
                     theUI.showMsgsAsync(data.dialog,function(){
+                        theUI.storeChatLogs(term.showMsgs_text, data.dialog.length);
+                        delete term.showMsgs_text;
                         toggle.cmd = !0;
                     });
                     break;
 
                 case typeSet.goto:
-                    theUI.gotoSchoolAsync(term.schoolId,function(){
-                        localData.school = term.schoolId, localStorage.school = term.schoolId;
-                        delete term.schoolId;
+                    localData.school = term.schoolId, localStorage.school = term.schoolId;
+                    theUI.gotoSchoolAsync(function(){
                         theUI.showMsg('已抵達'+localData.school + schoolSet[localData.school] +'了😎');
                         theUI.showMsgsAsync(data.dialog,function(){
                             toggle.cmd = !0;
@@ -36,7 +38,7 @@ function chatroomWS(){
 
                 case typeSet.profile:
                     localData.name = term.name, localStorage.name = term.name, localData.matchType = term.matchType, localStorage.matchType = term.matchType;
-                    delete term.name, delete term.matchType;
+                    theUI.refreshProfile();
                     var m = [];
                     for (x of localData.matchType){
                         'm'==x?m.push('(男)'):m.push('(女)')
@@ -47,7 +49,7 @@ function chatroomWS(){
 
                 case typeSet.rename:
                     localData.name = term.name, localStorage.name = term.name;
-                    delete term.name;
+                    theUI.refreshProfile();
                     theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 已修改完畢');
                     toggle.cmd = !0;
                     break;
@@ -107,6 +109,7 @@ function chatroomWS(){
             console.log('WS disconnected. code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
             // 若user沒有被禁用時, 即!0==localData.retry 則自動重連 chatSocket=null ,chatroomWS() 
             // todo 自動重連:用setInterval() 或setTimeout() 最後用theUI.showSys來表示已經斷線且目前連不上
+            // todo 自動重連:不能啟動GREET 因此GREET必須修正 只有打開網站的第一次才要GREET
         };
     }
 }
@@ -115,6 +118,7 @@ function LocalData(){
     this.uuid = $.uuid(),
     this.name = '',
     this.isBanned = !1,
+    this.inTest = !1, // test階段不要有GREET 但wait階段則要有GREET
     this.isWaiting = !1,
     this.inRoom = !1, // 等同this.room='' 而this.inRoom表示狀態
     this.hasTested = !1,
@@ -137,6 +141,7 @@ function getLocalData(){
             data.uuid = localStorage.uuid,
             data.name = localStorage.name,
             data.isBanned = ('true'===localStorage.isBanned)?!0:!1,
+            data.inTest = ('true'===localStorage.inTest)?!0:!1,
             data.isWaiting = ('true'===localStorage.isWaiting)?!0:!1,
             data.inRoom = ('true'===localStorage.inRoom)?!0:!1,
             data.hasTested = ('true'===localStorage.inRoom)?!0:!1,
@@ -155,6 +160,7 @@ function getLocalData(){
             localStorage.uuid = data.uuid,
             localStorage.name = '',
             localStorage.isBanned = 'false',
+            localStorage.inTest = 'false',
             localStorage.isWaiting = 'false',
             localStorage.inRoom = 'false',
             localStorage.hasTested = 'false',
@@ -162,7 +168,7 @@ function getLocalData(){
             localStorage.anonName = '',
             localStorage.room = '',
             localStorage.school = '',
-            localStorage.matchType = 'mf',
+            localStorage.matchType = '',
             localStorage.testResult = JSON.stringify(data.testResult),
             localStorage.chatLogsNum = '0',
             localStorage.chatLogsMaxNum = '250'
@@ -176,6 +182,11 @@ function getLocalData(){
     return data
 }
 
+function loadLocalData(){
+    theUI.refreshProfile();
+    (''!==localData.school)&&theUI.gotoSchoolAsync(localData.school);
+
+}
 
 function installToolTip() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -253,7 +264,7 @@ function bindFileUpload(){
     $("#send-img").fileupload({
         dataType: "json",
         formData:function (form) {
-            $('#send-hidden').attr('value',localData.uuid);  // todo 為預防重複與洩漏uuid 改傳uuid前8碼
+            $('#send-hidden').attr('value',localData.uuid.substr(0,8));  // todo 改傳uuid前8碼
             return form.serializeArray();
         },
         done: function(e, data) {
@@ -270,7 +281,7 @@ function bindFileUpload(){
 }
 
 function processTest(questions){
-    for (let q of questions){ //q為{content:... ,choices:[y,n]}的物件
+    for (let q of questions){ // q為{content:... ,choices:[y,n]}的物件
         theUI.showQuestion(q.content, q.choice, q.type);
     }
     theUI.showQuestion('是否提交答案?', ['提交'], 1).removeClass('.a-0').addClass('.a-submit')
@@ -304,7 +315,7 @@ var checkGate = function(){
             step[x] = (0===localData[x].length)?0:1;
         }
     }
-    function resp(){
+    function resp(){  // todo 將checkGate.resp()改為checkGate() 其餘upd()和run()不需要
         var dialogs = [];
         if (localData.school.length===0){
             dialogs.push('請先移動到你想交友的學校吧！ 輸入/goto xxx (學校縮寫例如:NTU, NCCU等)')
@@ -317,7 +328,7 @@ var checkGate = function(){
         }else if(localData.room.length===0){
             dialogs.push('是否要進行下一次配對 輸入/match \n或選擇重新測試 輸入/retest \n或更改配對用的名稱 輸入/rename \n或移動到其他學校 輸入/goto')
         }
-        return dialogs // array is better in expansibility
+        return dialogs // array 比較適合內容延展
     }
     function run(){
         upd(nextStep);
@@ -466,55 +477,59 @@ function timeAMPM(date) {
 }
 
 function msgReplacing(msg){
-    msg = msg.replace(/(\/[a-zA-Z]+ )/g,"<span class=\"a-cmd\">$1 </span>");
-    msg = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, "<a onclick=\"window.open('$1','_blank')\">$1</a>");
+    msg = msg.replace(/(\/[a-zA-Z]+ )/g,'<span class=\"a-cmd\">$1 </span>');
+    msg = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, '<a onclick=\"window.open("$1","_blank")\">$1</a>');
+    msg = msg.replace(/\n/g, '<br>');
     return msg
 }
 
 var chatUI = function(){
     function sm(msg){
-        var newElmt = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
+        var newElmt_text = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
+        var newElmt = $('#writing').before(newElmt_text); 
         st(newElmt,1);
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'self',localStorage.lastSaid='self';
-        sl(newElmt),ut(!1);
+        localData.lastSaid = 'self',localStorage.lastSaid='self',ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
-        return newElmt
+        term['showSelfMsg_text'] = newElmt_text; // for storeChatLogs()
+        return newElmt, newElmt_text 
     }
 
     function m(msg){  // todo: 特殊符號', ", <, >等會不會有問題
-        var newElmt = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
-        sl(newElmt),ut(!1);
+        var newElmt_text = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        var newElmt = $('#writing').before(newElmt_text); 
+        localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
+        term['showMsg_text'] = newElmt_text; // for storeChatLogs()
         return newElmt
     }
 
     function sy(msg){
-        var newElmt = '<div class="mb-2 text-center"><p class="a-dialogdiv a-sys a-pa a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>'
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'sys',localStorage.lastSaid = 'sys';
-        sl(newElmt),ut(!1);
+        var newElmt_text = '<div class="mb-2 text-center"><p class="a-dialogdiv a-sys a-pa a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>'
+        var newElmt = $('#writing').before(newElmt_text); 
+        localData.lastSaid = 'sys',localStorage.lastSaid = 'sys',ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
+        term['showSys_text'] = newElmt_text; // for storeChatLogs()
         return newElmt
     }
 
     function q(question, choice_list, choice_num=2){  // todo 回答完題目後要有回饋 像是你與多少人的回答相同
         if (2 == choice_num){
-            var newElmt = 
-            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="w-100 m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p></p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
+            var newElmt_text = 
+            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
         }else if(4 == choice_num){
-            var newElmt =  
-            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="w-100 m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p></p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p></p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
+            var newElmt_text =  
+            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
         }else if(1 == choice_num){
-            var newElmt =
-            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="w-100 m-2">'+msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
+            var newElmt_text =
+            '<div class="mb-2 flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="m-2">'+msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
         }else{
             console.log('不符合格式')
             return false
         }
-        newElmt.addClass('d-none');
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
-        sl(newElmt),ut(!1);
+        var newElmt = $(newElmt_text).addClass('d-none');
+        newElmt = $('#writing').before(newElmt_text), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon', ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
+        term['showQuestion_text'] = newElmt_text; // for storeChatLogs()
         return newElmt
     }
 
@@ -543,20 +558,22 @@ var chatUI = function(){
 
     function si(imgUrl){
         var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
-        var newElmt = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgElmt+'</span></p></div>';
+        var newElmt_text = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgElmt+'</span></p></div>';
+        var newElmt = $('#writing').before(newElmt_text);
         st(newElmt,1);
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'self',localStorage.lastSaid='self';
-        sl(newElmt),ut(!1);
+        localData.lastSaid = 'self',localStorage.lastSaid='self',ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
+        term['showSelfImg_text'] = newElmt_text; // for storeChatLogs()
         return newElmt
     }
 
     function i(imgUrl){
         var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
-        var newElmt = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgElmt+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
-        newElmt = $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon';
-        sl(newElmt),ut(!1);
+        var newElmt_text = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgElmt+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        var newElmt = $('#writing').before(newElmt_text); 
+        localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
+        term['showImg_text'] = newElmt_text; // for storeChatLogs()
         return newElmt
     }
 
@@ -603,55 +620,74 @@ var chatUI = function(){
             }
         }
     }
-    function sl(elmt){ // todo 目前先用50個dialogdiv換行 塞滿200個dialogdiv後開始刪減 之後在用Blob找準確大小
-        var index = (localData.chatLogsNum/50) % 5, isFull = (localData.chatLogsNum>=localData.chatLogsMaxNum)?!0:!1;
+    function sl(elmt_text, n=1){ // todo 目前先用50個dialogdiv換行 塞滿200個dialogdiv後開始刪減 之後在用Blob找準確大小
+        var index = parseInt(localData.chatLogsNum/50) % 5, isFull = (localData.chatLogsNum>=localData.chatLogsMaxNum)?!0:!1;
         if (isFull){
             localData['chatLogs'+index.toString()] = '',localStorage['chatLogs'+index.toString()] = '';
-            localData.chatLogsMaxNum = localData.chatLogsMaxNum +50, localStorage.chatLogsMaxNum = localData.chatLogsMaNum.toString();
+            localData.chatLogsMaxNum = localData.chatLogsMaxNum +50, localStorage.chatLogsMaxNum = localData.chatLogsMaxNum.toString();
         }
-        localData['chatLogs'+index.toString()] = localData['chatLogs'+index.toString()]+elmt, localStorage['chatLogs'+index.toString()] = localStorage['chatLogs'+index.toString()]+elmt;
-        localData.chatLogsNum++, localStorage.chatLogsNum = localData.chatLogsNum.toString();
+        localData['chatLogs'+index.toString()] = localData['chatLogs'+index.toString()]+elmt_text, localStorage['chatLogs'+index.toString()] = localStorage['chatLogs'+index.toString()]+elmt_text;
+        localData.chatLogsNum+= n, localStorage.chatLogsNum = localData.chatLogsNum.toString();
     }
 
-    function go(school_id, callback){  //async function
-        var extn = '.png';
-        var img_url = school_url+school_id+extn;
-        var time1,time2;
-        $('#mark-after>img').attr('src', img_url);
-        $('#circle').addClass('a-fadein')
+    function rp(){  // todo 加上動畫
+        $('.navbar-text.a-font>.a-matcher').text(localData.anonName);
+        $('.navbar-text.a-font>.a-self').text(localData.name);
+        if (''!==localData.matchType){
+            var self = ('m'===localData.matchType[0])?'man':'woman';
+            var matcher = ('m'===localData.matchType[1])?'man':'woman';
+            var inRoom = (localData.inRoom)?'graphic_eq':'keyboard_arrow_right';
+            $('.navbar-text.a-type .material-icons:eq(0)').text(self);
+            $('.navbar-text.a-type .material-icons:eq(1)').text(inRoom);
+            $('.navbar-text.a-type .material-icons:eq(2)').text(matcher);
+        }
+    }
 
-        time1 = $('#circle.a-fadein').css('transition-duration');
-        time1 = parseFloat(time1)*1000;
-        setTimeout(function(){
-            $('#circle').removeClass('a-invisible-frame').addClass('a-visible-frame');
-            $('#mark-before').addClass('d-none'),$('#mark-after').removeClass('d-none');
-            $('#mark-before>img').attr('src', img_url);
-            $('#circle').removeClass('a-fadein').addClass('a-fadeout');
-            time2 = $('#circle.a-fadeout').css('transition-duration');
-            time2 = parseFloat(time2)*1000;
+    function go(callback){  //async function
+        if (''!==localData.school){
+            var extn = '.png';
+            var img_url = school_url+localData.school+extn;
+            var time1,time2;
+            $('#mark-after>img').attr('src', img_url);
+            $('#circle').addClass('a-fadein')
+    
+            time1 = $('#circle.a-fadein').css('transition-duration');
+            time1 = parseFloat(time1)*1000;
             setTimeout(function(){
-                $('#circle').removeClass('a-visible-frame').addClass('a-invisible-frame');
-                $('#mark-after').addClass('d-none'),$('#mark-before').removeClass('d-none');
-                $('#circle').removeClass('a-fadeout');
-                callback()
-            }, time2);
-        },time1)
-
+                $('#circle').removeClass('a-invisible-frame').addClass('a-visible-frame');
+                $('#mark-before').addClass('d-none'),$('#mark-after').removeClass('d-none');
+                $('#mark-before>img').attr('src', img_url);
+                $('#circle').removeClass('a-fadein').addClass('a-fadeout');
+                time2 = $('#circle.a-fadeout').css('transition-duration');
+                time2 = parseFloat(time2)*1000;
+                setTimeout(function(){
+                    $('#circle').removeClass('a-visible-frame').addClass('a-invisible-frame');
+                    $('#mark-after').addClass('d-none'),$('#mark-before').removeClass('d-none');
+                    $('#circle').removeClass('a-fadeout');
+                    if ('function'===typeof(callback)){
+                        callback();
+                    }
+                }, time2);
+            },time1)
+        }
     }
 
     function ms(dialogList, callback){  // async function: callback after function has completed
-        var i = 0; 
+        var i = 0, elmts_text = '';
         for (let dialog of dialogList){
             setTimeout(function(){
-                m(dialog);
+                m(dialog),elmts_text +=term.showMsg_text;
             }, i*500);
             i++;
         }
-        if ('function'===typeof(callback)){
-            setTimeout(function(){
-                callback()
-            }, i*500);
-        }
+        
+        setTimeout(function(){
+            term['showMsgs_text'] = elmts_text; //callback() deside whether storeChatLogs or not.
+            if ('function'===typeof(callback)){
+                callback();  
+            }
+        }, i*500);
+        
     }
 
 
@@ -670,6 +706,7 @@ var chatUI = function(){
         clearChatLogs:cl,
         loadChatLogs:ll,
         storeChatLogs:sl,
+        refreshProfile:rp,
         gotoSchoolAsync:go,
         showMsgsAsync:ms
     }
@@ -899,9 +936,9 @@ var TITLE = "ACard - AnonCard",
         testResult:(0===localData.testResult.length) ? 0 : 1,
         room:(0===localData.room.length) ? 0 : 1
     },
-    nextStep = {...currentStep},
+    nextStep = {...currentStep}, // todo 刪除 只要留currentStep就好
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
 
 $(document).ready(function() {
-    chatroomWS(), bindMsgSending(), bindFileUpload(), disableBackSpace(), installToolTip()
+    chatroomWS(), bindMsgSending(), bindFileUpload(), disableBackSpace(), installToolTip(),loadLocalData()
 });

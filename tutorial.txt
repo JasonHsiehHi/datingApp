@@ -1212,6 +1212,7 @@ Book.objects.get(pk=4).values_list('pk','name')
 output: (4, 'Beatles Blog') tuple取代dict
 Book.objects.filter(genre='math').values_list('id', flat=True) 會將多組tuple壓成list
 
+values()和values_list()因為仍是querySet 故必須用list()轉為python的list形式
 
 book1 = Book(title="goodbook", author="goodman", summary="it is a good book.")
 book1.save()
@@ -1697,7 +1698,7 @@ slice(start [, end]) 和 substr(start [, length)]
 (對於JS的便捷性有很大幫助 另外JS沒有分float跟Integer 全部用number)
 JS的命名風格比較傾向用"===" 取代 "==" 因為一且已清楚為標準
 
-parstInt(str),parseFloat(str)與Number(str)都能將string轉成number型態
+parsetInt(str),parseFloat(str)與Number(str)都能將string轉成number型態
 而差別在於parstInt('123jason') = 123, Number('123jason') = NaN (即not a number)
 
 另外toString()與String()的差異為：
@@ -3271,6 +3272,7 @@ firstof 表示前一變數只要存在 就會優先輸出前一變數
 
 轉譯escape的目的：
 即為避免python的字串變數中有html語法("<", ">"...) 而導致錯誤
+模板語言的{%autoescape%} 只能用於模板變數 {{variable}} 如果直接用字串型態則不會執行
 
 以下兩者處理轉譯的方法 其結果相同：
 {% autoescape off %}
@@ -3829,13 +3831,26 @@ python manage.py collectstatic
 python manage.py validate
 用於驗證model
 
-
 ~redis-server 用於架設django的緩沖系統:
 pip django-redis 必須安裝django-redis (不同於channel內建的redis庫)
-redis-server 開啟Redis伺服器 
-redis-cli ping 開啟Redis的CLI介面(command-line interface) 可檢查目前內存內的key-value對
-redis-cli -n 1 只開啟db1資料庫(redis分為16個資料庫db0~db16)
-必須在settings.py中設置CASHES
+redis-server 開啟Redis伺服器 才能使用redis-cli指令
+redis-server redis.conf 可用conf檔做IP、port、logfile和datafile(dir)的設置
+redis-cli 開啟Redis的CLI介面(command-line interface) 可檢查內存的key-value鍵(db0)
+redis-cli -n 1 開啟db1資料庫(redis分為16個資料庫db0~db16) 若不指定-n 則會自動開啟db0
+redis-cli ping 用於驗證redis-server是否可正常使用
+redis-cli select 2 移動到其他db資料庫
+redis-cli exit 用於離開redis-cli模式
+redis-cli shutdown 用於停止redis資料庫
+
+redis-cli dbsize 查看目前有多少鍵總數
+redis-cli keys * 常看當前所有鍵
+redis-cli keys cache:* 常看當前名稱對應的所有鍵
+redis-cli del key_name 刪除鍵
+redis-cli rename key_name key_name2 改名鍵
+redis-cli type key_name 查看鍵的資料類別
+redis-cli ttl key_name 查看鍵的過期時間
+redis-cli expire key_name 60 延長鍵的過期時間(單位為秒) （另有:pexpire key_name 500 單位為毫秒)
+
 
 loadtest -n 100 -k  http://localhost:8000/index/ 用於做網站載入速度測試 用來測試cache的實用性
 
@@ -3895,8 +3910,22 @@ kill -9 /kill -15
 
 建立文件三種方式:
 touch output,txt
-cat>output.txt
-echo "hello world">output.t xt
+cat > output.txt
+echo "hello world" > output.txt
+
+touch 為keep in touch 即更新文件的意思 故建立後可直接開啟文件
+cat file1.txt file2.txt > file.txt cat原先用於合併多份文件
+cat > filename 表示將空白文件合併進去filename 即為建立文件
+cat filename 則表示顯示該文件後不做任何動作
+echo "hello world" 為在terminal上顯示文本 
+echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文件
+
+export -p 列出當前所有的環境變量
+export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原先$PATH之外新增$HOME/bin/)
+
+vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
+export PATH=$PATH:$HOME/bin/
+source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機
 
 ~docker:
 docker version 檢查版本

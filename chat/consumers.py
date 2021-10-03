@@ -113,7 +113,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def cmd_test(self):
         id_list = cache.get_or_set('QUESTION_ID_LIST', await utils.get_question_id_list_randomly(), None)
-        question_list = cache.get_or_set('QUESTION_LIST', await utils.get_question_content_list(id_list), None)
+        question_list = cache.get_or_set('QUESTION_LIST', await utils.get_question_content_list(id_list), 0)
         # how to change questions : update QUESTION_ID_LIST and then delete QUESTION_LIST
         await self.send_json({
             'type': 'TEST',

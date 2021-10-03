@@ -152,7 +152,7 @@ def get_question_id_list_randomly(n=5, s_l_ratio=None):
     for x, i in zip(['s', 'l'], s_l_ratio):
         questions = Question.objects.filter(type=x)
         all_id = questions.values_list('id', flat=True)
-        random_id = sample(all_id, i)
+        random_id = sample(list(all_id), i)
         id_list.extend(random_id)
     return id_list
 
@@ -160,5 +160,5 @@ def get_question_id_list_randomly(n=5, s_l_ratio=None):
 @database_sync_to_async
 def get_question_content_list(id_list):
     questions = Question.objects.filter(id__in=id_list).values('content', 'choice')
-    return questions
+    return list(questions)
 

@@ -1,3 +1,4 @@
+
 .a-img{
     max-height: 30rem;
     max-width: 25rem;
@@ -49,6 +50,12 @@
 
 .navbar-text.a-font{
     font-size: 20px;
+    font-weight: bold;
+    color:Snow ; /*snow*/
+}
+
+.navbar-text.a-type{
+    color: LightGray; /* lightgray */
 }
 
 .navbar.a-clr{
@@ -105,8 +112,9 @@ span.a-writing{
 .a-choice{
     width: 100%;
     margin-bottom: 0;
-    height: 48px;
-    align-items:center!important;
+    padding: 0.5rem !important;
+    min-height: 48px;
+    align-items: center!important;
     justify-content: center!important;
 }
 .a-choice:hover{
@@ -116,21 +124,18 @@ span.a-writing{
 }
 
 .a-choice.a-left{
-    border-top: 3px solid #dee2e6 !important;
     border-right: 2px solid #dee2e6 !important;
 }
 .a-choice.a-right{
-    border-top: 3px solid #dee2e6 !important;
     border-left: 2px solid #dee2e6 !important;
-}
-.a-choice.a-top{
-    border-top: 3px solid #dee2e6 !important;
 }
 
 .a-dialogdiv.a-answer{
     width:75%;
     border-top-left-radius:0;
     border-top-right-radius:0;
+    border-top: 3px solid #dee2e6 !important;
+    align-items: stretch;
 }
 .a-answer.a-mid{
     border-bottom-left-radius:0;
@@ -149,6 +154,11 @@ span.a-writing{
     width:75%;
     border-bottom-left-radius:0;
     border-bottom-right-radius:0;
+}
+
+.a-question{
+    line-height: 32px;
+    letter-spacing: 1px;
 }
 
 .a-dialogdiv.a-self{
@@ -202,15 +212,6 @@ span.a-writing{
 .a-wirting{
     color:black;
     font-style:italic;
-}
-
-.a-self.a-title{
-    font-weight: bold;
-    color:Navy;
-}
-.a-matcher.a-title{
-    font-weight: bold;
-    color:Crimson;
 }
 
 .a-sys{
