@@ -3,15 +3,28 @@ function chatroomWS(){
         var wsUrl = 'ws://'+window.location.host+'/ws/chat/'; 
         chatSocket = new WebSocket(wsUrl);
         chatSocket.onopen = function(){
-            console.log("WS connected.")
+            console.log("WS connected.");
             chatSocket.send(JSON.stringify({
                 'cmd':'open',
                 'uuid': localData.uuid
             }));
+            if('true'===localStorage.isSaved){
+                var data = {};
+                var li = ['name', 'matchType', 'school', 'room', 'isBanned', 'inTest', 'isWaiting', 'inRoom', 'testResult', 'waiting_time'];
+                for (let i of li){
+                    if(localData[i])
+                        data[i] = localData[i];
+                }
+                chatSocket.send(JSON.stringify({
+                    'cmd':'import',
+                    'data': data
+                }));
+            }
             $("#send-text").focus();
         };
         // todo 可增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
         // todo 處理後端的自動斷線問題
+        // todo localStorage和localData可能造成修改資料的風險 例如修改完localStroge後重開
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
@@ -28,8 +41,9 @@ function chatroomWS(){
 
                 case typeSet.goto:
                     localData.school = term.schoolId, localStorage.school = term.schoolId;
+                    var school =  localData.school.toUpperCase();
                     theUI.gotoSchoolAsync(function(){
-                        theUI.showMsg('已抵達'+localData.school + schoolSet[localData.school] +'了😎');
+                        theUI.showMsg('已抵達'+school + schoolSet[school] +'了😎');
                         theUI.showMsgsAsync(data.dialog,function(){
                             toggle.cmd = !0;
                         });
@@ -56,6 +70,9 @@ function chatroomWS(){
 
                 case typeSet.test:
                     term.testQuestions = data.questions;
+                    theUI.clearChatLogs();
+                    theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
+                    theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。')
                     processTest(data.questions);
                     toggle.cmd = !0;
                     break;
@@ -84,20 +101,17 @@ function chatroomWS(){
                     break;
                 case typeSet.msg:
                     theUI.showWritingNow(!1);
-                    theUI.showMsg(data.msg);
-                    theUI.unreadTitle($('#send-text').is(':focus'));
+                    theUI.showMsg(data.msg),theUI.unreadTitle($('#send-text').is(':focus'));
                     break;
                 case typeSet.msgs: //  後端還未寫MSGS
                     theUI.showWritingNow(!1);
                     var subdata; 
                     for (let i in data.msgs)
-                        subdata = data.msgs[i], theUI.showMsg(subdata.msg);
-                    theUI.unreadTitle($('#send-text').is(':focus'));
+                        subdata = data.msgs[i], theUI.showMsg(subdata.msg),theUI.unreadTitle($('#send-text').is(':focus'));
                     break;
                 case typeSet.img:
                     theUI.showWritingNow(!1);
-                    theUI.showImg(data.img);
-                    theUI.unreadTitle($('#send-text').is(':focus'));
+                    theUI.showImg(data.img),theUI.unreadTitle($('#send-text').is(':focus'));
                     break;
 
                 case typeSet.error:
@@ -117,6 +131,7 @@ function chatroomWS(){
 function LocalData(){
     this.uuid = $.uuid(),
     this.name = '',
+    this.matchType = '',
     this.isBanned = !1,
     this.inTest = !1, // test階段不要有GREET 但wait階段則要有GREET
     this.isWaiting = !1,
@@ -126,8 +141,8 @@ function LocalData(){
     this.anonName = '',
     this.room = '',
     this.school = '',
-    this.matchType = '',
     this.testResult = [],
+    this.waiting_time ='',  // 再將時間字串轉為Date()物件
     this.chatLogsNum = 0,
     this.chatLogsMaxNum = 250
     for (let i = 0;i<5;i++)
@@ -140,17 +155,18 @@ function getLocalData(){
         if ('true'==localStorage.isSaved){ 
             data.uuid = localStorage.uuid,
             data.name = localStorage.name,
+            data.matchType = localStorage.matchType,
             data.isBanned = ('true'===localStorage.isBanned)?!0:!1,
             data.inTest = ('true'===localStorage.inTest)?!0:!1,
             data.isWaiting = ('true'===localStorage.isWaiting)?!0:!1,
             data.inRoom = ('true'===localStorage.inRoom)?!0:!1,
-            data.hasTested = ('true'===localStorage.inRoom)?!0:!1,
+            data.hasTested = ('true'===localStorage.hasTested)?!0:!1,
             data.lastSaid = localStorage.lastSaid,
             data.anonName = localStorage.anonName,
             data.room = localStorage.room,
             data.school = localStorage.school,
-            data.matchType = localStorage.matchType,
             data.testResult = JSON.parse(localStorage.testResult),
+            data.waiting_time = localStorage.waiting_time,
             data.chatLogsNum = +localStorage.chatLogsNum,
             data.chatLogsMaxNum = +localStorage.chatLogsMaxNum
             for (let i = 0;i<5;i++)
@@ -159,6 +175,7 @@ function getLocalData(){
             localStorage.isSaved = 'true',
             localStorage.uuid = data.uuid,
             localStorage.name = '',
+            localStorage.matchType = '',
             localStorage.isBanned = 'false',
             localStorage.inTest = 'false',
             localStorage.isWaiting = 'false',
@@ -168,8 +185,8 @@ function getLocalData(){
             localStorage.anonName = '',
             localStorage.room = '',
             localStorage.school = '',
-            localStorage.matchType = '',
             localStorage.testResult = JSON.stringify(data.testResult),
+            localStorage.waiting_time = '',
             localStorage.chatLogsNum = '0',
             localStorage.chatLogsMaxNum = '250'
             for (let i = 0;i<5;i++)
@@ -284,7 +301,7 @@ function processTest(questions){
     for (let q of questions){ // q為{content:... ,choices:[y,n]}的物件
         theUI.showQuestion(q.content, q.choice, q.type);
     }
-    theUI.showQuestion('是否提交答案?', ['提交'], 1).removeClass('.a-0').addClass('.a-submit')
+    theUI.showQuestion('是否提交答案?', ['提交'], 1).find('.a-0').removeClass('a-0').addClass('a-submit')
     localData.testResult = [], localData.testResult.length = questions.length;
     localStorage.testResult=JSON.stringify(localData.testResult);
 
@@ -292,17 +309,20 @@ function processTest(questions){
         var classStr = '.a-' + s.toString();
         $(classStr).on('click',function(e) {
             e.preventDefault;
-            var parent = $(this).parent('.a-q');
+            var parent = $(this).closest('.a-q');
             var index = $('#dialog>.a-q').index(parent);
-            answerList[index] = s.toString();
+            var next = parent.next('.a-q');
             localData.testResult[index] = s.toString();
             localStorage.testResult=JSON.stringify(localData.testResult);
-            parent.next('.a-q').length>0 && parent.next('.a-q').hasClass('.d-none') && parent.next('.a-q').removeClass('.d-none');
+
+            if (next.length>0 && next.hasClass('d-none'))
+                next.removeClass('d-none'),theUI.scrollToNow(),theUI.unreadTitle(!0);
         })
     }
     $('.a-submit').on('click', function(e){
-        theTerminal.wait(),theUI.clearChatLogs(),theUI.showClock();
+        localData.hasTested = !0, localStorage.hasTested = 'true', theTerminal.wait();
     })
+    $('#dialog>.a-q:eq(0)').removeClass('d-none');
 }
 
 var checkGate = function(){
@@ -387,7 +407,7 @@ var chatTerminal = function(){
             'cmd':'goto',
             'school':schoolId.toLowerCase()
         }));
-        term['schoolId'] = schoolId.toUpperCase();
+        term['schoolId'] = schoolId.toLowerCase();
         toggle.cmd = !1;
     }
     function p(name, matchType){ //todo name必須有字數限制 才不會發生問題
@@ -423,7 +443,7 @@ var chatTerminal = function(){
     function w(){
         chatSocket.send(JSON.stringify({
             'cmd':'wait',
-            'result':localData.testResult
+            'testResult':localData.testResult
         }));
         toggle.cmd = !1;
     }
@@ -486,7 +506,8 @@ function msgReplacing(msg){
 var chatUI = function(){
     function sm(msg){
         var newElmt_text = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
-        var newElmt = $('#writing').before(newElmt_text); 
+        var newElmt = $(newElmt_text);
+        $('#writing').before(newElmt); 
         st(newElmt,1);
         localData.lastSaid = 'self',localStorage.lastSaid='self',ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
@@ -496,7 +517,8 @@ var chatUI = function(){
 
     function m(msg){  // todo: 特殊符號', ", <, >等會不會有問題
         var newElmt_text = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
-        var newElmt = $('#writing').before(newElmt_text); 
+        var newElmt = $(newElmt_text);
+        $('#writing').before(newElmt); 
         localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
         term['showMsg_text'] = newElmt_text; // for storeChatLogs()
@@ -504,8 +526,9 @@ var chatUI = function(){
     }
 
     function sy(msg){
-        var newElmt_text = '<div class="mb-2 text-center"><p class="a-dialogdiv a-sys a-pa a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>'
-        var newElmt = $('#writing').before(newElmt_text); 
+        var newElmt_text = '<div class="mb-2 text-center"><p class="a-dialogdiv a-sys a-pa a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>';
+        var newElmt = $(newElmt_text);
+        $('#writing').before(newElmt); 
         localData.lastSaid = 'sys',localStorage.lastSaid = 'sys',ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
         term['showSys_text'] = newElmt_text; // for storeChatLogs()
@@ -527,7 +550,7 @@ var chatUI = function(){
             return false
         }
         var newElmt = $(newElmt_text).addClass('d-none');
-        newElmt = $('#writing').before(newElmt_text), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon', ut(!1);
+        $('#writing').before(newElmt), localData.lastSaid = 'anon',localStorage.lastSaid = 'anon', ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
         term['showQuestion_text'] = newElmt_text; // for storeChatLogs()
         return newElmt
@@ -559,8 +582,8 @@ var chatUI = function(){
     function si(imgUrl){
         var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
         var newElmt_text = '<div class="mb-2 justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgElmt+'</span></p></div>';
-        var newElmt = $('#writing').before(newElmt_text);
-        st(newElmt,1);
+        var newElmt = $(newElmt_text);
+        $('#writing').before(newElmt),st(newElmt,1);
         localData.lastSaid = 'self',localStorage.lastSaid='self',ut(!1);
         toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
         term['showSelfImg_text'] = newElmt_text; // for storeChatLogs()
@@ -570,7 +593,8 @@ var chatUI = function(){
     function i(imgUrl){
         var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
         var newElmt_text = '<div class="mb-2 d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgElmt+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
-        var newElmt = $('#writing').before(newElmt_text); 
+        var newElmt = $(newElmt_text);
+         $('#writing').before(newElmt); 
         localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',ut(!1);
         toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
         term['showImg_text'] = newElmt_text; // for storeChatLogs()

@@ -977,6 +977,7 @@ uuid = models.UUIDField(primary_key=True,default=uuid.uuid4)
 uuid常做為主鍵使用 具有唯一性(unique=True)且不可為空(null=False) 故可作為外鍵的連結
 所有的資料欄類別都會有主鍵 若未指定則model會額外自行生成主見以供外鍵取用
 default作為預設值 故用戶不需要自行填寫此欄
+此field不是在model創建時寫入數據：都應該設置default 表示不用額外填入undifined值
 
 若沒有指定主鍵(primary_key=True) 則自行生成id作為主鍵
 等同：id = models.BigAutoField(primary_key=True) 
@@ -996,8 +997,10 @@ pub_date = models.DateTimeField(default=timezone.now)
 故可改用default的方式 如此就能事後修改
 亦可用：default=datetime.date.today (即datetime.date.today())
 
-DateField 儲存python的datetime.date變數
-DateTimeField 則儲存python的datetime.datetime變數
+TimeField 儲存python的time.time()物件
+DateField 儲存python的datetime.date()物件 
+DateTimeField 則儲存python的datetime.datetime()物件
+time和datetime為python的不同模組 而有些通用的方法
 
 title = CharField(max_length=10, unique_for_date="pub_date")
 model中必須要有DateField或DateTimeField才能用
@@ -1198,6 +1201,7 @@ blogs[0].entry__count # raise exception! 因物件沒有此屬性
 Entry.objects.order_by('blog').distinct('blog') distinct用於消除重複項的record
 Entry.objects.order_by('author', 'pub_date').distinct('author', 'pub_date') 若有多個參數 則要完全一樣才會視為重複項的record
 Entry.objects.order_by('author', 'pub_date').reverse() reverse用於將排完後的順序反轉
+Entry.objects.order_by('author', 'pub_date').first() order_by()也會與first()或last()連用
 
 Book.objects.get(pk=4).values() 輸出dict並將所有的field作為key值 
 output : {'pk': 4, 'name': 'Beatles Blog', 'tagline': 'All the latest Beatles news.'}
@@ -1213,6 +1217,7 @@ output: (4, 'Beatles Blog') tuple取代dict
 Book.objects.filter(genre='math').values_list('id', flat=True) 會將多組tuple壓成list
 
 values()和values_list()因為仍是querySet 故必須用list()轉為python的list形式
+同理Entry.objects.all()仍然是querySet 必須用list()才能取其中的各個quertSet
 
 book1 = Book(title="goodbook", author="goodman", summary="it is a good book.")
 book1.save()
@@ -1220,7 +1225,10 @@ book1.save()
 如果欄位是ForeignKey 則也可直接填外表的pk值 (author為ForeignKey 而"goodman"為此Author模型的主鍵)
 
 Book.objects.create(title="goodbook", author="goodman", summary="it is a good book.")
-或用create 便可直接存入database中
+或用create 便可直接存入database中 好處是不用在記憶體中創建book實例 以減少內存肖後
+
+Book.objects.bulk_create([Book(title="goodbook"),Book(title="badbook")])
+批量創建 一次放入多個實例的的list
 
 
 Book.objects.get(pk=1)
@@ -1248,23 +1256,29 @@ Book.objects.filter(enrty__headline__contains='Lennon')  也可用於找ForignKe
 Entry.objects.filter(headline__startswith='First') 必須由此字串開頭
 Entry.objects.filter(headline__endswith='2021') 必須由此字串結尾
 
+get()和filter()最後回傳的內容都為querySet 但仍有少許差異
+filter()可能為空 而get()不充許為空
+filter()的回傳值可用list()取各個querySet 而get()的回傳值本身就是單一的querySet
+
 Book.objects.filter(pk__in=[1,4,7]) 在list中的其中一個
 Book.objects.filter(pk__gt=14) pk>14
 gt: greater than 和 gte: greater than or equal 
 lt: less than 和 lte: less than or equal
 
-
-
 from django.db.models import F  # F()為field的意思 可用於將同model不同field值來比較
 Entry.objects.filter(number_of_comments__gt=F('number_of_pingbacks'))
 Entry.objects.filter(rating__lt=F('number_of_comments') + F('number_of_pingbacks'))
 
+Book.objects.delete() 會讓database全部刪除 
+故一般會先縮小範圍 Book.objects.filter(headline='Lennon').delete()
 
-Book.objects.delete()
-會讓database全部刪除 故一般會先縮小範圍
+Book.objects.filter(headline='Lennon').update(genre="sci-fi") 
+用於更改內容且必須用filter()鎖定 (即使只要更改單一項也不能用get())  等同: 
+book.genre = "sci-fi"
+book.save() 需用book = Book.objects.get(pk=1)存入記憶體 導致浪費內存
 
-Book.objects.update(genre="sci-fi")
-update()可用於更改內容
+另外save()會傳送pre_save或post_save這兩種signal給其他使用此record的實例
+差異在於內存中的實例是否要保有舊資料或直接進行更新
 
 view內部變數：
 此時的templates的預設url為:templates/catalog/book_list.html
@@ -1988,12 +2002,18 @@ $("input[value*=aa]") 中間有aa之input元素
 
 $("li").children()只為回傳下一層的子元素
 $("li").find("ul")回傳所有符合的子元素 等同jquery的$("ul","li")
+
 $("li").find("ul").css("background-color","red")即為此元素添加css樣式
 $("li").css({  // 若有多項則使用{}
   "font-style": "italic",
   "font-weight": "bolder"
 })
 $("li").find("ul").each(function(){...}) 遍及所有find()元素來做執行
+
+$("ul").parent() 只為回傳上一層的父元素
+$("ul").closest('div') 不一定是上一層 直到遇到符合條件的'一個'父元素為止
+$("ul").parents('div') 回傳所有符合的父元素
+由於有多元素 故如同find()一樣 可以使用each(function(){...})執行
 
 $("ul:eq(0)").next() 或 $("ul:eq(1)").prev()
 next()與prev()直接抓取同層的下一個與上一個元素
@@ -2112,6 +2132,9 @@ $("ul").empty()可以清除<ul>元素中所有的子元素
 remove()用於刪除自身元素 但可在DOM結構(JS檔)中用變數保留完整元素內容
 empty()不刪除自身但會清空內部子元素 此時DOM結構就不會有內部子元素內容 
 detach()幾乎等同remove() 但會保留綁定的事件 如果用remove()刪除則需要重新綁定事件
+
+
+
 
 $("ul").append(content)表示直接插在子元素中的最後一個 可取代JS的appendChild()
 $("ul").append(content).scrollTop($("ul").prop('scrollHeight')); // 滾軸移動到$("ul")的下方

@@ -1,7 +1,7 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from . import utils
 from django.core.cache import cache
-import time
+from datetime import datetime
 import json
 import sys
 
@@ -32,6 +32,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if command is not None:
             if command == 'open':
                 await self.cmd_open(content['uuid'])
+            elif command == 'import':
+                await self.cmd_import(content['data'])
             elif command == 'goto':
                 await self.cmd_goto(content['school'])
             elif command == 'profile':
@@ -41,14 +43,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             elif command == 'test':
                 await self.cmd_test()
             elif command == 'wait':
-                await self.cmd_wait(content['result'])
+                await self.cmd_wait(content['testResult'])
             elif command == 'leave':
                 await self.cmd_leave()
-            elif command == 'change':
+            elif command == 'change':  # todo 還有/reset, /adult
                 await self.cmd_leave()
                 await self.cmd_wait()
 
-            # todo 還有/reset, /adult
         elif self.player_data.inRoom:
             if 'wn' in content:
                 await self.channel_layer.group_send(self.player_data.room, {
@@ -76,7 +77,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.channel_name
         )
         self.player_data = await utils.get_player(uuid)
-        t = int(time.strftime('%H', time.localtime()))
+        t = int(datetime.now().strftime('%H'))
         if 5 <= t < 17:
             dialog, robot = await utils.get_dialogue_dialog_and_speaker(self.robot, 'GREET', 'mo')
         else:
@@ -86,6 +87,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'dialog': dialog,
             'anonName': robot
         })
+
+    async def cmd_import(self, data):
+        self.player_data = await utils.set_player_data(self.player_data, data)
 
     async def cmd_goto(self, school_id):
         school_id = school_id.lower()
@@ -120,10 +124,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'questions': question_list,
         })
 
-    async def cmd_wait(self, result=None):  # 即使client端的testResult存在 仍再次傳入
+    async def cmd_wait(self, testResult=None):  # 即使client端的testResult存在 仍再次傳入
         correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', [True, True, True, True, True], None)
-        if self.player_data.result != result:
-            self.player_data = await utils.set_player_score(self.player_data, result, correct_result)
+        if self.player_data.testResult != testResult:  # 可能有錯 前者為JSON 後者為list導致error
+            self.player_data = await utils.set_player_score(self.player_data, testResult, correct_result)
         self.player_data = await utils.process_player_wait(self.player_data, True)
 
         matcher_uuid, matcher_name = await utils.process_player_match(self.player_data)

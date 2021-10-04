@@ -9,7 +9,7 @@ class Room(models.Model):
         ('ff', 'female->female')
     )
     userNum = models.IntegerField(default=0)
-    matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE, default='mf')
+    matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
     school = models.CharField(max_length=30)
 
     @property
@@ -33,19 +33,20 @@ class Player(models.Model):
 
     uuid = models.UUIDField(primary_key=True)
     name = models.CharField(max_length=100, null=True, default=None)
+    matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True, default=None)
     create_date = models.DateTimeField(default=timezone.now)
 
     isBanned = models.BooleanField(default=False)
+    inTest = models.BooleanField(default=False)
     isWaiting = models.BooleanField(default=False)
     inRoom = models.BooleanField(default=False)
 
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
-    matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True, default=None)
 
-    result = models.JSONField(max_length=100, null=True, default=None)
-    waitingTime = models.FloatField(default=0)
+    testResult = models.JSONField(max_length=100, null=True, default=None)
     score = models.FloatField(default=0)
+    waiting_time = models.DateTimeField(null=True, default=None)
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.uuid)

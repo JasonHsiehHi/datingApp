@@ -2,6 +2,7 @@ from channels.db import database_sync_to_async
 from django.db.models import Q
 from .models import Room, Player, School, Question, Dialogue
 import json
+import datetime
 from random import randint, sample
 import sys
 
@@ -12,7 +13,19 @@ def get_player(uuid):
         player = Player.objects.get(uuid=uuid)
     except Player.DoesNotExist:
         player = Player.objects.create(uuid=uuid)
-        player.save()
+    return player
+
+
+@database_sync_to_async
+def set_player_data(player, data):  # todo 用戶直接改localStorage問題
+    if 'room' in data:
+        data['room'] = Room.objects.get(group_name=data['room'])
+    if 'school' in data:
+        data['school'] = School.objects.get(name=data['school'])
+    if 'waiting_time' in data:
+        data['waiting_time'] = datetime.datetime.strptime(data['waiting_time'], '%Y%m%d%H%M%S%f')
+    Player.objects.filter(uuid=player.uuid).update(**data)
+    player = Player.objects.get(uuid=player.uuid)
     return player
 
 
@@ -38,6 +51,7 @@ def set_player_profile(player, name, matchType=None):
     player.save()
     return player
 
+
 @database_sync_to_async
 def set_player_room(player, room_name):
     if room_name is None:
@@ -54,19 +68,18 @@ def set_player_room(player, room_name):
 @database_sync_to_async
 def create_room(matchType, school_id):
     room = Room.objects.create(matchType=matchType, school=school_id)
-    room.save()
     return room
 
 
 @database_sync_to_async
-def set_player_score(player, result, correct_result):
-    player.result = result
+def set_player_score(player, testResult, correct_result):
+    player.testResult = testResult
     count = 0
-    for i, j in zip(result, correct_result):
+    for i, j in zip(testResult, correct_result):
         count = count + 1 if (i == j) else count
     player.score = count
     player.save()
-    return count
+    return player
 
 
 @database_sync_to_async
@@ -74,6 +87,7 @@ def process_player_wait(player, isWaiting):
     school, matchType = player.school, player.matchType
     if all([school, matchType]) & player.isWaiting != isWaiting:
         player.isWaiting = isWaiting
+        player.waiting_time = datetime.datetime.now() if isWaiting else None
         if matchType == 'fm':
             school.femaleNumForMale = school.femaleNumForMale + 1 if isWaiting else school.femaleNumForMale - 1
 
@@ -101,11 +115,10 @@ def process_player_match(someone):
         players_in = players_in.exclude(uuid=someone.uuid).filter(matchType=match_type)
     num = len(players_in)
     if num < 1:
-        return None
-    scores = [p.score for p in players_in]
-    waitingTimes = [p.waitingTime for p in players_in]
-    someone_score = someone.score
-    li = list(map(lambda x, y: abs(x - someone_score) - waitingTime_to_score(y), zip(scores, waitingTimes)))
+        return None, None
+    scoreDiffs = [abs(p.score-someone.score) for p in players_in]
+    waitingTimes = [(someone.waiting_time-p.waiting_time) for p in players_in]
+    li = list(map(lambda x, y: x - waitingTime_to_score(y), zip(scoreDiffs, waitingTimes)))
     min_li = min(li)
     matches = []
     for i, j in zip(waitingTimes, li):  # consider more one matchers with same score.
@@ -116,7 +129,7 @@ def process_player_match(someone):
 
 
 def waitingTime_to_score(waitingTime):
-    score_reduction = int(waitingTime / 1000 / 60 / 20)
+    score_reduction = int(waitingTime.minutes / 20)
     return score_reduction
 
 
