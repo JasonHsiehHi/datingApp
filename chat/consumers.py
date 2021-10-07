@@ -19,7 +19,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             str(self.player_data.uuid),
             self.channel_name
         )
-        if self.player_data.inRoom:
+        if self.player_data.status == 3:
             await self.channel_layer.group_discard(
                 int(self.player_data.room),
                 self.channel_name
@@ -28,7 +28,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     # receive from client side first
     async def receive_json(self, content):
-        command = content.get('cmd', None)
+        command = content.get('cmd', None)  # todo 後端也要做資料驗證 以避免用戶硬改JS
         if command is not None:
             if command == 'open':
                 await self.cmd_open(content['uuid'])
@@ -46,11 +46,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.cmd_wait(content['testResult'])
             elif command == 'leave':
                 await self.cmd_leave()
-            elif command == 'change':  # todo 還有/reset, /adult
+            elif command == 'change':
                 await self.cmd_leave()
                 await self.cmd_wait()
+            # todo 還有/reset, /adult
 
-        elif self.player_data.inRoom:
+        elif self.player_data.status == 3 :
             if 'wn' in content:
                 await self.channel_layer.group_send(self.player_data.room, {
                     'type': 'is_waiting',
@@ -125,10 +126,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         })
 
     async def cmd_wait(self, testResult=None):  # 即使client端的testResult存在 仍再次傳入
-        correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', [True, True, True, True, True], None)
-        if self.player_data.testResult != testResult:  # 可能有錯 前者為JSON 後者為list導致error
+        correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', ['1', '1', '1', '1', '1'], None)
+        if self.player_data.testResult != testResult:
             self.player_data = await utils.set_player_score(self.player_data, testResult, correct_result)
-        self.player_data = await utils.process_player_wait(self.player_data, True)
+        self.player_data = await utils.process_player_wait(self.player_data, 2)
 
         matcher_uuid, matcher_name = await utils.process_player_match(self.player_data)
         if matcher_uuid is None:

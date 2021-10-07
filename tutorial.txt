@@ -863,8 +863,11 @@ EX: r'ws/chat/(?P<room_name>\w+)/$' 網頁很常用'/$' 即表示開頭的URL不
 str.match(re):
 var str = 'For more information, see Chapter 3.4.5.1';
 var re = /see (chapter \d+(\.\d)*)/i;
-var found = str.match(re);  // 回傳一個list 包含一個完整(wrap,/.../之間)的配對結果 以及其後多個group(()之間)的配對結果
+var found = str.match(re);  // 回傳一個list 包含一個完整的配對結果(wrap, 即/.../之間) 以及其後多個group的配對結果(即(...)之間)
 //['see Chapter 3.4.5.1', 'Chapter 3.4.5.1', '.1', index: 22, input: 'For more information, see Chapter 3.4.5.1' ]
+
+/Jack(?= student| man)/ 其後接student或man的 Jack才會是搜尋目標
+/(?!teacher )Jack/ 其前接teacher的則會略過 除此之外的都為搜尋目標
 
 亦可用： 用RegExp物件好處是可以把字串當成參數引用 另外所有特殊字元要用'\\'開頭
 var re = new RegExp('see (chapter \\d+(\\.\\d)*)', 'i');
@@ -875,9 +878,14 @@ var re = new RegExp("^https?:\\/\\/.*?\\/");  // 除了'\'轉為'\\'之外 其�
 
 str.replace(re,"$2,$1"):
 若re中有多個group時 則可用$1, $2, $3,...$n選擇特定的group
+group的好處是可將被收尋到的字串變數化 RegExp.$1, RegExp.$2...
 var re = /(\w+)\s(\w+)/; 
 var str = 'John Smith';
-var newstr = str.replace(re, "$2,$1");  // "Smith, John"  常用於顛倒順序
+var newstr = str.replace(re, "$2,$1");  // "Smith, John" 常用於顛倒順序
+
+var re =/(foo) (bar) \1 \2/;  等同: /(foo) (bar) (foo) (bar)/
+\1, \2分別代表(foo)和(bar)這前後兩個group
+
 
 var newStr = str.replace(re, (match) => { // 'JOHN SMITH' 用於替換大小寫
       return match.toUpperCase();
@@ -2256,6 +2264,13 @@ transform-origin屬性 用以表示旋轉的pivot點
 transform-origin: center; 正中心
 transform-origin: top left; 元素的左上方作為旋轉點 等同0% 0%
 
+早期html沒有flexbox時 可用transform屬性達到視窗置中
+.center-panel {  
+     position:absolute;
+     left: 50%;  // left只能將子元素的左上點移到正中央 但子元素並沒有置中  
+     transform: translateX(-50%);  // 再依據子元素的寬度做調整 往左移動
+}
+
 .heart.animated { // 動畫相關屬性與jquery.animate()的options相同
   animation: 1600ms pulsate infinite alternate ease-in-out;
 }
@@ -3455,11 +3470,20 @@ Docker使用簡易版Linux環境：大致上就是分為user space和kernel spac
 兩者有獨立性:一般而言user無權訪問kernel 以確保使用者不會傷害到核心
 
 Heroku是PaaS 而 Kubernetes是container tool 這三樣工具都是屬於不同層面的工具
-Heroku的競爭對手是EB ,Azure ,GAE 其中的AWS的EB才是目前的PaaS龍頭
+Heroku的競爭對手是EB, Azure, GAE 其中的AWS的EB才是目前的PaaS龍頭
+
+Microsoft的Azure本身就包含了Paas和Iaas兩種服務
+由於主流以AWS和GCP為主 故討論度較低
 
 其中Elastic Beanstalk(EB) 是AWS雲端環境的快速部署與管理平台(PaaS) 
 可使用任何AWS組件 像是Elastic Load Balancer負載均衡, Auto-Scaling Group自動擴充和Security Group等
 而Elastic Computer Cloud(EC2) 則讓用戶在上面自行建置伺服器 為AWS的雲端空間(IaaS)
+
+其中Google App Engine(GAE)是GCP的快速部署與管理平台(Paas) 
+而Google Compute Engine(GCE)是GCP的雲端空間(Iaas)
+GCP的好處是台灣有機房 AWS則最近的建在香港
+GCP較多新創公司使用 AWS是適合大型公司的專業後端使用
+GCP價格約是AWS的六折左右 
 
 circleCI用於自動化雲端環境的測試,整合和部署 需要有配合的雲端平台PaaS
 Continuous Integration & Delivery (CI/CD) 持續整合與持續交付
@@ -3512,8 +3536,12 @@ application server負責business logic的執行和database的存取
 
 nginx也是一種web server: 
 但無法自行實現WSGI服務 主要功能皆與效能有關
-可暫存靜態資源重複請求不用到appication server 或針對高流量請求時緩存http request
-具有多台伺服器主機時 可做反向代理與負載均衡
+可暫存靜態資源static 讓重複請求不用到appication server 
+或針對高流量請求時緩存request
+可以從nginx判斷 不同Domain或不同pathname已提供不同服務
+在nginx層處理HTTPS連線
+具多台伺服器時 可針對單一url的request做反向代理或將不同url的request做分流
+
 
 WSGI為python語言針對CGI另外定義的網路接口
 ASGI是由WSGI做改良而得 因為近年有許多協定不使用原始的http規範(WebSocket)

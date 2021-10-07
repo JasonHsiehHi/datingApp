@@ -10,7 +10,7 @@ function chatroomWS(){
             }));
             if('true'===localStorage.isSaved){
                 var data = {};
-                var li = ['name', 'matchType', 'school', 'room', 'isBanned', 'inTest', 'isWaiting', 'inRoom', 'testResult', 'waiting_time'];
+                var li = ['name', 'matchType', 'school', 'room', 'isBanned', 'status', 'testResult', 'waiting_time'];
                 for (let i of li){
                     if(localData[i])
                         data[i] = localData[i];
@@ -20,7 +20,6 @@ function chatroomWS(){
                     'data': data
                 }));
             }
-            $("#send-text").focus();
         };
         // todo 可增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
         // todo 處理後端的自動斷線問題
@@ -32,7 +31,7 @@ function chatroomWS(){
                 case typeSet.greet: 
                     localData.anonName=data.anonName, localStorage.anonName=data.anonName;
                     theUI.refreshProfile();
-                    theUI.showMsgsAsync(data.dialog,function(){
+                    theUI.showMsgsAsync(data.dialog,function(){  // todo 改用 前端加後端 整合為新的GREET
                         theUI.storeChatLogs(term.showMsgs_text, data.dialog.length);
                         delete term.showMsgs_text;
                         toggle.cmd = !0;
@@ -44,7 +43,7 @@ function chatroomWS(){
                     var school =  localData.school.toUpperCase();
                     theUI.gotoSchoolAsync(function(){
                         theUI.showMsg('已抵達'+school + schoolSet[school] +'了😎');
-                        theUI.showMsgsAsync(data.dialog,function(){
+                        theUI.showMsgsAsync(data.dialog,function(){  // todo 改用前端回應就好
                             toggle.cmd = !0;
                         });
                     });
@@ -72,22 +71,39 @@ function chatroomWS(){
                     term.testQuestions = data.questions;
                     theUI.clearChatLogs();
                     theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
-                    theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。')
+                    theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
                     processTest(data.questions);
+                    localData.status = 1, localStorage.status = '1';
+                    localData.inTest=!0,localStorage.inTest='true'; //delete
                     toggle.cmd = !0;
                     break;
                 case typeSet.wait:
-                    // 加上等待計時時鐘 theUI.showClock()
-                    !1==localData.isWaiting&&(theUI.clearChatLogs(),theUI.showSys('計時開始'),localData.isWaiting=!0,localStorage.isWaiting='true');
+                    theUI.clearChatLogs();
+                    theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock();
+                    localData.status = 2, localStorage.status = '2';
+                    localData.isWaiting=!0,localStorage.isWaiting='true'; //delete
+                    toggle.cmd = !0;
                     break;
                 case typeSet.enter:
-                    !0==localData.isWaiting&&(theUI.clearChatLogs(),theUI.showSys('進入聊天室'),localData.isWaiting=!1,localStorage.isWaiting='false');
+                    theUI.clearChatLogs();
+                    theUI.showSys('進入聊天室');
+                    localData.status = 3, localStorage.status = '3';  // todo 進入坊間後不能進行profile或rename
+                    localData.isWaiting=!1,localStorage.isWaiting='false'; //delete
+                    toggle.cmd = !0;
                     break;
                 case typeSet.leave:
-                    !0==localData.inRoom&&(theUI.showSys('你已離開聊天室'),localData.inRoom=!1,localStorage.inRoom='false');
+                    theUI.clearChatLogs();
+                    theUI.showSys('你已離開聊天室');
+                    setTimeout(function(){
+                        theUI.showSys('/match即可開始下一次的配對，或用/goto前往其他學校。')
+                    },1000)
+                    localData.status = 0, localStorage.status = '0';
+                    localData.inRoom=!1,localStorage.inRoom='false'; //delete
                     break;
                 case typeSet.left:
-                    !0==localData.inRoom&&(theUI.showSys('對方已離開聊天室'),localData.inRoom=!1,localStorage.inRoom='false');
+                    theUI.showSys('對方已離開聊天室');
+                    localData.status = 0, localStorage.status = '0';
+                    localData.inRoom=!1,localStorage.inRoom='false'; //delete
                     setTimeout(function(){
                         theUI.showSys('可用/match開始下一次的配對 或用/goto前往其他學校')
                     },1000)
@@ -133,16 +149,17 @@ function LocalData(){
     this.name = '',
     this.matchType = '',
     this.isBanned = !1,
+    this.status = 0, // 1:inTest, 2:isWaiting, 3:inRoom
     this.inTest = !1, // test階段不要有GREET 但wait階段則要有GREET
     this.isWaiting = !1,
-    this.inRoom = !1, // 等同this.room='' 而this.inRoom表示狀態
+    this.inRoom = !1,
     this.hasTested = !1,
     this.lastSaid = 'sys',
     this.anonName = '',
     this.room = '',
     this.school = '',
     this.testResult = [],
-    this.waiting_time ='',  // 再將時間字串轉為Date()物件
+    this.waiting_time = '',
     this.chatLogsNum = 0,
     this.chatLogsMaxNum = 250
     for (let i = 0;i<5;i++)
@@ -157,6 +174,7 @@ function getLocalData(){
             data.name = localStorage.name,
             data.matchType = localStorage.matchType,
             data.isBanned = ('true'===localStorage.isBanned)?!0:!1,
+            data.status = +localStorage.status,
             data.inTest = ('true'===localStorage.inTest)?!0:!1,
             data.isWaiting = ('true'===localStorage.isWaiting)?!0:!1,
             data.inRoom = ('true'===localStorage.inRoom)?!0:!1,
@@ -177,6 +195,7 @@ function getLocalData(){
             localStorage.name = '',
             localStorage.matchType = '',
             localStorage.isBanned = 'false',
+            localStorage.status = '0',
             localStorage.inTest = 'false',
             localStorage.isWaiting = 'false',
             localStorage.inRoom = 'false',
@@ -199,10 +218,23 @@ function getLocalData(){
     return data
 }
 
-function loadLocalData(){
+function loadLocalData(){  // 所有數據已經通過import傳到後端 只需要做theUI就好
     theUI.refreshProfile();
-    (''!==localData.school)&&theUI.gotoSchoolAsync(localData.school);
-
+    (''!==localData.school)&&theUI.gotoSchoolAsync();
+    switch (localData.status){
+        case '1':  // inTest
+            theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
+            theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
+            processTest(data.questions);
+            break;
+        case '2':  // isWaiting
+            theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock(localData.waiting_time);
+            break;
+        case '3':  // inRoom
+            //pass
+            break;
+    }
+    $('#send-text').focus();
 }
 
 function installToolTip() {
@@ -223,7 +255,7 @@ function bindMsgSending() {
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
             var text = $("#send-text").val();  
-            (void 0 != text && null != text &&"" != text) && text.match(/(\/[a-zA-Z@1-9]+)/i)? (!0==toggle.cmd && theTerminal.command(text)) : (!0==localData.inRoom) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!');
+            (void 0 != text && null != text &&"" != text) && text.match(/(\/[a-zA-Z@1-9]+)/i)? (!0==toggle.cmd && theTerminal.command(text)) : (3 === localData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!');
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
         }
@@ -285,7 +317,7 @@ function bindFileUpload(){
             return form.serializeArray();
         },
         done: function(e, data) {
-            if (localData.inRoom)
+            if (localData.status === 3)
                 ('img_url' in data.result) ? (theUI.showSelfImg(data.result['img_url']),theWS.imgSendWs(data.result['img_url'])):console.log(data.result['error']);
         },
         always:function(e, data) {
@@ -466,7 +498,7 @@ var chatTerminal = function(){
 
     }
     function _a(){
-        if (localData.inRoom)
+        if (localData.status === 3)
             $('#send-img').click();
     }
     return{
@@ -601,8 +633,8 @@ var chatUI = function(){
         return newElmt
     }
 
-    function c(){
-        function showTime(){
+    function c(startTime=null){
+        function time(){
             var date = new Date();
             var offsetTime = (date-start)/ 1000;
             var s = parseInt(offsetTime % 60), m = parseInt((offsetTime / 60) % 60), h = parseInt(offsetTime / 60 / 60);
@@ -610,13 +642,14 @@ var chatUI = function(){
             m = (m < 10) ? ("0" + m) : m;
             s = (s < 10) ? ("0" + s) : s;
             
-            var duration = h + ":" + m + ":" + s;
-            $(".a-clock").text(duration);
+            var duration = h + ":" + m;
+            $('.a-clock').text(duration);
             
-            setTimeout(showTime, 1000);
-        }   
-        var start = new Date();
-        showTime();
+            setTimeout(time, 1000*60);
+        } 
+        var start = (null!==startTime)?(new Date(startTime)):(new Date());
+        localData.waiting_time = start.Format('YYYY-MM-DD hh:mm:ss'), localData.Storage = localData.waiting_time;
+        time();
     }
 
     function ut(hasRead){
@@ -624,19 +657,18 @@ var chatUI = function(){
     }
 
     function cl(){
-        var first = $('#clock'), last = $('#writing');
+        var last = $('#writing');
         for (let i = 0;i<5;i++)
             localData['chatLogs'+i.toString()] = '', localStorage['chatLogs'+i.toString()] = '';
         localData.chatLogsMaxNum = 250,localStorage.chatLogsMaxNum = localData.chatLogsMaxNum.toString() ,localData.chatLogsNum=0,localStorage.chatLogsNum='0';
-        $('#dialog').empty();
-        $('#dialog').append(first), $('#dialog').append(last);
+        $('#dialog').empty(),$('#dialog').append(last);
     }
 
     function ll(){
         if (void 0 !== typeof(Storage)){
             var index = (localData.chatLogsNum>=250)?((localData.chatLogsNum/50)%5)+1 : 0 ;
-            var first = $('#clock'), last = $('#writing');
-            $('#dialog').empty(), $('#dialog').append(first), $('#dialog').append(last);
+            var last = $('#writing');
+            $('#dialog').empty(), $('#dialog').append(last);
             for (let i = 0;i<5;i++){
                 (index>=5)&&(index=index-5);
                 $('#writing').before(localData['chatLogs'+index.toString()]);
@@ -660,14 +692,14 @@ var chatUI = function(){
         if (''!==localData.matchType){
             var self = ('m'===localData.matchType[0])?'man':'woman';
             var matcher = ('m'===localData.matchType[1])?'man':'woman';
-            var inRoom = (localData.inRoom)?'graphic_eq':'keyboard_arrow_right';
+            var inRoom = (localData.status === 3)?'graphic_eq':'keyboard_arrow_right';
             $('.navbar-text.a-type .material-icons:eq(0)').text(self);
             $('.navbar-text.a-type .material-icons:eq(1)').text(inRoom);
             $('.navbar-text.a-type .material-icons:eq(2)').text(matcher);
         }
     }
 
-    function go(callback){  //async function
+    function go(callback=null){  //async function
         if (''!==localData.school){
             var extn = '.png';
             var img_url = school_url+localData.school+extn;
@@ -696,7 +728,7 @@ var chatUI = function(){
         }
     }
 
-    function ms(dialogList, callback){  // async function: callback after function has completed
+    function ms(dialogList, callback=null){  // async function: callback after function has completed
         var i = 0, elmts_text = '';
         for (let dialog of dialogList){
             setTimeout(function(){
@@ -706,7 +738,7 @@ var chatUI = function(){
         }
         
         setTimeout(function(){
-            term['showMsgs_text'] = elmts_text; //callback() deside whether storeChatLogs or not.
+            term['showMsgs_text'] = elmts_text;
             if ('function'===typeof(callback)){
                 callback();  
             }
@@ -746,6 +778,23 @@ var chatUI = function(){
     }
 }(jQuery);
 
+
+Date.prototype.Format = function (fmt) { //author: meizz
+    var o = {
+    "M+": this.getMonth(),
+    "D+": this.getDate(),
+    "h+": this.getHours(),
+    "m+": this.getMinutes(),
+    "s+": this.getSeconds(),
+    "S": this.getMilliseconds()
+    };
+    if (/(Y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length));
+    for (var k in o){
+        var str = '(' + k + ')';
+        if (new RegExp(str).test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00"+o[k]).substr((""+o[k]).length)));
+    }
+    return fmt;
+}
 
 var TITLE = "ACard - AnonCard",
     school_url = '/static/img/mark/',

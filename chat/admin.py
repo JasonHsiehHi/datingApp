@@ -13,7 +13,7 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('uuid', 'name', 'matchType', 'school', 'score', 'isWaiting', 'inRoom')
+    list_display = ('uuid', 'name', 'matchType', 'school', 'score', 'status')
     ordering = ('school', 'matchType', '-score')
     search_fields = ('school',)
 
@@ -36,7 +36,7 @@ class QuestionAdmin(admin.ModelAdmin):
 
 @admin.register(Dialogue)
 class DialogueAdmin(admin.ModelAdmin):
-    list_display = ('action', 'number', 'dialog')
-    ordering = ('action', 'number')
+    list_display = ('action', 'sub', 'number', 'dialog')
+    ordering = ('action', 'sub', 'number')
     search_fields = ('action', )
 

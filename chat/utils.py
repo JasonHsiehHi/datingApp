@@ -23,7 +23,7 @@ def set_player_data(player, data):  # todo 用戶直接改localStorage問題
     if 'school' in data:
         data['school'] = School.objects.get(name=data['school'])
     if 'waiting_time' in data:
-        data['waiting_time'] = datetime.datetime.strptime(data['waiting_time'], '%Y%m%d%H%M%S%f')
+        data['waiting_time'] = datetime.datetime.strptime(data['waiting_time'], '%Y-%m-%d %H:%M:%S')
     Player.objects.filter(uuid=player.uuid).update(**data)
     player = Player.objects.get(uuid=player.uuid)
     return player
@@ -56,11 +56,10 @@ def set_player_profile(player, name, matchType=None):
 def set_player_room(player, room_name):
     if room_name is None:
         player.room = None
-        player.inRoom = False
+        player.status = 0
     else:
         player.room = room_name
-        player.inRoom = True
-        player.isWaiting = False
+        player.status = 3
     player.save()
     return player
 
@@ -83,22 +82,22 @@ def set_player_score(player, testResult, correct_result):
 
 
 @database_sync_to_async
-def process_player_wait(player, isWaiting):
+def process_player_wait(player, status):
     school, matchType = player.school, player.matchType
-    if all([school, matchType]) & player.isWaiting != isWaiting:
-        player.isWaiting = isWaiting
-        player.waiting_time = datetime.datetime.now() if isWaiting else None
+    if all([school, matchType]) & player.status != status:
+        player.status = status
+        player.waiting_time = datetime.datetime.now() if (status == 2) else None
         if matchType == 'fm':
-            school.femaleNumForMale = school.femaleNumForMale + 1 if isWaiting else school.femaleNumForMale - 1
+            school.femaleNumForMale = school.femaleNumForMale + 1 if (status == 2) else school.femaleNumForMale - 1
 
         elif matchType == 'mf':
-            school.maleNumForFemale = school.maleNumForFemale + 1 if isWaiting else school.maleNumForFemale - 1
+            school.maleNumForFemale = school.maleNumForFemale + 1 if (status == 2) else school.maleNumForFemale - 1
 
         elif matchType == 'ff':
-            school.femaleNumForFemale = school.femaleNumForFemale + 1 if isWaiting else school.femaleNumForFemale - 1
+            school.femaleNumForFemale = school.femaleNumForFemale + 1 if (status == 2) else school.femaleNumForFemale - 1
 
         elif matchType == 'mm':
-            school.maleNumForMale = school.maleNumForMale + 1 if isWaiting else school.maleNumForMale - 1
+            school.maleNumForMale = school.maleNumForMale + 1 if (status == 2) else school.maleNumForMale - 1
         player.save()
         school.save()
     return player
@@ -107,7 +106,7 @@ def process_player_wait(player, isWaiting):
 @database_sync_to_async
 def process_player_match(someone):
     match_type = someone.matchType
-    players_in = Player.objects.filter(Q(school=someone.school) & Q(isWaiting=True))
+    players_in = Player.objects.filter(Q(school=someone.school) & Q(status=2))
 
     if match_type == 'fm' or match_type == 'mf':
         players_in = players_in.filter(matchType=match_type[1]+match_type[0])
@@ -117,26 +116,26 @@ def process_player_match(someone):
     if num < 1:
         return None, None
     scoreDiffs = [abs(p.score-someone.score) for p in players_in]
-    waitingTimes = [(someone.waiting_time-p.waiting_time) for p in players_in]
-    li = list(map(lambda x, y: x - waitingTime_to_score(y), zip(scoreDiffs, waitingTimes)))
+    durations = [(someone.waiting_time-p.waiting_time) for p in players_in]
+    li = list(map(lambda x, y: x - duration_to_score(y), zip(scoreDiffs, durations)))
     min_li = min(li)
     matches = []
-    for i, j in zip(waitingTimes, li):  # consider more one matchers with same score.
+    for i, j in zip(durations, li):  # consider more one matchers with same score.
         match = i if j == min_li else 0
         matches.append(match)
     matcher = players_in[matches.index(max(matches))]
     return matcher.uuid, matcher.name
 
 
-def waitingTime_to_score(waitingTime):
-    score_reduction = int(waitingTime.minutes / 20)
+def duration_to_score(duration):
+    score_reduction = int(duration.minutes / 20)
     return score_reduction
 
 
 @database_sync_to_async
 def check_players_num(school_id, target_matchType):  # todo 應與其他process合併 減少訪問資料庫
     school = School.objects.get(name=school_id)
-    players_in = Player.objects.filter(Q(school=school) & Q(isWaiting=True) & Q(matchType=target_matchType))
+    players_in = Player.objects.filter(Q(school=school) & Q(status=2) & Q(matchType=target_matchType))
     num = len(players_in)
     if target_matchType == 'fm' or target_matchType == 'mf':
         isEnough = True if num >= 1 else False

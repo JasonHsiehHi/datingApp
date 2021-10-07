@@ -37,9 +37,7 @@ class Player(models.Model):
     create_date = models.DateTimeField(default=timezone.now)
 
     isBanned = models.BooleanField(default=False)
-    inTest = models.BooleanField(default=False)
-    isWaiting = models.BooleanField(default=False)
-    inRoom = models.BooleanField(default=False)
+    status = models.IntegerField(default=0)
 
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
