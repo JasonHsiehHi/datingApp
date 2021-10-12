@@ -12,15 +12,8 @@ class Room(models.Model):
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
     school = models.CharField(max_length=30)
 
-    @property
-    def group_name(self, room_name=None):
-        if room_name is None:
-            return "room-%s" % self.id
-        else:
-            return "room-%s" % room_name
-
     def __str__(self):
-        return self.group_name
+        return "room-%s" % self.id
 
 
 class Player(models.Model):
@@ -32,13 +25,14 @@ class Player(models.Model):
     )
 
     uuid = models.UUIDField(primary_key=True)
-    name = models.CharField(max_length=100, null=True, default=None)
+    name = models.CharField(max_length=50, null=True, default=None)
     matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True, default=None)
     create_date = models.DateTimeField(default=timezone.now)
 
     isBanned = models.BooleanField(default=False)
     status = models.IntegerField(default=0)
 
+    anonName = models.CharField(max_length=50, null=True, default=None)
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
 

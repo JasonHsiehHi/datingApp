@@ -4,7 +4,7 @@ from .models import Room, Player, Question, School, Dialogue
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ('group_name', 'school', 'matchType', 'userNum')
+    list_display = ('id', 'school', 'matchType', 'userNum')
     ordering = ('school', 'matchType',)
     search_fields = ('school',)
 

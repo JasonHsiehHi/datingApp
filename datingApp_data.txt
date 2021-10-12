@@ -1,3 +1,38 @@
+===datingApp架構圖:
+架構圖為描述程式碼的各項物件功能 流程圖則針對用戶的使用過程
+
+chatSocket.onopen
+負責與後端建立連線並匯入localData資料 傳送open指令和import指令
+
+chatSocket.onmessage
+接收後端訊息data做分流後再依據status來調用theUI做回應 並更新用戶的status與其他localData值
+
+(onmessage)typeSet.greet
+只有greet是連線後自動觸發 故必須進行status辨識 其餘typeSet.都是用戶自行輸入指令後回傳
+
+chatSocket.onclose
+斷線後進行重連
+
+localData
+用於存放用戶身份(uuid,name...), 狀態status, 保留系統chatLogs,以及其他需存入後端資料庫的field
+
+localStorage
+所有物件都只能設置不能取用 只有在getLocalData時才能取用來設置localData
+
+loadLocalData()
+針對用戶的status和其他localData值 調用theUI來進行載入用戶介面 
+
+theTerminal.cmd()
+分流器 判別用戶輸入的指令以及是否符合指令格式(參數多寡或是否含有空格)
+
+(theTerminal.) *
+判別輸入的指令參數是否符合內容規範(參數內容必須是規定的範圍內) 並判別status來決定是否要把訊息送到後端
+
+(theUI.) clearChatLogs(), storeChatLogs(), loadChatLogs()
+不能被其他theUI調用 只能供外部調用 (一般為後端存取資料完後的chatSocket.onmessage)
+
+
+===model_data:
 Dialogue model:
 action sub number speaker dialog
 GREET mo 1 1 
@@ -23,7 +58,7 @@ Robot model:
 id name 
 '1', '正在念大六的Acard開發者'
 '2', '愛喝拿鐵的社畜OL'
-
+'3', '不加糖拿鐵'
 參考:
 '大刀面前耍關公'
 '鉛筆盒裡沒筆'

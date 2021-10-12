@@ -19,7 +19,7 @@ def get_player(uuid):
 @database_sync_to_async
 def set_player_data(player, data):  # todo 用戶直接改localStorage問題
     if 'room' in data:
-        data['room'] = Room.objects.get(group_name=data['room'])
+        data['room'] = Room.objects.get(id=data['room'])
     if 'school' in data:
         data['school'] = School.objects.get(name=data['school'])
     if 'waiting_time' in data:
@@ -53,13 +53,16 @@ def set_player_profile(player, name, matchType=None):
 
 
 @database_sync_to_async
-def set_player_room(player, room_name):
-    if room_name is None:
-        player.room = None
+def set_player_room(player, room_id, matcherName):
+    if room_id is None:
         player.status = 0
+        player.room = None
+
     else:
-        player.room = room_name
         player.status = 3
+        player.room = Room.objects.get(id=room_id)
+        player.anonName = matcherName
+        player.waiting_time = None
     player.save()
     return player
 
@@ -67,7 +70,7 @@ def set_player_room(player, room_name):
 @database_sync_to_async
 def create_room(matchType, school_id):
     room = Room.objects.create(matchType=matchType, school=school_id)
-    return room
+    return str(room.id)
 
 
 @database_sync_to_async
@@ -86,7 +89,7 @@ def process_player_wait(player, status):
     school, matchType = player.school, player.matchType
     if all([school, matchType]) & player.status != status:
         player.status = status
-        player.waiting_time = datetime.datetime.now() if (status == 2) else None
+        player.waiting_time = datetime.datetime.now(tz=datetime.timezone.utc) if (status == 2) else None
         if matchType == 'fm':
             school.femaleNumForMale = school.femaleNumForMale + 1 if (status == 2) else school.femaleNumForMale - 1
 
@@ -117,18 +120,18 @@ def process_player_match(someone):
         return None, None
     scoreDiffs = [abs(p.score-someone.score) for p in players_in]
     durations = [(someone.waiting_time-p.waiting_time) for p in players_in]
-    li = list(map(lambda x, y: x - duration_to_score(y), zip(scoreDiffs, durations)))
+    li = [x - duration_to_score(y)for x, y in zip(scoreDiffs, durations)]
     min_li = min(li)
     matches = []
     for i, j in zip(durations, li):  # consider more one matchers with same score.
         match = i if j == min_li else 0
         matches.append(match)
     matcher = players_in[matches.index(max(matches))]
-    return matcher.uuid, matcher.name
+    return str(matcher.uuid), str(matcher.name)
 
 
 def duration_to_score(duration):
-    score_reduction = int(duration.minutes / 20)
+    score_reduction = int(duration.seconds/60/20)
     return score_reduction
 
 
