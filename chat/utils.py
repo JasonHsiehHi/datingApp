@@ -17,13 +17,19 @@ def get_player(uuid):
 
 
 @database_sync_to_async
-def set_player_data(player, data):  # todo 用戶直接改localStorage問題
+def set_player_data(player, data, correct_result):  # todo 用戶直接改localStorage問題
     if 'room' in data:
         data['room'] = Room.objects.get(id=data['room'])
     if 'school' in data:
         data['school'] = School.objects.get(name=data['school'])
     if 'waiting_time' in data:
         data['waiting_time'] = datetime.datetime.strptime(data['waiting_time'], '%Y-%m-%d %H:%M:%S')
+    if 'testResult' in data and len(data['testResult']) == len(correct_result):
+        count = 0
+        for i, j in zip(data['testResult'], correct_result):
+            count = count + 1 if (i == j) else count
+        data['score'] = count
+
     Player.objects.filter(uuid=player.uuid).update(**data)
     player = Player.objects.get(uuid=player.uuid)
     return player
@@ -57,10 +63,14 @@ def set_player_room(player, room_id, matcherName):
     if room_id is None:
         player.status = 0
         player.room = None
+        Room.objects.filter(id=room_id).delete()
 
     else:
         player.status = 3
-        player.room = Room.objects.get(id=room_id)
+        room = Room.objects.get(id=room_id)
+        room.userNum = 2
+        room.save()
+        player.room = room
         player.anonName = matcherName
         player.waiting_time = None
     player.save()
@@ -72,6 +82,19 @@ def create_room(matchType, school_id):
     room = Room.objects.create(matchType=matchType, school=school_id)
     return str(room.id)
 
+
+@database_sync_to_async
+def set_room_userNum(room_id, is_disconnected):
+    room = Room.objects.get(id=room_id)
+    n = -1 if is_disconnected else 1
+    room.userNum = room.userNum + n
+    room.save()
+    return int(room.userNum)
+
+@database_sync_to_async
+def get_room_userNum(room_id):
+    room = Room.objects.get(id=room_id)
+    return int(room.userNum)
 
 @database_sync_to_async
 def set_player_score(player, testResult, correct_result):

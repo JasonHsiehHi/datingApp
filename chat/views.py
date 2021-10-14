@@ -16,7 +16,6 @@ def upload_image(request):
         extension_name = photo.image.name.split('.')[-1]
         photo.image.name = 'photo/' + photo.name + '.' + extension_name
         os.rename(old_path, photo.image.path)
-        print(photo.image.url, file=sys.stderr)
         photo.save()
         return JsonResponse({'img_url': photo.image.url})
     else:

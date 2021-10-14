@@ -2011,6 +2011,14 @@ $("input[value*=aa]") 中間有aa之input元素
 $("li").children()只為回傳下一層的子元素
 $("li").find("ul")回傳所有符合的子元素 等同jquery的$("ul","li")
 
+$("li").find("ul").filter(":nth-child(2n)") 可回傳符合條件的子元素
+亦可用 filter()常配合inArray()一起使用
+$.inArray 若index在index_list中則回傳所在位置 若不在index_list中則回傳-1
+ $("li").find("ul").filter(function(index) { 
+    return $.inArray(index, index_list) > -1; // 只要function回傳true即符合條件
+}) 
+ 
+
 $("li").find("ul").css("background-color","red")即為此元素添加css樣式
 $("li").css({  // 若有多項則使用{}
   "font-style": "italic",
@@ -3463,6 +3471,10 @@ VMware可用來在mac中安裝windows 故屬於virtual machine的相關應用
 
 Docker的競爭對手有CoreOS
 Kubernetes則是一個container集群管理系統 用於做部署,維護,擴增等功能
+K8s可運用container讓server隨流量自動擴張或縮減 或server掛點時可自動修復
+這類型服務被稱為CaaS(Container as a Service)
+能夠取代使用VM搭配nginx做反向代理的服務
+
 Docker由image, container, Repository所組成：
 
 Image(Docker的映像檔) 用來生成container, 而Repository(Docker的倉庫)則用來儲存多個不同的image
@@ -3488,6 +3500,26 @@ GCP的好處是台灣有機房 AWS則最近的建在香港
 GCP較多新創公司使用 AWS是適合大型公司的專業後端使用
 GCP價格最便宜 而AWS支援服務最齊全
 GCP發展最晚 全球覆蓋率最低 而AWS則最早發展 有最多的可用區域
+
+~gcp:
+VM常用的作業系統Ubuntu 18.04 LTS 相關指令:
+sudo apt-get update  // 進行更新
+sudo curl -O http://vestacp.com/pub/vst-install.sh  // curl透過http協定存取網路資源
+sudo bash vst-install.sh --force // bash用以執行sh腳本檔
+
+VPC網路(Virtual Private Cloud)
+最大單位為'網路名稱'即為獨立存在的LAN 而旗下的'子網路'可想像成一個 VLAN
+'名稱'之間不能互通 但建立在同一名稱下'子網路'的app則可透過資料庫互通
+VPC不同於固定的外部IP位置 需要透過GCP的公有端點來做通訊 GCP會提供DNS來做轉換
+
+子網路遮罩(subnet mask) 用來標示單一網路IP位址內的主機所在位址
+表示方法與IP位址相同 如:255.128.0.0 或 192.0.2.96/28 
+
+server的防火牆為控制執行個體的流量和封鎖不被信任的連入流量
+
+必須安裝Google Cloud SDK 才能做gcloud指令
+gcloud docker -- push // 上傳container到GCS上
+或是直接用Google Cloud Container Builder
 
 circleCI用於自動化雲端環境的測試,整合和部署 需要有配合的雲端平台PaaS
 Continuous Integration & Delivery (CI/CD) 持續整合與持續交付
@@ -3878,6 +3910,8 @@ print('len(dialogues):'+str(num), file=sys.stderr)
 python manage.py shell 進入django的互動模式 可用於手動操作database
 關鍵是可以在網站運行時做變更 sqlite資料庫和redis資料庫都能使用
 如同在網頁上操作資料或呈現view.py裡面的訊息 可按CTRL+D離開
+SSH(secure shell)在terminal與遠端伺服器之間建立安全通道 github或gcp都需要使用SSH
+
 
 python manage.py collectstatic
 將STATICFILES_DIRS路徑中所收集到的static檔 收集放入STATIC_ROOT中
@@ -4263,7 +4297,7 @@ tuple()不能只存放單一元素 此時可以用(elmt,)來表示
 
 model常用的set集合:
 setA = {3,5,7,9}  = set(3,5,7,9)
-用{}與list[]和tuple()做區分 set不能使用index找element 但可以做集合運算:
+用set{}與list[]和tuple()做區分 set不能使用index找element 但可以做集合運算:
 (setA|setB)聯集 (setA&setB)聯集 (setA-setB)聯集 (setA^setB)聯集
 
 class Test():
@@ -4445,8 +4479,8 @@ const arrayData = [
 ];
 
 async function parallelFn() {
-  const data = arrayData.map(async item => {    //用array.map() 將array內的元素並發 用映射函數處理
-    const res = await promiseFn(item.num, item.time);
+  const data = arrayData.map(async item => {  // 用array.map() 將array內的元素並發 用映射函數處理
+    const res = await promiseFn(item.num, item.time); // item.num和item.time 即array內的每一個元素都是object
     return res;
   })
   console.log(data);
@@ -4508,11 +4542,13 @@ setTimeout()屬於非同步事件 JS程序上會先跑完全部的同步事件 �
 實現非同步的原理：setTimeout()是webAPI 不會影響到JS主程式 故可以設置等待時間延後執行
 
 setTimeout(( () => console.log("Hello!") ), 1000);
-() =>為function的簡易寫法 適用於只有單行的code
-setTimeout(
- function(){
+()=> 為function的簡易寫法 常用於只有單行的code
+setTimeout(function(){
    console.log("Hello!");
- }, 1000); 等同於第一參數放入function()的寫法
+ }, 1000);    // 等同於第一參數放入function()的寫法
+
+const map1 = array1.map(x => x * 2);
+常與array.map()一起使用 此時單行code亦可省略return
 
 setTimeout()只會執行一次 另外有setInterval()可持續不間斷執行
 用法相同 另外其執行對象都是window 完整語法是window.setTimeout()
