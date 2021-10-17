@@ -1,4 +1,4 @@
-===datingApp架構圖:
+# datingApp架構圖:
 架構圖為描述程式碼的各項物件功能 流程圖則針對用戶的使用過程
 
 chatSocket.onopen
@@ -32,8 +32,8 @@ theTerminal.cmd()
 不能被其他theUI調用 只能供外部調用 (一般為後端存取資料完後的chatSocket.onmessage)
 
 
-===model_data:
-Dialogue model:
+# model_data:
+## Dialogue model:
 action sub number speaker dialog
 GREET mo 1 1 
 ["歡迎來到Acard！😂",
@@ -54,7 +54,7 @@ GREET ev 3 2
 GREET ev 4 2
 
 
-Robot model:
+## Robot model:
 id name 
 '1', '正在念大六的Acard開發者'
 '2', '愛喝拿鐵的社畜OL'
@@ -64,7 +64,7 @@ id name
 '鉛筆盒裡沒筆'
 
 
-Question model:
+## Question model:
 id content type choice
 '1s', '依據圖片判斷，這個人可能從事的職業為何？<p class="text-center"><img class="img-fluid a-img" src="/static/img/question/1s.png" alt="refresh again"></img></p>', 's', '["藥品製造商","高中老師"]'
 
@@ -143,7 +143,7 @@ l ["",""]
 調情問題-螺絲釘
 
 
-==
+# 
 所有內容都必須跟學生習習相關 dcard會是很重要的參考依據
 大致上來源於梗圖版與有趣版
 
