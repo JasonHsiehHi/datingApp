@@ -171,7 +171,7 @@ def check_players_num(school_id, target_matchType):  # todo 應與其他process�
 
 
 @database_sync_to_async
-def get_dialogue_dialog_and_speaker(speaker, action, sub=None, n=None):
+def get_dialogue_dialog_and_speaker(speaker, action, sub=None, n=None):  # todo dialogue需要大改
     if n is None:
         dialogues = Dialogue.objects.filter(action=action).filter(Q(sub=sub) | Q(sub=None)).filter(speaker=speaker)
         num = len(dialogues)

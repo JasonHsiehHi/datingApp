@@ -85,12 +85,21 @@ WSGI_APPLICATION = 'datingApp.wsgi.application'
 
 ASGI_APPLICATION = "datingApp.asgi.application"
 
+'''
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
             "hosts": [('127.0.0.1', 6379)],  # docker run -p 6379:6379 -d redis:5 發布到port上
         },
+    },
+}
+
+'''
+
+CHANNEL_LAYERS = {
+    'default': {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  # for test
     },
 }
 

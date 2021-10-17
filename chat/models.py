@@ -8,7 +8,7 @@ class Room(models.Model):
         ('mm', 'male->male'),
         ('ff', 'female->female')
     )
-    userNum = models.IntegerField(default=0)
+    userNum = models.IntegerField(default=0)  # todo room_id要改成創建者uuid+創立時間 才不會透露目前房間數
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
     school = models.CharField(max_length=30)
 
@@ -86,7 +86,7 @@ class Robot(models.Model):
 
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
-    uploader = models.CharField(max_length=8, null=True, default=None)
+    uploader = models.CharField(max_length=8, null=True, default=None)  # todo 同一位上傳者要限制數量
     upload_date = models.DateTimeField(default=timezone.now)
 
     @property
