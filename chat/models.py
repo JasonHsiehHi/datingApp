@@ -86,7 +86,7 @@ class Robot(models.Model):
 
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
-    uploader = models.CharField(max_length=8, null=True, default=None)  # todo 同一位上傳者要限制數量
+    uploader = models.CharField(max_length=8, null=True, default=None)  # todo 同一位上傳者要限制數量 且禁止連續上傳
     upload_date = models.DateTimeField(default=timezone.now)
 
     @property

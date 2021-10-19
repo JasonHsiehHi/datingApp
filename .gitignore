@@ -8,11 +8,3 @@
 tutorial/
 
 term-chatroom.js
-
-# tutorial - node.js and webpack
-package.json
-package-lock.json
-webpack.config.js
-index.bundle.js
-index.js
-node_modules/

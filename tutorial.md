@@ -3416,7 +3416,23 @@ django template comment {#...#}
 - - ---------------------------------------
 # django_test:
 用Django的TestCase類別做測試 是為了可以讓你用:
-python3 manage.py test 一次系統性的執行 以及 setUpTestData()和setUp() 執行獨立的數據庫
+python3 manage.py test 一次系統性的執行 
+python3 manage.py test app_name 只執行其中之一的app
+(python) manage.py test app_name.tests.BasicTestCase 只執行test.py中的其中一個類別
+
+TestCase的setUpTestData()和setUp()用來存取數據或登入網站
+
+def setUp(self):  # Every test needs a client.
+  self.client = Client()  # 每次執行test_function都會重新存取一次
+  resp = self.client.get(reverse('authors'))  # 應該用selenium取代 可以操作更多交互動作
+
+def setUpTestData(cls):  # Set up data for the whole TestCase
+  cls.foo = Foo.objects.create(bar="Test") 只有建立時才存取 用於整個類別共用的變數
+但不同的test_function並不會相互影響 因封裝了copy.deepcopy()讓每次test的變數彼此獨立
+
+另外python django test 所使用的資料庫是額外建立的 會與真正的資料庫分開
+故可用fixtures物件 創建初始數據以供測試使用 常用格式為JSON (data.json)
+
 
 assertEquals(field_label,'first name') 等同assertTrue(field_label == 'first name')
 但前者比後者更好：因為測試失敗 會返回標籤上實際的值
@@ -3430,28 +3446,83 @@ self.assertTrue(form.fields['renewal_date'].label == None or form.fields['renewa
 我們只允許最後呈現的情況是我們預期的 : form.fields['renewal_date'].label只能有 None 或 'renewal date' 兩種狀況
 意即：self.assertTrue()必須永遠是對的 self.assertFalse()必須永遠是錯的 self.assertEquals()必須永遠相等
 
-resp = self.client.get(reverse('authors'))
-resp.context 可以取得model內所有屬性資料
-
 self.assertRedirects(resp, '/accounts/login/?next=/catalog/mybooks/')
 驗證resp是否正確導向 通常是測試登入系統
 self.assertTemplateUsed(resp, 'catalog/bookinstance_list_borrowed_user.html')
 驗證resp是否使用正確的模板
-
-def setUp(self): 因為每次測試method時會執行一次
-可用於驗證不同使用者登入/未登入的差別
+self.assertContains(resp, '<p>歡迎來到餐廳王</p>', html=True) 
+專門用於response 查看resp中是否包含此元素 若html=False則將元素當成字串作比對
+self.assertIn('To-Do', self.browser.title) 
+字串或list中是否包含此變數
 
 login = self.client.login(username='testuser1', password='12345')
-resp = self.client.get(reverse('my-borrowed'))
-測試登入使用者後的頁面
+resp = self.client.get(reverse('my-borrowed'))  # 測試登入使用者後的頁面
 
-resp = self.client.get(reverse('renew-book-librarian', kwargs={'pk':self.test_bookinstance1.pk,}) )
-將pk參數插入reverse()導向的URL之中
-resp = self.client.post(reverse('renew-book-librarian', kwargs={'pk':self.test_bookinstance1.pk,}), {'renewal_date':valid_date_in_future} )
-所有的POST數據都放在第二參數之中
+resp = self.client.get(reverse('renew-book-librarian', kwargs={'pk':self.test_bookinstance1.pk,}))  # 將pk參數插入reverse()導向的URL之中
 
-一般小專案不會使用自動化測試
-因為不靈活：編寫時間太長 不如直接手動測試
+resp = self.client.post(reverse('renew-book-librarian', kwargs={'pk':self.test_bookinstance1.pk,}), {'renewal_date':valid_date_in_future}) # 所有的POST數據都放在第二參數之中
+
+用於添加test時才需要的設定參數
+python3 manage.py test --settings=mysite.settings_test 
+
+settings_test.py 
+from mysite.settings import *  # 表示settings_test.py設定檔沿用settings的設定
+FIXTURE_DIRS = [
+    os.path.join(BASE_DIR, 'fixtures')  # fixture物件只會應用在測試中
+]
+
+
+## selenium
+selenium屬於web_test工具 必須要用ChromeDriver用以協助瀏覽器執行動作
+selenium時常會與django的TestCase並用
+
+from selenium import webdriver 在py檔引用
+from selenium.webdriver.common.keys import Keys
+python functional_tests.py 直接執行py檔即可
+
+class FunctionalTest(TestCase):
+  def setUp(self):  # do something before test start
+    self.browser = webdriver.Firefox()  # 使用selenium的webdriver開啟
+    (因為每次測試method時會執行一次 可用於驗證不同使用者登入/未登入的差別)
+
+  def tearDown(self):  # do something after test complete
+    self.browser.quit()
+
+  def test_get_url(self):  # 所有的test function都需要以test_為開頭
+    self.browser.get('http://localhost:8000')
+    assert 'To-Do' in self.browser.title
+
+self.browser是selenium的物件 其中的屬性可用於判定是否執行正確
+當然也俄直接使用TestCase類別的方法 self.assertTrue()
+
+其他selenium用於抓取元素的方法
+elmt = self.browser.find_element_by_tag_name('h1')
+self.assertEqual('To-Do List', elmt.text)
+
+elmt_input = self.browser.find_element_by_id('new_input')
+self.assertEqual('Input New Item', elmt_input.get_attribute('placeholder'))
+elmt_input.clear() 清除value屬性值
+
+
+elmt_list_div = self.browser.find_element_by_id('to-do-list') 
+elmt_to_do_list = list_div.find_elements_by_tag_name('li') # 先找父元素後再找其中的子元素
+
+elmt_input.= self.driver.find_element_by_css_selector(“input#username”) 使用css選擇器
+elmt_input.send_keys(new_items[0]) # Sends keys to current focused element 用於在input中輸入內容
+elmt_input.send_keys(Keys.ENTER) # keys是keysboard的多個鍵
+elmt_btn.submit()  # 用於提交input的輸入內容 可用click代替 
+
+btn.click(), btn.click_and_hold(), btn.double_click() click方法
+
+Keys.BACK_SPACE, Keys.SPACE, Keys.TAB, Keys.ESCAPE 其餘常見keys
+Keys.CONTROL,'a' 全選 Keys.CONTROL,'x' 剪下 Keys.CONTROL,'c' 複製 Keys.CONTROL,'v 貼上 
+用','隔開表示按了兩個鍵
+
+
+ActionChains(driver).move_to_element(elmt).perform() # actionchains用於存取連續動作 並調用perform()開始執行
+ActionChains(driver).click(btn)
+改由actionChains物件取代elmt物件調用 故調用方法的參數要放入elmt
+
 
 **測試驅動開發 (TDD)**
 測試程式和產品程式一起被撰寫 且在未完成產品前就先完成測試 往後修改程式時可直接用測試查看問題
@@ -3464,6 +3535,89 @@ repeatable:任何環境下其結果都要相同 不會因作業系統或網路�
 self-validating:最終都應該輸出boolean 讓測試者能夠輕易分辨
 thorough:測試應該想到所有可能的情境 一切可能遇到的用戶非預期行為或各種環境下的可能行為
 timely: TDD的概念 測試應在產品之前寫完
+- - ---------------------------------------
+# js_test (jest):
+無論在複雜的系統都可以拆解成多個function 因此可以用unit test完成全部測試
+但單元測試最大的問題出在有時引入的參數並不是所預期的 如此一來就測不出bug
+
+module.exports 當外部程式碼使用require('jsFileUrl') 就能讀取到此物件
+const jsFile = require('jsFileUrl') // 等同是js的import功能 
+即不透過html的<script></script>也能成功引用的方式
+
+test(test_name,function(){}) 表示為測試的最小單位
+describe(test_set_name,function(){test...}) 則將多個test組成一個單位
+
+beforeAll(() => console.log('1 - beforeAll')); // 只會在開始整個測試過程時執行一次 等同setUpTestData() 會放在describe()之外
+afterAll(() => console.log('1 - afterAll'));
+
+beforeEach(() => console.log('2 - beforeEach')); // 在每次測試中執行 等同setUp() 通常放在describe(function(){...})中 
+afterEach(() => console.log('2 - afterEach'));
+
+expect(peopleA.name).toBe('GQSM')  //測試字串
+expect(peopleA).toEqual({ name: 'GQSM', age: 25 })  //測試物件
+toBeGreaterThan(), toBeGreaterThanOrEqual(), toBeLessThan(), toBeLessThanOrEqual() // 用於整數
+toBeCloseTo()  // 用於浮點數 
+toContain() // array中是否包含變數
+toBeTruthy(), toBeFalsy()  // 用於boolean值
+toBeNull()  // null
+toBeUndefined(),  toBeDefined() // undefined 與 除undefined之外任意值
+
+not.toBe()則與toBe()相反 
+
+
+## selenium
+selenim也可以與jest連用 讓test可以使用瀏覽器進行交互
+
+const {Builder} = require('selenium-webdriver');  // {}表示只引入其中的Builder()類別
+var webdriver = new Builder();  // 可直接用Builder()做創建
+
+var webdriver = require('selenium-webdriver'),  // 引入整個模組
+    By = webdriver.By,
+    until = webdriver.until;
+
+var driver_ch = await new webdriver.Builder().forBrowser('chrome').build();  // 由於開啟瀏覽器需要等待時間 故用await
+
+var driver_fx = await new webdriver.Builder().forBrowser('firefox').build();  // firefox跟chrome最常被使用
+
+driver.quit(); // 最後要將瀏覽器實例關閉 
+
+async function test_search() {  // 只要程式碼中有非同步(await)都要加上async
+
+  await driver.get('https://selenium.dev');
+  await driver.wait(() => driver.executeScript('return initialised'), 10000);
+  // executeScript()放入字串參數等同console操作
+  // wait(function(){}) 等到function回傳true為止在進行下一條
+
+  var elmt = driver.findElement(By.css('p'));  // 直接放入css選擇器
+  assert.strictEqual(await element.getText(), 'Hello from JavaScript!');
+
+  driver.sleep(1000).then(function() {  // 用於等待後執行
+    driver.findElement(By.name('q')).sendKeys(webdriver.Key.TAB);
+  });
+
+  var fontWeight = await element.getCssValue("font-weight"); // 讀取html元素的css屬性
+  var readonly = await element.getAttribute("readonly");  // 讀取html元素的屬性
+
+  await searchElmt.sendKeys('xxxxx', Key.ENTER); // 同理最後加上Key.ENTER
+  await searchElmt.clear();
+
+  let btnElmt = driver.findElement(By.linkText("Sign in")); // 表示<a>元素的text值
+
+  const actions = driver.actions({async: true});  // actionChains 並放入物件參數
+  await actions.move({origin:searchBtn}).press().perform();  // 同理 move()也可以放入物件參數 如此就不需要用位置參數
+
+  btn.click(), btn.doubleClick() 方法基本都跟python的selenium相同 只是換成js的編寫風格
+
+  await actions.move({origin:sourceEle}).press().perform(); // 按者
+  await actions.move({origin:targetEle}).release().perform(); // 釋放
+  // 表示拖移元素
+
+  await driver.wait(until.alertIsPresent());  // alert出現時為true 會等待到符合條件為止 
+  let alert = await driver.switchTo().alert(); // 可用switchTo()儲存alert內容變數
+
+}
+
+
 
 - - ---------------------------------------
 # production:
@@ -3901,7 +4055,7 @@ ex:前者為多個工廠但裡面只有一個工人 / 後者為一個工廠但�
 最後Coroutine協程 ：為一種透過使用者自行控制thread的方法 取代原先全由OS控制的thread架構
 
 - - ---------------------------------------------
-# python的非同步作法：
+# python非同步作法：
 python和JS相同都是單線程語言 python有所謂GIL(全局解釋器鎖)
 故即使進行非同步方法 將function放入event_loop中 pytohn仍是單線程執行(會讓多個線程並行並交替執行來達到多線程的效果)
 
@@ -3922,7 +4076,7 @@ async def get(url):  # 該方法本身就是coroutine：因此不能直接調用
 可用sleep()來實現JS的setTimeout
 當async_function執行await function時 會等到await的執行時間結束後才繼續執行此下一條function
 (await即是存取不同的事件循環event_loop到此執行緒 循環中有許多function等待存取)
-若要像JS一樣讓同步事件先於非同步事件處理： 需要使用到create_task()
+若要像JS的setTimeout()一樣讓同步事件先於非同步事件處理： 需要使用到create_task()
 
 res = await loop.run_in_executor(None,requests.get,url)
 print(res)
@@ -3979,6 +4133,8 @@ conda search thepackage
 conda update thepackage
 conda remove thepackage
 source deactivate
+
+
 
 vi test.txt / vim test.txt  # 開啟文件檔
 ## django指令
@@ -4114,6 +4270,8 @@ echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文�
 
 export -p 列出當前所有的環境變量
 export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原先$PATH之外新增$HOME/bin/)
+切換到conda的虛擬環境中 也就是把$PATH加上/Users/jason_mac/opt/anaconda3/envs/datingApp/bin
+echo $PATH 檢查目前的環境變量
 
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
@@ -4356,6 +4514,9 @@ npm install -g 即為全局安裝 像pip一樣在/usr/local/lib建立
 npm install --save(預設 就是什麼都不加) 會在package.json中的"dependencies" 表示專案中實際使用的套件
 npm install --save-dev(等同-D) 會在package.json中的"devDependencies" 表示只在開發或測試時使用的套件
 ex:sass套件是為將sass檔轉換成css檔所用 如此就只需要在"devDependencies"
+
+npm run test 會執行寫在package.json下script屬性下的'test'指令 
+node test_basic.js 會執行當前所有資料夾的js檔 
 
 - - ---------------------------------------------------
 ## scss:
@@ -4646,8 +4807,8 @@ p.finally(); // 非同步執行完畢（無論是否正確完成）
 
 setTimeout(function{},time) 為JS常用的延遲執行方式 可用於完成網頁動畫
 setTimeout()屬於非同步事件 JS程序上會先跑完全部的同步事件 再依據time來處理非同步事件
-這點與pytohn的定義有差異：python進行await async_function時會等待執行完畢後才換下一條同步
-JS所使用的方法等同python的asyncio.create_task() 相當于另外開一條執行緒
+不同於await async_function 會等待執行完畢後才換下一條同步
+setTimeout()所使用的方法等同python的asyncio.create_task() 相當于另外開一條執行緒
 
 因此setTimeout()中的參數time只能代表最少需要等待的時間 實際上有可能超過此時間
 (因為同步事件還未完成 或其他在佇列的事件未完成)
