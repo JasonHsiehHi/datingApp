@@ -1,11 +1,14 @@
-# django 後端
 
-五大瀏覽器：GC,FF,SF,IE,OP
+
+# 五大瀏覽器：GC,FF,SF,IE,OP
+一般會忽略opera 因為使用人數太少
 pfx = ["webkit", "moz", "MS", "o", ""] 因此有些css也需要有對應的前綴詞
 -moz-{屬性}：Firefox 瀏覽器
 -webkit-{屬性}：Safari, Chrome, Opera 等瀏覽器
 -o-{屬性}： Opera 瀏覽器
 -ms-{屬性}： IE 瀏覽器
+
+
 
 - - - ---------------------------------------
 
@@ -3421,18 +3424,28 @@ python3 manage.py test app_name 只執行其中之一的app
 (python) manage.py test app_name.tests.BasicTestCase 只執行test.py中的其中一個類別
 
 TestCase的setUpTestData()和setUp()用來存取數據或登入網站
+class AuthorModelTest(TestCase):
+  def setUp(self):  # Every test needs a client.
+    self.client = Client()  # 每次執行test_function都會重新存取一次
+    resp = self.client.get(reverse('authors'))  # 應該用selenium取代 可以操作更多交互動作
 
-def setUp(self):  # Every test needs a client.
-  self.client = Client()  # 每次執行test_function都會重新存取一次
-  resp = self.client.get(reverse('authors'))  # 應該用selenium取代 可以操作更多交互動作
-
-def setUpTestData(cls):  # Set up data for the whole TestCase
-  cls.foo = Foo.objects.create(bar="Test") 只有建立時才存取 用於整個類別共用的變數
-但不同的test_function並不會相互影響 因封裝了copy.deepcopy()讓每次test的變數彼此獨立
+  def setUpTestData(cls):  # Set up data for the whole TestCase
+    cls.foo = Foo.objects.create(bar="Test") 只有建立時才存取 用於整個類別共用的變數
+  但不同的test_function並不會相互影響 因封裝了copy.deepcopy()讓每次test的變數彼此獨立
 
 另外python django test 所使用的資料庫是額外建立的 會與真正的資料庫分開
 故可用fixtures物件 創建初始數據以供測試使用 常用格式為JSON (data.json)
 
+會將需要同一份setUp()和setUpTestData()的test放在同一個類別(TestCase子類別)
+而通常會將被測試類別加上字尾Test 用以表示此類別的測試內容
+
+setUpTestData()由setUpClass()封裝出來的 通常專門處理資料庫相關操作 
+除了資料庫存取外 也會像setUp()一樣在每次測試時被調用 用以確保資料完整
+
+setUpClass(cls)和tearDownClass(cls)等同是 jest的BeforeAll()和AfterAll()
+同理setUp()和tearDown()就等同jest的BeforeEach()和AfterEach()
+另有setUpModule()和tearDownModule()放在TestCase類別之外
+處理所有類別都會執行的前置或善後 等同是jest的describe()之外BeforeAll()和AfterAll()
 
 assertEquals(field_label,'first name') 等同assertTrue(field_label == 'first name')
 但前者比後者更好：因為測試失敗 會返回標籤上實際的值
@@ -3495,6 +3508,15 @@ class FunctionalTest(TestCase):
 self.browser是selenium的物件 其中的屬性可用於判定是否執行正確
 當然也俄直接使用TestCase類別的方法 self.assertTrue()
 
+selenium直接進行js編寫
+self.browser.execute_script('return window.localStorage.length;')
+self.driver.execute_script("window.localStorage.setItem(arguments[0], arguments[1]);", key, value) // 除了存取外亦可放入變數
+
+selenium重新整理頁面
+self.driver.refresh()
+self.driver.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 'r')  // 直接使用鍵盤輸入重整鍵
+
+
 其他selenium用於抓取元素的方法
 elmt = self.browser.find_element_by_tag_name('h1')
 self.assertEqual('To-Do List', elmt.text)
@@ -3502,7 +3524,6 @@ self.assertEqual('To-Do List', elmt.text)
 elmt_input = self.browser.find_element_by_id('new_input')
 self.assertEqual('Input New Item', elmt_input.get_attribute('placeholder'))
 elmt_input.clear() 清除value屬性值
-
 
 elmt_list_div = self.browser.find_element_by_id('to-do-list') 
 elmt_to_do_list = list_div.find_elements_by_tag_name('li') # 先找父元素後再找其中的子元素
@@ -3545,24 +3566,31 @@ const jsFile = require('jsFileUrl') // 等同是js的import功能
 即不透過html的<script></script>也能成功引用的方式
 
 test(test_name,function(){}) 表示為測試的最小單位
-describe(test_set_name,function(){test...}) 則將多個test組成一個單位
+describe(test_set_name,function(){test...}) 則將對同一function的多個test()組成一個單位
 
 beforeAll(() => console.log('1 - beforeAll')); // 只會在開始整個測試過程時執行一次 等同setUpTestData() 會放在describe()之外
 afterAll(() => console.log('1 - afterAll'));
 
 beforeEach(() => console.log('2 - beforeEach')); // 在每次測試中執行 等同setUp() 通常放在describe(function(){...})中 
 afterEach(() => console.log('2 - afterEach'));
+一般放在describe()之內 做為待測function的前置準備 若多個function的前置準備太相似 也可放於describe()之外 作為所有function的共同前置
 
-expect(peopleA.name).toBe('GQSM')  //測試字串
-expect(peopleA).toEqual({ name: 'GQSM', age: 25 })  //測試物件
+beforeAll()和beforeEach()代表測試時的前置作業 可能為設定使用者資料或狀態等
+意即表示test()只能是簡單的變數或方法回傳值判別 不能再做其他動作
+若test()真的要進行其他複雜的動作 也應該以調用同區域function的方式進行
+
+expect(peopleA.name).toBe('GQSM')  //測試字串或整數等
+expect(peopleA).toEqual({ name: 'GQSM', age: 25 })  //測試object或array
 toBeGreaterThan(), toBeGreaterThanOrEqual(), toBeLessThan(), toBeLessThanOrEqual() // 用於整數
 toBeCloseTo()  // 用於浮點數 
 toContain() // array中是否包含變數
 toBeTruthy(), toBeFalsy()  // 用於boolean值
 toBeNull()  // null
 toBeUndefined(),  toBeDefined() // undefined 與 除undefined之外任意值
-
 not.toBe()則與toBe()相反 
+
+每個describe()代表一個狀態下的測試 而其中的test()則表示與此狀態下的各個方法
+test()內可以有多個expect().toBe() 表示為驗證此方法是否正確 所需要的各個測試細項
 
 
 ## selenium
@@ -3585,38 +3613,54 @@ async function test_search() {  // 只要程式碼中有非同步(await)都要�
 
   await driver.get('https://selenium.dev');
   await driver.wait(() => driver.executeScript('return initialised'), 10000);
-  // executeScript()放入字串參數等同console操作
-  // wait(function(){}) 等到function回傳true為止在進行下一條
-
-  var elmt = driver.findElement(By.css('p'));  // 直接放入css選擇器
-  assert.strictEqual(await element.getText(), 'Hello from JavaScript!');
-
-  driver.sleep(1000).then(function() {  // 用於等待後執行
-    driver.findElement(By.name('q')).sendKeys(webdriver.Key.TAB);
-  });
-
-  var fontWeight = await element.getCssValue("font-weight"); // 讀取html元素的css屬性
-  var readonly = await element.getAttribute("readonly");  // 讀取html元素的屬性
-
-  await searchElmt.sendKeys('xxxxx', Key.ENTER); // 同理最後加上Key.ENTER
-  await searchElmt.clear();
-
-  let btnElmt = driver.findElement(By.linkText("Sign in")); // 表示<a>元素的text值
-
-  const actions = driver.actions({async: true});  // actionChains 並放入物件參數
-  await actions.move({origin:searchBtn}).press().perform();  // 同理 move()也可以放入物件參數 如此就不需要用位置參數
-
-  btn.click(), btn.doubleClick() 方法基本都跟python的selenium相同 只是換成js的編寫風格
-
-  await actions.move({origin:sourceEle}).press().perform(); // 按者
-  await actions.move({origin:targetEle}).release().perform(); // 釋放
-  // 表示拖移元素
-
-  await driver.wait(until.alertIsPresent());  // alert出現時為true 會等待到符合條件為止 
-  let alert = await driver.switchTo().alert(); // 可用switchTo()儲存alert內容變數
-
+  var element = driver.findElement(By.css('p'))
+  assert.strictEqual(await element..getText(), 'Hello from JavaScript!');
+  // executeScript()放入JS字串等同在console操作
+  // wait(function(){}) 等到function回傳true為止在進行下一條 並設置timeout條件 如果超過時間則不再等待(raise timeout error)
+  // 通常下面會放時間等待的function(await element.getText())
 }
+如果執行時間太長會導致await與其他正在執行的非同步方法因競爭而堵塞 導致不穩定問題(intermittent issues)
+因此通常加上driver.wait()會先凍結執行緒 直到參數的判別式為真為止
+driver.wait()又稱為explicit wait 因其參數判別式必須抓取可見的元素
 
+let ele = await driver.wait(until.elementLocated(By.css('p')),10000);
+let foo = await ele.getText();
+assert(foo == "Hello from JavaScript");
+driver.wait() 只要參數最後為真即可(可以是非0數值或非''字串等) 並會作為調用方法的回傳值
+until.elementLocated()用於判斷是否有該元素
+
+其餘until常見相關用法：
+until.elementTextIs(elmt, substr) // 是否包含字串
+until.elementTextContains(elmt, text) // 是否與字串相同
+until.elementTextMatches(elmt, regex) // 是否通過正則
+
+
+var elmt = driver.findElement(By.css('p'));  // 直接放入css選擇器
+assert.strictEqual(await element.getText(), 'Hello from JavaScript!');
+
+driver.sleep(1000).then(function() {  // 用於等待後執行
+  driver.findElement(By.name('q')).sendKeys(webdriver.Key.TAB);
+});
+
+var fontWeight = await element.getCssValue("font-weight"); // 讀取html元素的css屬性
+var readonly = await element.getAttribute("readonly");  // 讀取html元素的屬性
+
+await searchElmt.sendKeys('xxxxx', Key.ENTER); // 同理最後加上Key.ENTER
+await searchElmt.clear();
+
+let btnElmt = driver.findElement(By.linkText("Sign in")); // 表示<a>元素的text值
+
+const actions = driver.actions({async: true});  // actionChains 並放入物件參數
+await actions.move({origin:searchBtn}).press().perform();  // 同理 move()也可以放入物件參數 如此就不需要用位置參數
+
+btn.click(), btn.doubleClick() 方法基本都跟python的selenium相同 只是換成js的編寫風格
+
+await actions.move({origin:sourceEle}).press().perform(); // 按者
+await actions.move({origin:targetEle}).release().perform(); // 釋放
+// 表示拖移元素
+
+await driver.wait(until.alertIsPresent());  // alert出現時為true 會等待到符合條件為止 也就是出現alert視窗為止
+let alert = await driver.switchTo().alert(); // 可用switchTo()儲存alert內容變數
 
 
 - - ---------------------------------------
@@ -4147,8 +4191,8 @@ python3 manage.py startapp myapp 第一次在django的目錄下見app
 python3 manage.py makemigrations 第一次建database 以及每一次model做更動都要使用
 針對app中的models.py創建SQL指令 但不會執行任何指令 不會產生任何一張table, 任何一筆record
 python3 manage.py migrate 讀取migrations中的SQL指令 會接續makemigrations後執行
-基於SQL指令創建table和record 
-(即使不使用model做資料庫 仍需要做註冊：因為像sessions等功能都需要用到資料庫)
+基於SQL指令創建table和record 將兩指令分開是為了快速在不同資料庫創建一樣的格式
+(另外即使不使用model做資料庫 仍需要做註冊：因為像sessions等功能都需要用到資料庫)
 
 python3 manage.py migrate myapp 指定特定app創建table
 python3 manage.py makemigrations myapp 指定特定app創建SQL指令
@@ -4506,7 +4550,7 @@ README.md 為使用markdown語法撰寫
 # npm套件管理工具: 
 同理npm的指令都必須在專案資料夾中執行
 使用webpack就一定要用到nodeJS 另外npm也是nodeJS的應用
-npm init  // 必須在專案資料夾內執行 會創建package.json檔
+npm init -y // 必須在專案資料夾內執行 會創建package.json檔 -y為yes表示使用預設檔
 npm的套件管理方法是直接在專案資料夾裡面建立 而不是像pip在/usr/local/lib裡面建立
 其目的是為了讓不同版本的套件可以針對不同專案在同一個電腦裡使用
 
@@ -4515,8 +4559,9 @@ npm install --save(預設 就是什麼都不加) 會在package.json中的"depend
 npm install --save-dev(等同-D) 會在package.json中的"devDependencies" 表示只在開發或測試時使用的套件
 ex:sass套件是為將sass檔轉換成css檔所用 如此就只需要在"devDependencies"
 
-npm run test 會執行寫在package.json下script屬性下的'test'指令 
-node test_basic.js 會執行當前所有資料夾的js檔 
+npm run test 會執行寫在package.json下script屬性下的'test'指令 (npx test)
+好處是只會在專案環境下執行 此模組與全域環境無關
+node test_basic.js 則會執行當前所有資料夾的js檔 
 
 - - ---------------------------------------------------
 ## scss:

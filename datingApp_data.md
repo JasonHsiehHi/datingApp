@@ -150,3 +150,12 @@ l ["",""]
 女性腳色要在對話中夾帶食物與日常生活
 
 以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對測試結果相近者進行配對。
+
+# test-db.js與test-db.sqlite3
+
+check GREET
+## Dialogue model:
+1 1 [['test:hello',0],['test:introduce a-card',0], ['test:novice teaching',0]]
+
+## Robot model:
+1 '測試人員(test)'

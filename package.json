@@ -1,0 +1,26 @@
+{
+  "name": "datingApp",
+  "version": "1.0.0",
+  "description": "start from 2021/03",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test -c": "jest --coverage"
+
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JasonHsiehHi/test2021.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JasonHsiehHi/test2021/issues"
+  },
+  "homepage": "https://github.com/JasonHsiehHi/test2021#readme",
+  "devDependencies": {
+    "jest": "^27.3.1",
+    "selenium-webdriver": "^4.0.0"
+  }
+}

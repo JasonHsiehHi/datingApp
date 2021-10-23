@@ -69,7 +69,7 @@ class Question(models.Model):
 class Dialogue(models.Model):  # todo 修改成能生成動態資訊 像是哪個地區使用者多...
     dialog = models.JSONField(null=True)  # list, sentences could be more than one
     action = models.CharField(max_length=30)
-    sub = models.CharField(max_length=10, null=True, default=None)
+    sub = models.CharField(max_length=10, null=True, default=None)  # todo 刪除sub
     number = models.IntegerField()
     speaker = models.ForeignKey('Robot', null=True, on_delete=models.SET_NULL)
 

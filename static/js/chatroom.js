@@ -1,5 +1,5 @@
 function chatroomWS(){
-    if (null==chatSocket){
+    if (null===chatSocket){
         var wsUrl = 'ws://'+window.location.host+'/ws/chat/'; 
         chatSocket = new WebSocket(wsUrl);
         chatSocket.onopen = function(){
