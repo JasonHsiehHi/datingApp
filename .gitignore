@@ -5,6 +5,7 @@
 .env
 .DS_Store
 
+node_modules/
 tutorial/
 
 term-chatroom.js
