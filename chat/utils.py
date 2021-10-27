@@ -1,10 +1,12 @@
 from channels.db import database_sync_to_async
-from django.db.models import Q
-from .models import Room, Player, School, Question, Dialogue
+from django.db.models import Q, F
+from .models import Room, Player, School, Question, Dialogue, Robot
 import json
 import datetime
+from django.core.cache import cache
 from random import randint, sample
 import sys
+from datingApp import settings
 
 
 @database_sync_to_async
@@ -17,7 +19,8 @@ def get_player(uuid):
 
 
 @database_sync_to_async
-def set_player_data(player, data, correct_result):  # todo 用戶直接改localStorage問題
+def set_player_data(player, data):  # todo 用戶直接改localStorage問題
+    correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', settings.QUESTION_CORRECT_RESULT, None)
     if 'room' in data:
         data['room'] = Room.objects.get(id=data['room'])
     if 'school' in data:
@@ -59,12 +62,12 @@ def set_player_profile(player, name, matchType=None):
 
 
 @database_sync_to_async
-def set_player_room(player, room_id, matcherName):
+def set_player_room(player, room_id, matcherName=None):
     if room_id is None:
         player.status = 0
         player.room = None
-        Room.objects.filter(id=room_id).delete()
-
+        Room.objects.filter(id=room_id).delete()  # delete room by the user who leave first
+        School.objext.filter(name=str(player.school)).update(roomNum=F('roomNum') - 1)
     else:
         player.status = 3
         room = Room.objects.get(id=room_id)
@@ -78,8 +81,15 @@ def set_player_room(player, room_id, matcherName):
 
 
 @database_sync_to_async
+def set_player_status(player, status):
+    player.status = status
+    player.save()
+    return player
+
+@database_sync_to_async
 def create_room(matchType, school_id):
     room = Room.objects.create(matchType=matchType, school=school_id)
+    School.objext.filter(name=school_id).update(roomNum=F('roomNum') + 1)
     return str(room.id)
 
 
@@ -91,13 +101,16 @@ def set_room_userNum(room_id, is_disconnected):
     room.save()
     return int(room.userNum)
 
+
 @database_sync_to_async
 def get_room_userNum(room_id):
     room = Room.objects.get(id=room_id)
     return int(room.userNum)
 
+
 @database_sync_to_async
-def set_player_score(player, testResult, correct_result):
+def set_player_score(player, testResult):
+    correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', ['1', '1', '1', '1', '1'], None)
     player.testResult = testResult
     count = 0
     for i, j in zip(testResult, correct_result):
@@ -108,22 +121,22 @@ def set_player_score(player, testResult, correct_result):
 
 
 @database_sync_to_async
-def process_player_wait(player, status):
+def process_player_wait(player, next_status):
     school, matchType = player.school, player.matchType
-    if all([school, matchType]) & player.status != status:
-        player.status = status
-        player.waiting_time = datetime.datetime.now(tz=datetime.timezone.utc) if (status == 2) else None
+    if all([school, matchType]) & player.status != next_status:
+        player.status = next_status
+        player.waiting_time = datetime.datetime.now(tz=datetime.timezone.utc) if (next_status == 2) else None
         if matchType == 'fm':
-            school.femaleNumForMale = school.femaleNumForMale + 1 if (status == 2) else school.femaleNumForMale - 1
+            school.femaleNumForMale = school.femaleNumForMale + 1 if (next_status == 2) else school.femaleNumForMale - 1
 
         elif matchType == 'mf':
-            school.maleNumForFemale = school.maleNumForFemale + 1 if (status == 2) else school.maleNumForFemale - 1
+            school.maleNumForFemale = school.maleNumForFemale + 1 if (next_status == 2) else school.maleNumForFemale - 1
 
         elif matchType == 'ff':
-            school.femaleNumForFemale = school.femaleNumForFemale + 1 if (status == 2) else school.femaleNumForFemale - 1
+            school.femaleNumForFemale = school.femaleNumForFemale + 1 if (next_status == 2) else school.femaleNumForFemale - 1
 
         elif matchType == 'mm':
-            school.maleNumForMale = school.maleNumForMale + 1 if (status == 2) else school.maleNumForMale - 1
+            school.maleNumForMale = school.maleNumForMale + 1 if (next_status == 2) else school.maleNumForMale - 1
         player.save()
         school.save()
     return player
@@ -154,7 +167,7 @@ def process_player_match(someone):
 
 
 def duration_to_score(duration):
-    score_reduction = int(duration.seconds/60/20)
+    score_reduction = int(duration.seconds/60/settings.MINUTES_FOR_DURATION)
     return score_reduction
 
 
@@ -171,15 +184,47 @@ def check_players_num(school_id, target_matchType):  # todo 應與其他process�
 
 
 @database_sync_to_async
-def get_dialogue_dialog_and_speaker(speaker, action, sub=None, n=None):  # todo dialogue需要大改
-    if n is None:
-        dialogues = Dialogue.objects.filter(action=action).filter(Q(sub=sub) | Q(sub=None)).filter(speaker=speaker)
-        num = len(dialogues)
-        dialogue = dialogues[randint(0, num-1)]
-    else:
-        dialogue = Dialogue.objects.get(action=action, sub=sub, number=n)
+def get_school_roomNum_max():
+    school = School.objects.order_by('-roomNum').first()
+    return str(school.name), int(school.roomNum)
 
-    return dialogue.dialog, dialogue.speaker.name
+
+@database_sync_to_async
+def get_dialogue_greet_sub(speaker, time):
+    time_ranges = cache.get('GREET_TIME_RANGE-{}'.format(speaker))
+    if time_ranges is None:
+        dialogues = Dialogue.objects.filter(speaker=speaker).filter(action='GREET').filter(sub__startswith='t').filter(number=1)
+        time_ranges = [[dialogue.sub[1:3], dialogue.sub[4:6]] for dialogue in dialogues]
+        cache.set('GREET_TIME_RANGE-{}'.format(speaker), time_ranges, None)
+
+    true_list = []
+    for r in time_ranges:
+        start, end = int(r[0]), int(r[1])
+        if start <= end:
+            if start <= time < end:
+                true_list.append(r)
+        else:
+            if start <= time or time < end:
+                true_list.append(r)
+    time_range = true_list[randint(0, len(true_list) - 1)]
+    sub = 't' + time_range[0] + '-' + time_range[1]
+    return sub
+
+
+@database_sync_to_async
+def get_dialogue_dialog(speaker, action, sub, n=None):
+    if n is None:
+        dialogues = Dialogue.objects.filter(speaker=speaker).filter(action=action).filter(sub=sub)
+        dialogue = dialogues[randint(0, len(dialogues)-1)]
+    else:
+        dialogue = Dialogue.objects.get(speaker=speaker, action=action, sub=sub, number=n)
+    return dialogue.dialog
+
+
+@database_sync_to_async
+def get_robot_name(speaker):
+    robot = Robot.objects.get(id=speaker)
+    return str(robot.name)
 
 
 @database_sync_to_async

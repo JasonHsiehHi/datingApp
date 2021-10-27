@@ -187,11 +187,17 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # for chat app
-CORRECT_RESULT = [True, True, False, True, False]  # compare player's result  with it
 # caches:QUESTION_ID_LIST is a list of 5 question_ids
-# caches:QUESTION_CORRECT_RESULT = [True, True, True, True, True]
 
-CACHE_TTL = 60 * 15  # 用於緩衝內存相同的dialog
+QUESTION_CORRECT_RESULT = ['1', '1', '1', '1', '1']
+# caches:QUESTION_CORRECT_RESULT = ['1', '1', '1', '1', '1']
+
+MINUTES_FOR_DURATION = 20
+
+CROWDED_ROOMNUM = 20  # standard: if more than that, the GREET will recommend the school
+PLENTY_ROOMNUM = 10
+
+SECONDS_FOR_CACHE_TTL = 60 * 15  # 用於緩衝內存相同的dialog
 DELETE_PHOTO_LEAVING_ROOM = False
 DELETE_PHOTO_CERTAIN_TIME = False
 

@@ -779,6 +779,9 @@ USE_L10N只影響時間格式 USE_TZ與TIME_ZONE才會影響網頁呈現的時�
 常見作法為統一使用USE_TZ=true且TIME_ZONE='UTC' 當要使用不同地區的時間時要做轉換
 USE_TZ=false 則等同使用python預設的時區作當前時間(即等同datetime.datetime.now())
 
+t = int(datetime.datetime.now().strftime('%H'))
+if 5 <= t < 17: / else: 常用此變數來判斷早上/晚上
+
 timezone.now() 無論TIME_ZONE設在哪都會用'UTC'時區的時間 用於存入資料庫
 統一時區 表示不會因為用戶所在時區不同而導致重疊
 timezone.localtime()則依據TIME_ZONE的值而反賄當地時間
@@ -956,6 +959,11 @@ model資料欄類別：
 name = models.CharField(max_length=200)
 mex_length為其必要屬性 因為若不合標準會自動觸發MaxLengthValidator
 django的model封裝了Validator 為避免不合規定的資料寫入
+
+txt1 = "My name is {fname}, I'm {age}".format(fname = "John", age = 36)
+txt2 = "My name is {0}, I'm {1}".format("John",36)
+txt3 = "My name is {}, I'm {}".format("John",36)
+可在資料庫存放{} 如此就能用填入動態資訊
 
 name = models.CharField(max_length=2, choices=SELECTITEM)
 choices在admin上會為選項 而不是原本的文字欄
@@ -1187,6 +1195,9 @@ books[0],books[1]...可找依照目前排序的每筆record
 Book.objects.all().aggregate(Avg('price'))  aggregate用於找特定屬性的總和值(Avg,Max,Min,Sum...等)
 會生成dict且key值為QuerySet查找格式 : {'price__avg': 34.56}
 
+aggregate()用來取單一field數值 若要取整個instance則用order_by()後取first()
+Book.objects.order_by('-price').first() 等同取price最高的record
+
 Book.objects.all().annotate(number_of_entries=Count('entry')) annotate在每筆record中 除了現有的field之外多增加其他資料欄
 q[0].number_of_entries  # 好處是annotate()的資料欄不會寫入database
 
@@ -1229,8 +1240,8 @@ Book.objects.bulk_create([Book(title="goodbook"),Book(title="badbook")])
 批量創建 一次放入多個實例的的list
 
 
-Book.objects.get(pk=1)
-Book.objects.filter(genre="science")
+Book.objects.get(pk=1)  # 不能為None 如果沒找到會觸發error
+Book.objects.filter(genre="science")  # 充許為None
 Book.objects.exclude(genre="comic")
 get(),filter(),exclude() 用於縮小範圍
 
@@ -1266,6 +1277,9 @@ lt: less than 和 lte: less than or equal
 from django.db.models import F  # F()為field的意思 可用於將同model不同field值來比較
 Entry.objects.filter(number_of_comments__gt=F('number_of_pingbacks'))
 Entry.objects.filter(rating__lt=F('number_of_comments') + F('number_of_pingbacks'))
+
+Entry.objects.filter(pub_date__year=2010).update(count=F('count') + 1)
+除了不同field值比較外 也可進行同field值運算
 
 Book.objects.delete() 會讓database全部刪除 
 故一般會先縮小範圍 Book.objects.filter(headline='Lennon').delete()
@@ -1700,12 +1714,18 @@ trim用於將前後的空白去除 以避免字串判別受空白格有影響
 空物件則須先將keys轉為array在做length屬性判別
 if(Object.keys(obj).length == 0)  //判斷空物件
 
-slice(start [, end]) 和 substr(start [, length)]
+slice(start [, end]) 和 substr(start [, length])
 兩者都用於切割字串 差別在於第二參數為擷取到該位置之前 與 擷取總長度
 
+array.splice(start [, deleteCount[, item1]])
+則用於在原字串或陣列中間位置刪除元素或插入元素 
+
 **"===" 嚴格比較 "==" 寬鬆比較**
-寬鬆比較會自行 將0, '', '0' 轉成false / 將1, 'a' ,'1' 轉成true
-並將string可自行轉成number做比較 
+寬鬆比較下將0, '', '0' == false 為true / 將1, 'a' ,'1' == true 為true
+寬鬆比較亦會將string自行轉成number做比較  '1' == 1為true
+寬鬆比較下 null == undefined為true (null === undefined 為false)
+很常用： 因為有些時候還未設值時變數為undefined
+
 (對於JS的便捷性有很大幫助 另外JS沒有分float跟Integer 全部用number)
 JS的命名風格比較傾向用"===" 取代 "==" 因為一且已清楚為標準
 
@@ -3982,6 +4002,9 @@ class ChatConsumer(WebsocketConsumer):
 
 accept()會觸發js中的WebSocket.onopen() 而close()則觸發WebSocket.onclose()
 大多時間self.close()也會寫在receive()中讓client端傳送對應的關閉訊息(text_data)
+
+前端new WebSocket(wsUrl)建立時會觸發後端consumers.py的connect() 
+connect()最後會有self.accept()此時在傳回前端觸發WebSocket.onopen
 
   def disconnect(self, close_code):  # 關閉時觸發 close_code可用來說明關閉原因
     Clients.objects.filter(channel_name=self.channel_name).delete()  # 刪除之前建立的record

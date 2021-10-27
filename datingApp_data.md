@@ -5,7 +5,9 @@ chatSocket.onopen
 負責與後端建立連線並匯入localData資料 傳送open指令和import指令
 
 chatSocket.onmessage
-接收後端訊息data做分流後再依據status來調用theUI做回應 並更新用戶的status與其他localData值
+接收後端訊息data做分流後再依據status來調用theUI做回應 
+並更新用戶的status與其他localData值 
+唯一能變更status的時候 因為必須跟後端的self.player_data同步
 
 (onmessage)typeSet.greet
 只有greet是連線後自動觸發 故必須進行status辨識 其餘typeSet.都是用戶自行輸入指令後回傳
@@ -34,31 +36,37 @@ theTerminal.cmd()
 
 # model_data:
 ## Dialogue model:
-action sub number speaker dialog
-GREET mo 1 1 
+action sub speaker number dialog
+GREET mo 3 1
 ["歡迎來到Acard！😂",
  "這是一個由多位學生因興趣而自主開發的陌生交友平台",
  "這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ 輸入\/goto 學校縮寫 (例如:NTU, NCCU等)"
 ]
-GREET mo 2 1 
-GREET mo 3 2
-["哈囉你好～",
-"Acard是一個由多位好友因興趣而自架的學生交友平台",
-"這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ 輸入\/goto 學校縮寫 (例如:NCCU, TKU, FJU等)"
-GREET mo 4 2
 
-目前GREET-ev皆與GREET-mo相同即可
-GREET ev 1 1
-GREET ev 2 1
-GREET ev 3 2
-GREET ev 4 2
+GREET t05-08 3 1 ['我的朋友 現在上線也太早了吧！',0]
+GREET t08-12 3 1 ['歡迎所有早上蹺課蹺班的朋友～',0]
+GREET t12-17 3 1 ["下午這段時間很悠閒吧！",0]
+GREET t17-19 3 1 ["現在是晚餐時間呢！",0]
+GREET t19-22 3 1 ["晚上好！",0]
+GREET t22-03 3 1 ["深夜聊天時間～",0]
+GREET t03-05 3 1 ["你在一個很奇怪的時間點上線呢！",0]
 
+GREET sch 3 1 ["{}是現在最多人前往的學校",0]
+GREET sch 3 2 ["推薦你去{}！ 目前做多人使用",0]
+GREET sch 3 3 ["如果我是你，我就去{}！ 畢竟人多機會多～",0]
+
+參考:
+動態-時間:早上 晚上 深夜(第一句) 
+
+動態-目前使用人數:較少 普通 較多 高峰(值域必須等上線後才能決定)
+動態-最多使用者學校:ntu, nccu...等(人數必須高過門檻才使用 如果都很少就不使用)
 
 ## Robot model:
 id name 
 '1', '正在念大六的Acard開發者'
 '2', '愛喝拿鐵的社畜OL'
 '3', '不加糖拿鐵'
+
 參考:
 '大刀面前耍關公'
 '鉛筆盒裡沒筆'
@@ -152,10 +160,10 @@ l ["",""]
 以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對測試結果相近者進行配對。
 
 # test-db.js與test-db.sqlite3
-
-check GREET
 ## Dialogue model:
-1 1 [['test:hello',0],['test:introduce a-card',0], ['test:novice teaching',0]]
+action sub speaker number dialog
+GREET mo 1 1
+[['test:hello',0],['test:introduce a-card',0], ['test:novice teaching',0]]
 
 ## Robot model:
 1 '測試人員(test)'

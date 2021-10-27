@@ -2,13 +2,13 @@ from django.db import models
 from django.utils import timezone
 
 
-class Room(models.Model):
+class Room(models.Model): # todo room_id要改成創建者uuid+創立時間 才不會透露目前房間數
     ROOM_MATCH_TYPE = (
         ('mf', 'male->female'),
         ('mm', 'male->male'),
         ('ff', 'female->female')
     )
-    userNum = models.IntegerField(default=0)  # todo room_id要改成創建者uuid+創立時間 才不會透露目前房間數
+    userNum = models.IntegerField(default=0)
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
     school = models.CharField(max_length=30)
 
@@ -25,9 +25,9 @@ class Player(models.Model):
     )
 
     uuid = models.UUIDField(primary_key=True)
+    create_date = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=50, null=True, default=None)
     matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True, default=None)
-    create_date = models.DateTimeField(default=timezone.now)
 
     isBanned = models.BooleanField(default=False)
     status = models.IntegerField(default=0)
@@ -47,6 +47,7 @@ class Player(models.Model):
 class School(models.Model):
     name = models.CharField(max_length=10, primary_key=True)
 
+    roomNum = models.IntegerField(default=0)
     femaleNumForMale = models.IntegerField(default=0)
     maleNumForFemale = models.IntegerField(default=0)
     femaleNumForFemale = models.IntegerField(default=0)
@@ -66,10 +67,10 @@ class Question(models.Model):
         return self.id
 
 
-class Dialogue(models.Model):  # todo 修改成能生成動態資訊 像是哪個地區使用者多...
-    dialog = models.JSONField(null=True)  # list, sentences could be more than one
-    action = models.CharField(max_length=30)
-    sub = models.CharField(max_length=10, null=True, default=None)  # todo 刪除sub
+class Dialogue(models.Model):
+    dialog = models.JSONField(null=True)  # list: sentences could be more than one
+    action = models.CharField(max_length=10)
+    sub = models.CharField(max_length=20, null=True, default=None)
     number = models.IntegerField()
     speaker = models.ForeignKey('Robot', null=True, on_delete=models.SET_NULL)
 
