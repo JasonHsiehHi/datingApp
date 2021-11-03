@@ -9,5 +9,6 @@ node_modules/
 tutorial/
 
 term-chatroom.js
+elmt-chatroom.html
 
 jsconfig.json

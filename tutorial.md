@@ -623,6 +623,8 @@ DEBUG=True 才會導向error page (上半部黃色下半部traceback的頁面)
 ALLOWED_HOSTS=[] 可填入部署的虛擬主機IP或直接用"*"
 
 設置SECRET_KEY：
+SECRET_KEY可用於製作salt 對於加密功能極其重要
+
 import os
 SECRET_KEY = os.environ['SECRET_KEY']  # Read SECRET_KEY from an environment variable
 可用os.environ.get('DJANGO_SECRET_KEY', 'cg#p$g+j9tax!#a3cup@1$8obt2_+&k3q+pmu)5%asj6yjpkag')代替
@@ -728,7 +730,7 @@ user_type  # output : <ContentType: user>
 user = user_type.get_object_for_this_type(username='Jason')
 user  # output : <User: Jason>
 
-可用ContentType來製造model的泛型(generic): (目前還未看到任何應用)
+可用ContentType來製造model的泛型(generic):
 from django.contrib.contenttypes.fields import GenericForeignKey
 class SchoolPerson(models.Model):
   tag = models.SlugField()
@@ -737,6 +739,9 @@ class SchoolPerson(models.Model):
   object_id = models.PositiveIntegerField()
   content_object = GenericForeignKey('content_type', 'object_id')
   (重點在於content_object 其餘content_type, object_id都是為創建GenericForeignKey())
+
+當兩個模型很相近 如Teacher和Student 並要進行同樣的方法 如打卡點名
+此時可以用這種泛型model類別 便不需要特別針對這兩個類別而寫兩次相似的方法
 
 
 t1 = Teacher.objects.get(username='Jason')
@@ -872,7 +877,7 @@ re.test(str);
 var re = /^https?:\/\/.*?\//;
 var re = new RegExp("^https?:\\/\\/.*?\\/");  // 除了'\'轉為'\\'之外 其餘都保持不變即可
 
-str.replace(re,"$2,$1"):
+str.replace(re,"$2,$1"):  // 類似於python的string.format()
 若re中有多個group時 則可用$1, $2, $3,...$n選擇特定的group
 group的好處是可將被收尋到的字串變數化 RegExp.$1, RegExp.$2...
 var re = /(\w+)\s(\w+)/; 
@@ -1043,6 +1048,12 @@ self.image.url  //output: 'http://media.example.com/uploads/originalName.jpg''
 path是在FileSystem的位置 url是真正client端要取用的位置
 只要改變image.name後image.path和image.url都會改變
 
+dialog = models.JSONField(null=True)
+JSONField用於存放物件objecy或陣列list 
+存取為變數時 不需要再做JSON.loads()轉成原形態 會自動進行轉換
+models.JSONfield 與 postrgreSQL.fields.JSONfield 兩者是完全相同的
+
+
 
 image的編碼方式(base64): 編碼的主要目的是將字元都位元化(0,1)以方便傳輸
 
@@ -1063,7 +1074,7 @@ latin1和latin2不是再延伸關係 兩者是不同的編碼字元體系
 由於latin1使用到8bits內的所有編碼 故最適合傳輸與存取(MySQL默認latin1作為編碼)
 
 UTF-8(unicode):
-由於8bits只有256可顯示字元 不能包含多個國家 故應此有了萬國碼(unicode) 
+由於ascii的8bits只有256可顯示字元 不能包含多個國家 故應此有了萬國碼(unicode) 
 常出現的亂碼就是編碼方式不同所造成 
 
 因為unicode只是符號集 若全世界所有國家的字元都用最大位元空間來存取的話 就會造成許多浪費(英文字只需要1個byte即可)
@@ -1186,7 +1197,8 @@ def index(request,room_id):  # 從model中取其變數
     'room_name': room_name
 })
 
-在view中使用model資料的方法
+
+## 在view中使用model資料的方法
 Book.objects.all() 所有的Model類別(繼承models.Model) 都能使用.objects的方法
 books = Book.objects.all() 表示此model類別的所有紀錄 為最大的查詢集(QuerySet)
 books[0],books[1]...可找依照目前排序的每筆record
@@ -1301,14 +1313,14 @@ book.save() 需用book = Book.objects.get(pk=1)存入記憶體 導致浪費內
 book_list用於提取models.py設置的模型
 可用context_object_name = 'my_book_list' 修改模型名稱
 
-
 常用於view.py的function 依據request找使用者ip
 get_client_ip(request)
 function中使用:
 request.META.get('HTTP_X_FORWARDED_FOR')
 request.META.get('REMOTE_ADDR')
 
-~contrib.auth在views.py設置權限的方式
+
+## contrib.auth在views.py設置權限的方式
 設置權限authentication: 用於做限制訪問, 註冊用戶資料, 依據用戶提供特定內容等
 
 使用裝飾器decorators '@'： 
@@ -1319,6 +1331,7 @@ def dueDate(self):  # @property是為了增加易讀性
 
 使用裝飾器'@'來設置授權：
 from django.contrib.auth.decorators import login_required
+
 @login_required
 def my_view(request):
   ......
@@ -1332,7 +1345,7 @@ def my_view(request):
 同理也與mixins方法等價： (mixins用於類別的繼承 有點類似java的interface)
 from django.contrib.auth.mixins import LoginRequiredMixin
 class MyView(LoginRequiredMixin, View):
-  login_url = settings.LOGIN_URL
+  login_url = settings.LOGIN_URL  # 直接設為屬性即可
   ...
 
 使用裝飾器'@'來設置權限許可：
@@ -1342,6 +1355,19 @@ from django.contrib.auth.decorators import permission_required
 def my_view(request):
   ......
 
+permisson是在auth框架的一個model類別
+from django.contrib.auth.models import Permission
+content_type = ContentType.objects.get_for_model(Comment)
+permission = Permission.objects.create(codename='can_comment',name='Can comment',content_type=content_type)  # 這個permission使用在Comment模型
+
+Permission model中有三個field: codename, name, content_type
+codename用於判定權限代碼 name則用於顯示權限名稱 content_type則表示使用於哪一個資料庫模型
+
+權限可在模板語言中使用 若user符合權限則可存取區塊內容
+{% if perms.myapp.can_comment %}
+...
+{% endif %}
+
 也可用創建被限制之view的方式來實現：登入前後頁面不同的效果
 from django.contrib.auth.mixins import PermissionRequiredMixin
 class MyView(PermissionRequiredMixin, generic.View):
@@ -1349,9 +1375,9 @@ class MyView(PermissionRequiredMixin, generic.View):
   ...
 
 同理創建需要權限的view：也能基於不同權限顯示不同內容
-class AuthorCreate(PermissionRequiredMixin, CreateView):  # 用於創建view 而非單一一筆紀錄
+class AuthorCreate(PermissionRequiredMixin, CreateView):  # 為創建視圖(view) 而非單一一筆紀錄
 
-{% if user.is_authenticated %}......{%endif%} 和 {% if perms.restaurants.can_comment%}......{%endif%} 
+{% if user.is_authenticated %}...{%endif%} 或 {% if perms.restaurants.can_comment%}...{%endif%} 
 直接使用模板語言可以在相同頁面上依據使用者來呈現不同內容
 
 
@@ -1368,6 +1394,17 @@ is_staff - BooleanField: 是否可訪問admin頁面
 is_superuser - BooleanField: 是否有所有權限
 is_authenticated 為user的屬性 若成功經過AuthenticationMiddleware中介 則為True
 
+可用add()和remove()將user實例加到特定的permission中
+user.user_permissions.add(perm)
+user.user_permissions.remove(perm)
+user.has_perm('codename')  # 用於檢查user實例是否有codename權限
+user.clear()  # 用於清除所有權限
+
+group1.permissions.add(p1)
+group2.permissions.add(p2)
+user.groups.add(group1,group2) # 可以將使用者加到特定的group 此時就擁有此group的權限
+
+
 若有用django.contrib.auth:
 則經過view的request物件中會有user物件 可用request.user.is_authenticated等功能
 若有用django.contrib.sessions:
@@ -1375,7 +1412,7 @@ is_authenticated 為user的屬性 若成功經過AuthenticationMiddleware中介 
 
 
 permissions = (("can_mark_returned", "Set book as returned"),)
-會放在model裡面的class Meta:之中
+會放在資料庫model裡面的class Meta:之中
 
 data = self.cleaned_data['originalDate']
 會清除不符合規範的資料
@@ -1637,9 +1674,15 @@ let iterable = [3, 5, 7];
 for (let i of iterable) {  
   console.log(i); //output:3, 5, 7  // 若為array則可直接改用for-of讀取value
 }
-一般物件使用for-in 而array則使用for-of (array中的key就是list的index)
+object使用for-in 而array則使用for-of (array中的key就是list的index)
 因為in主要用於key 而of是針對value
 for-in變數位置在裡面 故表示key或index for-of為屬於物件的變數 故為value
+
+in 表示在物件的'體內' 為屬性概念 用於object
+of 表示物件的所屬物 為內部變數概念 用於array
+
+in和of兩者都能用for-loop 但只有in可用於做if判別
+因此set要用has()代替 而array則用includes()代替
 
 此方法更適何用於switch-case:  
 case有多種狀況 此時就可以用此物件來紀錄狀況 (類似於 C#的emun類別)
@@ -1716,6 +1759,9 @@ if(Object.keys(obj).length == 0)  //判斷空物件
 
 slice(start [, end]) 和 substr(start [, length])
 兩者都用於切割字串 差別在於第二參數為擷取到該位置之前 與 擷取總長度
+
+theString.split(char) 則用chat字元將字串分開
+theArray.join(char) 則用chat字元將已被分開的字串合併
 
 array.splice(start [, deleteCount[, item1]])
 則用於在原字串或陣列中間位置刪除元素或插入元素 
@@ -2461,8 +2507,7 @@ $.each($('#form').serializeArray(), function(a, t) {  // 或用serializeArray()�
 FileReader物件唯一目的為讀取用戶上傳的檔案內容 使用事件來傳遞數據以減少從記憶體讀取的時間
 可用File物件或Blob物件來指定需讀取的資料 Flie繼承自Blob
 取得File物件的方式：
-<input type='file'>回傳的FileList物件 和 拖移事件產生的DataTransfer物件
-
+<input type="file">回傳的FileList物件 和 拖移事件產生的DataTransfer物件
 <input type="file" name="file_img" id="file_img">
 <img id="imageView">
 
@@ -4252,13 +4297,12 @@ redis-server用於架設django緩沖系統
 pip django-redis 必須安裝django-redis (不同於channel內建的redis庫)
 redis-server 開啟Redis伺服器 才能使用redis-cli指令
 redis-server redis.conf 可用conf檔做IP、port、logfile和datafile(dir)的設置
-redis-cli 開啟Redis的CLI介面(command-line interface) 可檢查內存的key-value鍵(db0)
+redis-cli 開啟Redis的CLI介面(command-line interface) 可檢查內存的key-value鍵(預設為db0)
 redis-cli -n 1 開啟db1資料庫(redis分為16個資料庫db0~db16) 若不指定-n 則會自動開啟db0
 redis-cli ping 用於驗證redis-server是否可正常使用
 redis-cli select 2 移動到其他db資料庫
 redis-cli exit 用於離開redis-cli模式
 redis-cli shutdown 用於停止redis資料庫
-
 redis-cli dbsize 查看目前有多少鍵總數
 redis-cli keys * 常看當前所有鍵
 redis-cli keys cache:* 常看當前名稱對應的所有鍵
@@ -4267,6 +4311,9 @@ redis-cli rename key_name key_name2 改名鍵
 redis-cli type key_name 查看鍵的資料類別
 redis-cli ttl key_name 查看鍵的過期時間
 redis-cli expire key_name 60 延長鍵的過期時間(單位為秒) （另有:pexpire key_name 500 單位為毫秒)
+
+redis-cli get key_name 返回key的value
+redis-cli set key_name value 設置key的value (但一般都使用django的shell來存取cache)
 
 loadtest -n 100 -k  http://localhost:8000/index/ 用於做網站載入速度測試 用來測試cache的實用性
 
@@ -4334,6 +4381,8 @@ cat > filename 表示將空白文件合併進去filename 即為建立文件
 cat filename 則表示顯示該文件後不做任何動作
 echo "hello world" 為在terminal上顯示文本 
 echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文件
+
+echo {ASCII字串} | base64 -D > image.png 亦可用於建立圖檔
 
 export -p 列出當前所有的環境變量
 export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原先$PATH之外新增$HOME/bin/)
@@ -4741,8 +4790,8 @@ setTimeout()可重複調用來取代setInterval() 因此大多時間是直接用
 streaming(comet)：如同彗星後端一樣把request拉的很長不結束 
 等同是server端一直做polling來傳輸待機訊號 直到真正需要用到時才傳資料
 
-long-polling長輪詢:結合polling和comet衍生而來 改善頻繁發 
-送ajax而是改發一個長時間待機的ajax直到server端有資料要傳時 才切斷發一個新的ajax
+long-polling長輪詢:結合polling和comet衍生而來 改善頻繁發送ajax
+而是改發一個長時間待機的ajax直到server端有資料要傳時 才切斷發一個新的ajax
 
 iframe永久幀 : 在頁面中嵌入一個專門接收server端資料的iframe 
 <script>utils.exec(“response”)</script> 藉此不切斷request 
@@ -5133,12 +5182,16 @@ localData:直接存在js文檔之中
 <link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
 
 用於適應不同手機大小與解析度
-<meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
+<meta name=”viewport” content="width=device-width, initial-scale=1.0">
 一般圖檔尺寸大小144*144使用pixel 此為電腦像素的最小單位
 但不是我們的長度單位:要換成長度 必須要有手機大小4.3寸(對角線,inch)和解析度1280*720
 
 <meta name="csrf-param">和<meta name="csrf-token">
 這是Rails框架的寫法(ruby語言
+
+<meta name="title" content="Meetunnel 最棒的匿名聊天平台">  // google已取消使用此tag 與<title>重複
+<meta name="description" content="最棒的隨機陌生相遇平台！享受匿名聊天的浪漫！獨家功能：封鎖、檢舉、換照、尋人...，立即上MeeTunnel，讓你遇見對的人！">
+<meta name="keywords" content="聊天,匿名,交友,約會,認識,相遇,感情,朋友,匿名聊天,chat,anoymous,date,meet">  // google已取消使用此tag 已被濫用
 
 <noscript> 不支援JS時 用img替代
 "<img src="https......" style="display:none;" height="1" width="1" alt="" />"
@@ -5148,23 +5201,47 @@ localData:直接存在js文檔之中
 會把JS與html混在一起 增加維護難度
 但弱勢動態生成的新元素則用此方法較好 可以減少再用jquery做搜尋的時間
 
-<meta name="apple-mobile-web-app-capable" content="yes">
-name=apple-mobile...都是與apple裝置相關的設定 其變數則用content=表示
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+IE的版本兼容設定：IE=edge表示由用戶當前的最高IE版本決定 並會自動使用chrome的框架
 
-https://stackpile.io/docs/1.0/app-library/alexa
-Alexa Certify Javascript是AWS用於幫助網站曝光的認證
+<meta name="google-site-verification" content="zdvMUg9S3bTS8OmA2wBC29J-0UPCIsE6XSHqSOjyJSo">
+向Google Search Console提交網站時 需要確認是網站擁有者 
+只有網站擁有者才能存取相關的google搜尋數據
 
+name=apple-mobile-(...) 都是與行動裝置上存取網頁相關的設定(分成iOS和android)
+<meta name="apple-mobile-web-app-capable" content="yes"> // iOS-safari
+<meta name="mobile-web-app-capable" content="yes"> // android-chrome
+把網頁當app安裝到行動裝置的主畫面之後：
+content="yes"若由app進入取代由瀏覽器進入 將會是全螢幕狀態 (如同一個原生app 但仍是由瀏覽器執行)
+content="no"為預設 由app進入後不會是全螢幕 就等同是在主畫面上多了一個網頁書籤而已
 
+<meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+作為原生app使用(直接全螢幕) 會使iphone螢幕上的狀態欄被遮蓋 此時用"status-bar-style"做設定(black)
+
+<meta name="apple-mobile-web-app-title" content="WooTalk">
+當成原生app安裝到主畫面時的title
+
+<link rel="apple-touch-icon" href="/icon.png">  // iOS
+<link rel="icon" sizes="192x192" href="/smallicon.png">  //android
+<link rel="shortcut icon" type="image/png" href="/icon-rounded.png"> //android
+當成原生app安裝到主畫面時的icon圖示
+
+open graph: 用於決定當使用者在FB或支援FB格式的網站分享url時 所顯示的標題,資訊,圖片
 <meta property="og:title" content="What is Open Graph?">
 <meta property="og:description" content="Computer dictionary definition for what Open Graph means including related links, information, and terms.">
 <meta property="og:type" content="article">
-<meta property="og:url" content="http://wootalk.today/">
-<meta property="og:image" content="facebook.gif">
-open graph: 用於決定當使用者分享網頁時 所顯示的標題,資訊,圖片
+<meta property="og:url" content="http://wootalk.today/"> 
+<meta property="og:image" content="facebook.gif">  // 最好1200*1200以上
+<meta property="og:site_name" content="wootalk 吾聊">  // 指網站名稱 不同於title為網頁名稱 
 
+facebook id 相關的應用
 <meta property="fb:app_id" content="您的應用程式編號">
 <meta property="fb:admins" content="您的Facebook ID">
-facebook id 相關的應用
+
+<meta name="robots" content="noindex, nofollow">
+告訴搜尋引擎不要再搜尋結果中顯示此網頁(noindex) 也不要追蹤此網頁的連結(nofollow) 常用於內部人員的後台
+<meta name="robots" content="nosnippet">
+告訴搜尋引擎不要再搜尋結果中顯示此網頁的摘要
 
 <template id="t1">... </template>
 元素不會被渲染 用於保存內容 來讓js做選擇提取使用
@@ -5176,7 +5253,7 @@ Google Analytics(GA)可用於追蹤點擊紀錄 必須引入analytic.js並在js�
 
 <h1>h1. Bootstrap heading <small>Secondary text</small></h1>
 <strong>rendered as bold text</strong>
-<small>表示會使content的字體放小 <strong>則是會變粗體
+<small>元素 表示會使content的字體放小 / <strong>元素 則是會變粗體
 後一些html標籤是在bootstrap中的CSS定義出來的
 (能夠自行定義tag名稱是由XML開始 往後大多數框架都有相關的設計)
 
@@ -5510,6 +5587,10 @@ cards:
 <a class="btn btn-primary" href="#">
 等價於<button class="btn btn-primary" type="button"> 兩者可替換
 <a>大多用在超連結或其他UI的佈局變動 <button>則適合用於form的表單
+
+<button>元素除了type="button"之外 還有type="submit" 和 type="reset" 都為配合<form>元素而使用 (submit為寄出完整form資料 reset為完全清除form當下資料)
+因此有些瀏覽器會將<button>元素預設為type="submit" 此時若沒有再設置type="button"就會出錯
+
 
 panel是由三部分組成 這裡使用panel-default (old-version)
 <div class="panel panel-default">

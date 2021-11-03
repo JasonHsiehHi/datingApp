@@ -1,6 +1,10 @@
 function chatroomWS(){
     if (null===chatSocket){
         var wsUrl = 'ws://'+window.location.host+'/ws/chat/'; 
+        if (!window.WebSocket){  // todo 改用protocols_whitelist替代
+            console.log('瀏覽器版本不支援或已關閉websocket功能');
+            return false
+        }
         chatSocket = new WebSocket(wsUrl);
 
         chatSocket.onopen = function(){
@@ -40,8 +44,8 @@ function chatroomWS(){
                         break;
                     case typeSet.st:
                         if(localData.name===data.receiver){
-                            while(term['emlt_for_status'].length>0){
-                                var elmt = term['emlt_for_status'].pop();
+                            while(term.emlt_for_status.length>0){
+                                var elmt = term.emlt_for_status.pop();
                                 theUI.showStatus(elmt, data.num);
                             }
                         }
@@ -101,16 +105,20 @@ function chatroomWS(){
                     case typeSet.greet: 
                         localData.anonName=data.anonName, localStorage.anonName=data.anonName, theUI.refreshProfile();
                         var li = data.dialog;
-                        li.splice(1,0,theGate.intro(), theGate.tutor());
+                        if (0 === localData.status)
+                            li.splice(1,0,theGate.intro(), theGate.tutor()); // insert theGate into data.dialog
+                        else // 2 === localData.status
+                            li.splice(1,0,theGate.intro());
                         theUI.showMsgsAsync(li);
                         break;
 
                     case typeSet.goto:
                         localData.school = term.schoolId, localStorage.school = term.schoolId;
-                        var school =  localData.school.toUpperCase();
+                        var school =  localData.school;
+                        theUI.clearChatLogs();
                         theUI.gotoSchoolAsync(function(){
                             var li = data.dialog;
-                            li.splice(0,0,['已抵達'+school + schoolSet[school] +'了😎',!1]);
+                            li.splice(0,0,['已抵達<span class="a-point">'+school + schoolSet[school] +'</span>了😎',!1]); // insert msg into data.dialog
                             theUI.showMsgsAsync(li);
                         });
                         break;
@@ -186,7 +194,6 @@ function LocalData(){
     this.matchType = '',
     this.isBanned = !1,
     this.status = 0, // 1:inTest, 2:inWaiting, 3:inRoom
-    this.hasTested = !1,
     this.lastSaid = 'sys',
     this.anonName = '',
     this.room = '',
@@ -211,7 +218,6 @@ function getLocalData(){
             data.matchType = localStorage.matchType,
             data.isBanned = ('true'===localStorage.isBanned)?!0:!1,
             data.status = +localStorage.status,
-            data.hasTested = ('true'===localStorage.hasTested)?!0:!1,
             data.lastSaid = localStorage.lastSaid,
             data.anonName = localStorage.anonName,
             data.room = localStorage.room,
@@ -232,7 +238,6 @@ function getLocalData(){
             localStorage.matchType = '',
             localStorage.isBanned = 'false',
             localStorage.status = '0',
-            localStorage.hasTested = 'false',
             localStorage.lastSaid = 'sys',
             localStorage.anonName = '',
             localStorage.room = '',
@@ -249,7 +254,7 @@ function getLocalData(){
             
         }
     }else{
-        //todo: 開頭頁面推薦使用最新版的chrome或safari瀏覽器 能支持保留頁面功能 
+        console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
     }
     return data
 }
@@ -290,12 +295,12 @@ function disableBackSpace() {
     })
 }
 
-function bindMsgSending() {
+function bindMsgSend() {
     $("#send-text").on('keypress',function(a) {
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
             var text = $("#send-text").val();  
-            (void 0 !== text && null !== text &&'' !== text) && (text.match(/(\/[a-zA-Z@1-9]+)/i)? theTerminal.command(text) : (3 === localData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未完成配對哦!'));
+            (void 0 !== text && null !== text &&'' !== text) && (text.match(/(\/[a-zA-Z@1-9]+)/i)? theTerminal.command(text) : (3 === localData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未與其他人配對哦! 目前只能使用指令！'));
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
         }
@@ -304,8 +309,8 @@ function bindMsgSending() {
         if (3 === localData.status && !1 == toggle.writing){
             theWS.writingNowWs(!0), toggle.writing = !0;
         }
-        (null != term.timer_writing) && clearTimeout(term.timer_writing);  // 當時間超過10秒再發送 theWS.writingNowWs(!1)
-        term.timer_writing = setTimeout(theWS.writingNowWs(!1),10000);
+        (null !== term.timerId_writing) && clearTimeout(term.timerId_writing);  // 當時間超過10秒再發送 theWS.writingNowWs(!1)
+        term.timerId_writing = setTimeout(theWS.writingNowWs(!1),10000);
     })
     $("#send-text").on('focus',function(a) {
         toggle.focus = !0;
@@ -325,6 +330,12 @@ function bindMsgSending() {
     })
 }
 
+function cmdBySidebar(elmt){
+    var text = $(elmt).find('.a-cmd').text();
+    text = text.split(' ')[0]
+    $("#send-text").val(text);
+    $("#sidebar .btn-close").click();
+}
 
 function bindFileUpload(){
     $("#send-img").fileupload({
@@ -361,7 +372,7 @@ var chatWS = function(){
         var elmt;
         (isImg) ? (elmt = theUI.showSelfImg(msg), theUI.storeChatLogs(term.showSelfImg_text)):(elmt = theUI.showSelfMsg(msg), theUI.storeChatLogs(term.showSelfMsg_text));
         theUI.showStatus(elmt,1);
-        term['emlt_for_status'].push(elmt);
+        term.emlt_for_status.push(elmt);
     }
     function mss(msg_list){ //  the matcher is disconnected, so send mag_list instead of msg in next connection.
         if(!1===toggle.discon){
@@ -400,7 +411,7 @@ function processTest(questions){
         theUI.showQuestion(q.content, q.choice, q.type);
     }
     theUI.showQuestion('是否提交答案?', ['提交'], 1).find('.a-0').removeClass('a-0').addClass('a-submit')
-    localData.testResult = [], localData.testResult.length = questions.length;
+    localData.testResult = []
     localStorage.testResult=JSON.stringify(localData.testResult);
 
     for (let s = 0;s<4;s++){
@@ -418,7 +429,7 @@ function processTest(questions){
         })
     }
     $('.a-submit').on('click', function(e){
-        localData.hasTested = !0, localStorage.hasTested = 'true', theTerminal.wait();
+        theTerminal.wait();
     })
     $('#dialog>.a-q:eq(0)').removeClass('d-none');
 }
@@ -441,7 +452,7 @@ var checkGate = function(){
         else if(localData.matchType.length===0)
             dialog = ['請重新輸入你的<span class="a-point">配對類型</span>以及<span class="a-point">名稱</span>。 輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)', !1]
         else if(localData.testResult.length===0)
-            dialog = ['已確認你所選擇的<span class="a-point">學校('+localData.school+')</span>與<span class="a-point">基本資料('+localData.name+', '+localData.matchType +')</span>  開始進行配對吧～朋友！ 輸入/m', !1]
+            dialog = ['已確認你所選擇的<span class="a-point">學校('+localData.school+')</span>與<span class="a-point">基本資料('+localData.name+', '+localData.matchType +')</span>  開始進行配對吧～朋友！ 輸入/m ', !1]
         else if(localData.room.length===0)
             dialog = ['是否要進行下一次配對 輸入/m \n或選擇重新測試 輸入/t \n或更改配對用的名稱 輸入/n name \n或移動到其他學校 輸入/go sch_id', !1]
         return dialog
@@ -458,27 +469,27 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
         var cmdStr = listStr[0];
         var wrongMsg = '指令為：<span class="a-point">'+totalStr+'</span> 未符合 '+cmdStr+ ' 指令格式';
 
-        console.log('insert: ' + totalStr);
+        console.log('type in: ' + totalStr);
         
-        if (commandSet.goto.includes(cmdStr))
+        if (commandSet.goto.includes(cmdStr.toLowerCase()))
             (listStr.length===2 && listStr[1].length>0) ? go(listStr[1]) : theUI.showSys(wrongMsg+'：空格後加上前往的學校縮寫哦 <span class="a-point">/go xxx</span>');
-        else if (commandSet.match.includes(cmdStr))
+        else if (commandSet.match === cmdStr.toLowerCase())
             m();
-        else if (commandSet.image.includes(cmdStr))
+        else if (commandSet.image === cmdStr.toLowerCase())
             _a();
-        else if (commandSet.change.includes(cmdStr))
+        else if (commandSet.change === cmdStr.toLowerCase())
             cg();
-        else if (commandSet.leave.includes(cmdStr))
+        else if (commandSet.leave === cmdStr.toLowerCase())
             le();
-        else if (commandSet.profile.includes(cmdStr))
+        else if (commandSet.profile === cmdStr.toLowerCase())
             (listStr.length===3 &&listStr[1].length>0 && listStr[2].length>0) ? p(listStr[1], listStr[2]) : theUI.showSys(wrongMsg+'：必須依序填入配對用的名稱與配對類型 <span class="a-point">/p 我的名字 fm</span>');
-        else if (commandSet.adult.includes(cmdStr))
+        else if (commandSet.adult === cmdStr.toLowerCase())
             a();
-        else if (commandSet.rename.includes(cmdStr))
+        else if (commandSet.rename === cmdStr.toLowerCase())
             (listStr.length==2 &&listStr[1].length>0) ? n(listStr[1]) : theUI.showSys(wrongMsg+'：空格後填入欲修改的名稱 <span class="a-point">/n 我的名字</span>');
-        else if (commandSet.retest.includes(cmdStr))
+        else if (commandSet.retest === cmdStr.toLowerCase())
             t();
-        else if (commandSet.reset.includes(cmdStr))
+        else if (commandSet.reset === cmdStr.toLowerCase())
             r();
         else
             theUI.showMsg('目前沒有 <span class="a-point">'+cmdStr+'</span> 這項指令😭');
@@ -489,9 +500,9 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
             theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>移動到其他學校，必須先輸入/le (/leave)。');
         }else{   // 0 === localData.status
             schoolId = schoolId.toUpperCase();
-            if (!(schoolId in schoolImgSet)){
+            if (!(schoolImgSet.has(schoolId))){
                 theUI.showSys('目前尚未開放此學校: <span class="a-point">'+schoolId+'</span>');
-                theUI.showSys('目前開放的學校為:<span class="a-point>"'+[...schoolImgSet].join(', ')+'</span>');
+                theUI.showSys('目前開放的學校為:<span class="a-point">'+[...schoolImgSet].join(', ')+'</span>');
                 return false
             }
             if (schoolId === localData.school){
@@ -500,9 +511,9 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
             }
             chatSocket.send(JSON.stringify({
                 'cmd':'goto',
-                'school':schoolId.toLowerCase()
+                'school':schoolId
             }));
-            term['schoolId'] = schoolId.toLowerCase();
+            term.schoolId = schoolId;
         }
 
     }
@@ -523,7 +534,7 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
                 'name':name,
                 'matchType':matchType.toLowerCase()
             }));
-            term['name'] = name, term['matchType'] = matchType;
+            term.name = name, term.matchType = matchType;
 
         }
     }
@@ -539,28 +550,48 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
                 'cmd':'rename',
                 'name':name,
             }));
-            term['name'] = name;
+            term.name = name;
         }
     }
     function m(){
-        if (0!==localData.status){
+        if (1 === localData.status || 2 === localData.status){
+            theUI.showSys('你已經在進行<span class="a-point">配對</span>了哦。');
+        }else if (3 === localData.status){
             theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>進行配對哦，必須先輸入/le (/leave)。');
         }else{  // 0 === localData.status
-            (!1==localData.hasTested)?t():w()
+            if (localData.name.length===0 || localData.matchType.length===0){
+                theUI.showSys('必須先設定<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>才能進行配對，請輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
+                return false
+            }else if (localData.school.length===0){
+                theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行配對哦，請輸入/go school_id');
+                return false
+            }
+
+            ( 0!==localData.testResult.length && localData.testQuestions.length===localData.testResult.length)?w():t()
         }
         
     }
     function t(){  // is called by /match and /retest
-        if (0!==localData.status){
+        if (1 === localData.status){
+            theUI.showSys('你已經在<span class="a-point">重新作答</span>了哦。');
+        }else if (2 ===localData.status || 3 === localData.status){
             theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>重新作答哦，必須先輸入/le (/leave)。');
         }else{  // 0 === localData.status
+            if (localData.name.length===0 || localData.matchType.length===0){
+                theUI.showSys('必須先設定<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>才能進行配對，請輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
+                return false
+            }else if (localData.school.length===0){
+                theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行配對哦，請輸入/go school_id');
+                return false
+            }
+
             chatSocket.send(JSON.stringify({
                 'cmd':'test'
             }));
         }
     }
     function w(){  // is called by /match and processTest()
-        if(0 === localData.status || 1 === localData.status){
+        if(0 === localData.status || 1 === localData.status){ // 必須有school name tpye
             chatSocket.send(JSON.stringify({
                 'cmd':'wait',
                 'testResult':localData.testResult
@@ -586,9 +617,19 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
         }
     }
     function a(){
-        if (0!==localData.status){
+        if (1 === localData.status || 2 === localData.status){
+            theUI.showSys('你已經在進行<span class="a-point">成人模式配對</span>了哦。');
+        }else if (3 === localData.status){
             theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>使用成人模式進行配對哦，必須先輸入/le (/leave)。');
         }else{
+            if (localData.name.length===0 || localData.matchType.length===0){
+                theUI.showSys('必須先設定<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>才能進行成人模式配對，請輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
+                return false
+            }else if (localData.school.length===0){
+                theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行成人模式配對哦，請輸入/go school_id');
+                return false
+            }
+
             theUI.showSys('確定開啟成人模式嗎？😂 使用成人模式需要先上傳任意照片。 提醒：為保護使用者安全，請不要上傳任何容易透露個人真實訊息的照片。');
             setTimeout($('#send-img').click(),1500);
         }
@@ -604,7 +645,7 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
     }
     function _a(){
         if (3 !== localData.status){
-            theUI.showSys('必須與人連線後你才能把圖傳給對方哦');
+            theUI.showSys('必須與人連線後你才能用將圖傳對方哦');
         }else{
             $('#send-img').click();
         }
@@ -747,19 +788,20 @@ var chatUI = function(){
         function time(){
             var date = new Date();
             var offsetTime = (date-start)/ 1000;
-            var s = parseInt(Number(offsetTime % 60)), m = parseInt(Number(offsetTime / 60) % 60), h = parseInt(Number(offsetTime / 60 / 60) % 100);  // Numer() to avoid offsetTime is too small in exponental form
+            var s = parseInt(offsetTime % 60), m = parseInt((offsetTime / 60) % 60), h = parseInt((offsetTime / 60 / 60) % 100);
             h = (h < 10) ? ("0" + h) : h;
             m = (m < 10) ? ("0" + m) : m;
             s = (s < 10) ? ("0" + s) : s;
 
-            var duration = h + ":" + m;
+            var duration = h + ":" + m+':'+s;
             $('.a-clock').text(duration);
             
-            (2===localData.status) && setTimeout(time, 1000*60);
+            (2===localData.status) && (term.timerId_clock = setTimeout(time, 1000));
         } 
         var start = (null!==startTime)?(new Date(startTime)):(new Date());
         localData.waiting_time = start.Format('YYYY-MM-DD hh:mm:ss'), localStorage.waiting_time = localData.waiting_time;
-        time();
+        (null !== term.timerId_clock) && clearTimeout(term.timerId_clock);
+        setTimeout(time, 50);
     }
 
     function ut(hasRead){
@@ -860,7 +902,7 @@ var chatUI = function(){
         for (let t of msg_List){
             setTimeout(function(){
                 (!0 == t[1])?(i(t[0]), elmts_text += term.showImg_text):(m(t[0]), elmts_text += term.showMsg_text);
-            }, i*interval);
+            }, s*interval);
             s++;
         }
         setTimeout(function(){
@@ -922,7 +964,7 @@ Date.prototype.Format = function (fmt) {
     return fmt;
 }
 
-var TITLE = "ACard - AnonCard",
+var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     unreadMsg = 0,
     school_url = '/static/img/mark/',
     schoolImgSet = new Set([
@@ -949,16 +991,16 @@ var TITLE = "ACard - AnonCard",
         error:'ERROR'
     }, 
     commandSet = {
-        goto:['/goto','/go'],
-        adult:['/adult','/a'],
-        leave:['/leave','/le'],
-        change:['/change','/cg'],
-        profile:['/profile','/p'],
-        match:['/match','/m'],
-        rename:['/rename','/n'],
-        retest:['/retest','/t'],
-        reset:['/reset','/r'],
-        image:['/image','/@']
+        goto:'/go',
+        adult:'/a',
+        leave:'/le',
+        change:'/cg',
+        profile:'/p',
+        match:'/m',
+        rename:'/n',
+        retest:'/t',
+        reset:'/r',
+        image:'/@'
     },
     st = {
         1:'配對遊戲中',2:'等待中',3:'連線中'
@@ -984,7 +1026,8 @@ var TITLE = "ACard - AnonCard",
         showSys_text:'',
         showMsgs_text:'',
         emlt_for_status:[],
-        timer_writing: null
+        timerId_clock: null,
+        timerId_writing: null
     },
     chatSocket = null,
     theUI = chatUI(),
@@ -995,5 +1038,5 @@ var TITLE = "ACard - AnonCard",
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
 
 $(document).ready(function() {
-    chatroomWS(), bindMsgSending(), bindFileUpload(), disableBackSpace(), installToolTip(),loadLocalData()
+    chatroomWS(), bindMsgSend(), bindFileUpload(), disableBackSpace(), installToolTip(), loadLocalData()
 });

@@ -2,15 +2,16 @@ from django.db import models
 from django.utils import timezone
 
 
-class Room(models.Model): # todo room_id要改成創建者uuid+創立時間 才不會透露目前房間數
+class Room(models.Model):
     ROOM_MATCH_TYPE = (
         ('mf', 'male->female'),
         ('mm', 'male->male'),
         ('ff', 'female->female')
     )
+    id = models.CharField(max_length=20, primary_key=True)
     userNum = models.IntegerField(default=0)
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
-    school = models.CharField(max_length=30)
+    school = models.CharField(max_length=10)
 
     def __str__(self):
         return "room-%s" % self.id
@@ -37,7 +38,7 @@ class Player(models.Model):
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
 
     testResult = models.JSONField(max_length=100, null=True, default=None)
-    score = models.FloatField(default=0)
+    score = models.FloatField(default=None, null=True)
     waiting_time = models.DateTimeField(null=True, default=None)
 
     def __str__(self):
@@ -87,7 +88,7 @@ class Robot(models.Model):
 
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
-    uploader = models.CharField(max_length=8, null=True, default=None)  # todo 同一位上傳者要限制數量 且禁止連續上傳
+    uploader = models.CharField(max_length=8, null=True, default=None)  # todo 同一位上傳者禁止連續上傳 且房間中要限制上傳數量
     upload_date = models.DateTimeField(default=timezone.now)
 
     @property

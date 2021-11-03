@@ -1,3 +1,26 @@
+# todo_list
+## 目前todo
+'顯示更多...','chatLog250句限制', 
+'防止用ws做script攻擊(html語法)','傳送時斷線', 
+'/leave和/change都要加上dialog並變更anonName',
+'禁止連續上傳', '房間內限制上傳數量'
+
+'加上信箱註冊功能 並修改更新多數方法'
+'改版後加上後端檢測變數 以防用戶透過console傳送資料'
+
+
+'ga', 'seo'
+'修改並統一用語 尤其是status的部分'
+
+## 未來todo
+'開頭畫面 處理流量過載'
+
+'瀏覽器不支援websocket功能 需用protocols_whitelist替代'
+'回答題目的回饋'
+'dialog GOTO 動態資訊'
+'dialog GREET in status2'
+'新增互動動畫'
+
 # datingApp架構圖:
 架構圖為描述程式碼的各項物件功能 流程圖則針對用戶的使用過程
 
@@ -33,6 +56,139 @@ theTerminal.cmd()
 (theUI.) clearChatLogs(), storeChatLogs(), loadChatLogs()
 不能被其他theUI調用 只能供外部調用 (一般為後端存取資料完後的chatSocket.onmessage)
 
+# 手動測試流程
+status_0
+  // DOM ready
+  init localData (getLocalData())
+  check: (wrong log) {if browser can't use Storage}
+
+  init chatSocket object (chatroomWS())
+  check: (wrong log) {if browser can't use WebSocket}
+  
+  send uuid to backend (chatSocket.onopen)
+  check: (uuid in db)
+  
+  send data to backend (chatSocket.onopen)
+  check: (data in db) {if it's second or more connection}
+
+  receive GREET from backend (chatSocket.onmessage)
+  check: (anonName in storage, localData, profile)
+  check: (dialog) {data.dialog with theGate}
+  check: (dialogdiv size in RWD)
+    
+    show dialog from backend (def cmd_open())
+    check:(msg) {in different time}
+
+    show dialog from theGate (theGate.intro() and theGate.tutor())
+    check: (tutor msg) {before cmd-/go}
+    check: (tutor msg) {after cmd-/go before cmd-/p}
+    check: (tutor msg) {after cmd-/p before cmd-/m}
+    check: (tutor msg) {after cmd-/m with testResult}
+
+    check: (intro msg) {before cmd-/p}
+    check: (intro msg) {after cmd-/p}
+
+  init chatSocket object again (chatSocket.onclose)
+  check: (log)
+
+  do theUI work after loading website (loadLocalData())
+  check: (profile, mark and dialog)
+  check: (profile size and mark size in RWD)
+
+  // cmd 
+  type in /go school_id(theTerminal.goto())
+  check: (dialog for wrong form) {/go ntu ntu}
+  check: (dialog for wrong id) {/go nxu}
+  check: (dialog for the same id) {/go ntu again}
+  check: (school in storage, localData)
+  check: (school in db)
+  check: (mark and dialog) {/go ntu and /go nccu}
+
+  type in /p name mf (theTerminal.profile())
+  check: (dialog for wrong form) {/p jason}
+  check: (dialog for wrong matchType) {/p jason rr}
+  check: (dialog for wrong length) {/p jasonjasonjasonjason rr}
+  check: (name and matchType in storage, localData)
+  check: (name and matchType in db)
+  check: (dialog) {/p jason mf}
+
+  type in /n name (theTerminal.rename())
+  check: (dialog for wrong form) {/n jason jason}
+  check: (dialog for wrong length) {/n jasonjasonjasonjason}
+  check: (name in storage, localData)
+  check: (name in db)
+  check: (dialog) {/n jason}
+
+  type in /t (theTerminal.retest())
+  check: (QUESTION_ID_LIST randomly) {by utils.get_question_id_list_randomly()}
+  check: (QUESTION_ID_LIST specifiedly) {by setting caches:QUESTION_ID_LIST manually}
+
+  check: (testResult and hasTested in storage, localData)
+  check: (testResult and score in db)
+  check: (testResult and hasTested in storage, localData) {with uncompleted test}
+  check: (testResult and score in db) {with uncompleted test}
+
+  type in /m (theTerminal.match() and theTerminal.wait())
+  check: (dialog for wrong step) {before cmd-/go and cmd-/p}
+ 
+
+
+status_1
+  // DOM ready
+  do theUI work after loading website (loadLocalData())
+  check: (no dialog from GREET)  # 信箱註冊後可解決
+  check: (no change in anonName)  # 信箱註冊後可解決 兩者都是receive: typeSet.greet執行
+
+  init localData (getLocalData())
+  check: (the same data)
+  check: (status in storage, localData)
+  check: (status in db)
+
+  type in /le (theTerminal.leave())
+  check: (status in storage, localData)
+  check: (status in db)
+
+  type in /cg (theTerminal.change())
+  check: (status in storage, localData)
+  check: (status in db)
+  check: (empty testResult in storage, localData)
+  check: (empty testResult in db)
+
+
+
+status_2
+  // DOM ready 
+  recieve GREET from backend (chatSocket.onmessage) 
+  check:(no tutor msg from GREET)
+
+  recieve WAIT from backend (chatSocket.onmessage) 
+  check: (begin with 00:00 in showClock div)
+  check: (then 00:01 in showClock div)
+
+  type in /le (theTerminal.leave())
+  check: (status in storage, localData)
+  check: (status in db)
+  check: (begin with 00:00 in showClock div) {type in /le and then /m in small interval}
+  check: (then 00:01 in showClock div)
+
+  type in /cg (theTerminal.change())
+  check: (status in storage, localData)
+  check: (status in db)
+  check: (begin with 00:00 in showClock div)
+  check: (then 00:01 in showClock div)
+
+
+status_3
+  // DOM ready 
+
+  type in /le (theTerminal.leave())
+  check: (status in storage, localData)
+  check: (status in db)
+
+  type in /cg (theTerminal.change())
+
+
+
 
 # model_data:
 ## Dialogue model:
@@ -60,6 +216,9 @@ GREET sch 3 3 ["如果我是你，我就去{}！ 畢竟人多機會多～",0]
 
 動態-目前使用人數:較少 普通 較多 高峰(值域必須等上線後才能決定)
 動態-最多使用者學校:ntu, nccu...等(人數必須高過門檻才使用 如果都很少就不使用)
+
+如果等待時間太長可以考慮前往其他學校哦！
+
 
 ## Robot model:
 id name 
@@ -149,6 +308,7 @@ l ["",""]
 
 指考專科問題-歷史題與國文題
 調情問題-螺絲釘
+
 
 
 # 

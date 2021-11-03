@@ -57,14 +57,20 @@
 
 .offcanvas.a-sidebar{
     width:280px;
-    background: grey;
+    background: whitesmoke;  /* whitesmoke */
 }
 
 .offcanvas-title.a-sidebar{
     font-size: 24px;
+    color: #818181; /* like grey */
 }
 .offcanvas-body.a-sidebar{
     padding:0 0;
+}
+
+.list-group-item.a-point{
+    font-size: small;
+    color: gray;
 }
 
 span.a-cmd{

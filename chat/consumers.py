@@ -3,7 +3,6 @@ from . import utils
 from django.core.cache import cache
 from datetime import datetime
 import time
-import json
 import sys
 from datingApp import settings
 
@@ -172,10 +171,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             })
 
     async def cmd_goto(self, school_id):
-        if self.player_data.status == 0:
-            school_id = school_id.lower()
+        if self.player_data.status == 0:  # todo school_id檢測 把schoolImgSet存入cache中
+            school_id = school_id.upper()
             await utils.set_player_school(self.player_data, school_id)
-            dialog = await utils.get_dialogue_dialog(self.robot_id, 'GOTO', school_id)  # todo dialog GOTO 動態資訊
+
+            dialog = []  # todo dialog GOTO 動態資訊
+            # dialog_id = await utils.get_dialogue_dialog(self.robot_id, 'GOTO', school_id)
+            # dialog.append(dialog_id)
             await self.send_json({
                 'type': 'GOTO',
                 'dialog': dialog
@@ -200,8 +202,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def cmd_test(self):
         if self.player_data.status == 0 or self.player_data.status == 1:
             id_list = cache.get_or_set('QUESTION_ID_LIST', await utils.get_question_id_list_randomly(), None)
-            question_list = cache.get_or_set('QUESTION_LIST', await utils.get_question_content_list(id_list), 0)
+            question_list = cache.get_or_set('QUESTION_LIST', await utils.get_question_content_list(id_list), None)
             # how to change questions : update QUESTION_ID_LIST and then delete QUESTION_LIST
+            if len(self.player_data.testResult) > 0:
+                self.player_data = await utils.set_player_score(self.player_data, [])
 
             self.player_data = await utils.set_player_status(self.player_data, 1)
             await self.send_json({
@@ -211,7 +215,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def cmd_wait(self, testResult=None):  # 即使client端的testResult存在 仍再次傳入
         if self.player_data.status is not None:  # self.player_data.status == 0,1,2,3 皆可
-            if testResult is not None and (testResult != json.loads(self.player_data.testResult)):
+            if testResult is not None and (testResult != self.player_data.testResult):
                 self.player_data = await utils.set_player_score(self.player_data, testResult)
 
             self.player_data = await utils.process_player_wait(self.player_data, 2)
@@ -223,7 +227,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
             else:
                 room_match_type = 'mf' if self.player_data.matchType == 'fm' else str(self.player_data.matchType)
-                room_id = await utils.create_room(room_match_type, str(self.player_data.school))
+                room_id = str(self.player_data.uuid)[0, 8] + datetime.now().strftime('%H%M%S%f')
+                room_id = await utils.create_room(room_id, room_match_type, str(self.player_data.school))
                 await self.channel_layer.group_send(matcher_uuid, {
                     'type': 'enter_room',
                     'name': str(self.player_data.name),
@@ -235,6 +240,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
 
     async def cmd_leave(self):
+
         if self.player_data.status == 1:
             self.player_data = await utils.set_player_status(self.player_data, 0)
             await self.send_json({
@@ -242,7 +248,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             })
 
         elif self.player_data.status == 2:
-            self.player_data = await utils.process_player_wait(self.player_data, 0)
+            self.player_data = await utils.process_player_wait(self.player_data, next_status=0)
             await self.send_json({
                 'type': 'BACK'
             })

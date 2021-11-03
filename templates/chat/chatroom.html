@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"/>
-    <title>ACard - AnonCard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>ACard - AnonCard | 2021年台灣校園交友平台</title>
+    <meta name="description" content="ACard(AnonCard)：2021年台灣校園交友平台，讓妳在任何一所學校與命中注定的他相遇！ 簡單易上手，取代繁瑣的資料填寫！ 完全地匿名性交友，不透露任何個人資料！">
+
     {%load static%}
     <script src="{% static 'js/jquery-3.6.0.min.js'%}"></script>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css'%}"/>
@@ -72,10 +75,16 @@
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar">
                     <div class='list-group list-group-flush'>
-                        <button class='list-group-item list-group-item-action' data-bs-toggle="tooltip" data-bs-placement="right" title="移動到你想去的學校(學校請輸入英文縮寫)">前往：<span class='a-cmd'>/goto NTU(/go NTU)</span></button>
-                        <button class='list-group-item list-group-item-action'>離開：<span class='a-cmd'>/leave (/le)</span></button>
-                        <button class='list-group-item list-group-item-action'>換人：<span class='a-cmd'>/change (/cg)</span></button>
-                        <button class='list-group-item list-group-item-action'>配對：<span class='a-cmd'>/match (/m)</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="前往你想去的學校(學校請輸入英文縮寫 像是:ntu, nccu, tku...等)">前往(goto)：<br><span class='a-cmd'>/go {school_id}</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="設置配對時使用的暱稱與配對類型(配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)">設置暱稱(profile)：<br><span class='a-cmd'>/p {your_name} {match_type}</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="更改當前的暱稱">改名(rename)：<br><span class='a-cmd'>/n {new_name}</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="開始配對並進入等待時間">配對(match)：<br><span class='a-cmd'>/m</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="重新填答配對的問題">重新配對(retest)：<br><span class='a-cmd'>/t</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="以成人模式開始配對，並增加配對附圖功能">成人模式配對(adult)：<br><span class='a-cmd'>/a</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="傳圖功能，必須與他人連線成功後才能使用">傳圖(@)：<br><span class='a-cmd'>/@</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="離開連線狀態或等待狀態">離開(leave)：<br><span class='a-cmd'>/le</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="再次配對或重新等待">換人(change)：<br><span class='a-cmd'>/cg</span></button>
+                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="重置所有資料">重置(reset)：<br><span class='a-cmd'>/r</span></button>
                     </div>
                 </div>
             </div>
@@ -86,131 +95,6 @@
         <div class="a-container a-pa a-clr">
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar" id='dialog'>
-                    <div class="a-chat text-center">
-                        <p class="a-dialogdiv a-sys a-pa a-clr">
-                            <span class="a-sys">==========<span class="a-point">進入聊天室</span>==========</span>
-                        </p>
-                    </div>
-
-                    <div class="a-chat d-flex">
-                        <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
-                            <span class='a-tri a-matcher'></span>
-                            <span>哈囉</span>
-                        </p>
-                        <span class="a-status a-matcher">8:30 AM</span>
-                    </div>
-                
-                    <div class="a-chat justify-content-end d-flex">
-                        <span class="a-status a-self text-end">
-                            <span class='d-block'>(已送達)</span>
-                            <span class='d-block'>2:45 PM</span>
-                        </span>
-                        <p class="a-dialogdiv a-self a-pa a-clr d-inline-flex">
-                            <span class='a-tri a-self'></span>
-                            <span>hello</span>
-                        </p>
-                    </div>
-
-                    <div class="a-chat d-flex">
-                        <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
-                            <span class='a-tri a-matcher'></span>
-                            <span>哈囉2</span>
-                        </p>
-                        <span class="a-status a-matcher">8:30 AM</span>
-                    </div>
-
-                    <div class="a-chat d-flex">
-                        <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
-                            <span class='a-tri a-matcher'></span>
-                            <span>哈囉3</span>
-                        </p>
-                        <span class="a-status a-matcher">8:30 AM</span>
-                    </div>
-
-                    <div class="a-chat d-flex">
-                        <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
-                            <span class='a-tri a-matcher'></span>
-                            <span>哈囉你好嗎
-                            哈囉你好嗎哈囉你好嗎哈囉你
-                            好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你
-                            好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎
-                            哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎哈囉你好嗎</span>
-                        </p>
-                        <span class="a-status a-matcher">11:30 AM</span>
-                    </div>
-                
-                    <div class="a-chat justify-content-end d-flex">
-                        <span class="a-status a-self text-end">
-                            <span class='d-block'>(已送達)</span>
-                            <span class='d-block'>10:00 PM</span>
-                        </span>
-                        <p class="a-dialogdiv a-self a-pa a-clr d-inline-flex">
-                            <span class='a-tri a-self'></span>
-                            <span>Set the direction of flex items in a flex container with direction utilities. In most cases you can omit the horizontal class here as the browser default is row. However, you may encounter situations where you needed to explicitly set this value (like responsive layouts).</span>
-                        </p>
-                    </div>
-
-                    <div class="a-chat flex-column d-flex a-q">
-                        <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
-                            <p class='m-2'>這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
-                        </div>
-                        <div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex">
-                            <p class='a-choice a-left d-inline-flex a-0'>是</p><p class='a-choice a-right d-inline-flex a-1'>否</p>
-                        </div>
-                    </div>
-
-                    <div class="a-chat flex-column d-flex a-q">
-                        <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
-                            <p class='m-2'> 
-                            這裡的所有動作都是以指令構成，請先移動到你想交友的學校吧！ it's a question?
-                            <p class="text-center"><img class="img-fluid a-img" src="/media/photo/802bd4a9-7759-4bf2-b079-c8e4423819a30923152355.jpg" alt="refresh again"></img></p>
-                            </p>
-                        </div>
-                        <div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex">
-                            <p class='a-choice a-left d-inline-flex a-0'>是</p><p class='a-choice a-right d-inline-flex a-1'>否</p>
-                        </div>
-                    </div>
-
-                    <div class="a-chat flex-column d-flex a-q">
-                        <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
-                            <p class='m-2'><span class="a-point">這裡的所有動作</span>都是以指令構成，請先移動到你想交友的學校吧！ it's a question?</p>
-                        </div>
-                        <div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex">
-                            <p class='a-choice a-top d-inline-flex a-0'>前往</p>
-                        </div>
-                    </div>
-
-                    <div class="a-chat flex-column d-flex a-q">
-                        <div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline">
-                            <p class='m-2'>在一場朋友的聚會中你認識了A男與B男：<br><br>A男-現實主義的新好男人，將家庭擺在第一位，極具領袖魅力，在大型電影公司擔任副製片人<br>B男-浪漫主義的嬉皮士，空軍背景，創業成立小規模的航運公司並擔任CEO與飛行員<br><br>依據以上描述，請問你認為何人在聚會中對女性更有吸引力？</p>
-                        </div>
-                        <div class="a-dialogdiv a-matcher a-answer a-mid a-pa a-clr justify-content-evenly d-flex">
-                            <p class='a-choice a-left d-inline-flex a-0'>1這是一個答案 這是一個答案 這是一個答案 這是一個答案 這是一個答案</p><p class='a-choice a-right d-inline-flex a-1'>2</p>
-                        </div>
-                        <div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex">
-                            <p class='a-choice a-left d-inline-flex a-2'>3</p><p class='a-choice a-right d-inline-flex a-3'>4這是一個答案 這是一個答案 這是一個答案 這是一個答案 這是一個答案<p>
-                        </div>
-                    </div>
-                    
-                    <div class="a-chat justify-content-end d-flex">
-                        <span class="a-status a-self text-end">
-                            <span class='d-block'>(已送達)</span>
-                            <span class='d-block'>10:00 PM</span>
-                        </span>
-                        <p class="a-dialogdiv a-self a-pa a-clr d-inline-flex">
-                            <span class='a-tri a-self'></span>
-                            <span><img class="img-fluid a-img" src="/media/photo/802bd4a9-7759-4bf2-b079-c8e4423819a30923152355.jpg" alt="send again please!"></img></span>
-                        </p>
-                    </div>
-
-                    <div class="a-chat d-flex">
-                        <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
-                            <span class="a-tri a-matcher"></span>
-                            <span><img class="img-fluid a-img" src="/media/photo/802bd4a9-7759-4bf2-b079-c8e4423819a30923152355.jpg" alt="send again please!"></img></span>
-                        </p>
-                        <span class="a-status a-matcher">8:30 AM</span>
-                    </div>
-
                     <div id='writing' class="a-chat d-none d-flex">
                         <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
                             <span class="a-tri a-matcher"></span>

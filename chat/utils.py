@@ -81,14 +81,15 @@ def set_player_room(player, room_id, matcherName=None):
 
 
 @database_sync_to_async
-def set_player_status(player, status):
-    player.status = status
-    player.save()
+def set_player_status(player, next_status):
+    if player.status != next_status:
+        player.status = next_status
+        player.save()
     return player
 
 @database_sync_to_async
-def create_room(matchType, school_id):
-    room = Room.objects.create(matchType=matchType, school=school_id)
+def create_room(id, matchType, school_id):
+    room = Room.objects.create(id=id, matchType=matchType, school=school_id)
     School.objext.filter(name=school_id).update(roomNum=F('roomNum') + 1)
     return str(room.id)
 
@@ -110,20 +111,23 @@ def get_room_userNum(room_id):
 
 @database_sync_to_async
 def set_player_score(player, testResult):
-    correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', ['1', '1', '1', '1', '1'], None)
+    correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', settings.QUESTION_CORRECT_RESULT, None)
     player.testResult = testResult
-    count = 0
-    for i, j in zip(testResult, correct_result):
-        count = count + 1 if (i == j) else count
-    player.score = count
+    if len(testResult) == 0:
+        player.score = None
+    else:
+        count = 0
+        for i, j in zip(testResult, correct_result):
+            count = count + 1 if (i == j) else count
+        player.score = count
     player.save()
     return player
 
 
 @database_sync_to_async
 def process_player_wait(player, next_status):
-    school, matchType = player.school, player.matchType
-    if all([school, matchType]) & player.status != next_status:
+    school, name, matchType = player.school, player.name, player.matchType
+    if all([school, name, matchType]) and player.status != next_status:
         player.status = next_status
         player.waiting_time = datetime.datetime.now(tz=datetime.timezone.utc) if (next_status == 2) else None
         if matchType == 'fm':
@@ -137,6 +141,8 @@ def process_player_wait(player, next_status):
 
         elif matchType == 'mm':
             school.maleNumForMale = school.maleNumForMale + 1 if (next_status == 2) else school.maleNumForMale - 1
+
+
         player.save()
         school.save()
     return player
