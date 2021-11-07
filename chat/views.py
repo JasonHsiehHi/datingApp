@@ -11,7 +11,8 @@ def chatroom(request):
 
 def upload_image(request):
     if request.is_ajax and request.method == "POST":
-        photo = Photo.objects.create(image=request.FILES['send-img'], uploader=request.POST['send-hidden'])
+        photo = Photo.objects.create(image=request.FILES['send-img'], uploader=request.POST['send-hidden'],
+                                     isForAdult=request.POST['send-tag'])
         old_path = photo.image.path
         extension_name = photo.image.name.split('.')[-1]
         photo.image.name = 'photo/' + photo.name + '.' + extension_name

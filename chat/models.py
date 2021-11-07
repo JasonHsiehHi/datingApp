@@ -27,13 +27,14 @@ class Player(models.Model):
 
     uuid = models.UUIDField(primary_key=True)
     create_date = models.DateTimeField(default=timezone.now)
+    anonName = models.CharField(max_length=50, null=True, default=None)
     name = models.CharField(max_length=50, null=True, default=None)
     matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True, default=None)
+    imgUrl_adult = models.URLField(null=True, default=None)
 
     isBanned = models.BooleanField(default=False)
     status = models.IntegerField(default=0)
 
-    anonName = models.CharField(max_length=50, null=True, default=None)
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
 
@@ -89,6 +90,7 @@ class Robot(models.Model):
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
     uploader = models.CharField(max_length=8, null=True, default=None)  # todo 同一位上傳者禁止連續上傳 且房間中要限制上傳數量
+    isForAdult = models.BooleanField(default=False)
     upload_date = models.DateTimeField(default=timezone.now)
 
     @property

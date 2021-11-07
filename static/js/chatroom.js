@@ -30,7 +30,6 @@ function chatroomWS(){
             }    
         };
         // todo 增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
-        // todo localStorage可能造成修改資料的風險 可自行修改localStroge後重開
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
@@ -91,7 +90,7 @@ function chatroomWS(){
                             },200)
                         }else{
                             theUI.showSys('對方已離開你');
-                            setTimeout(function(){  //todo 可以整合到chatGate中
+                            setTimeout(function(){
                                 theUI.showSys('/match開始下一次的配對，或用/goto前往其他學校。')
                             },200)
                         }
@@ -152,6 +151,7 @@ function chatroomWS(){
                         localData.room = '', localStorage.room ='';
                         // todo 可能是/change而返回等待房 故anonName要做變更 需做theUI.refreshProfile()
                         theUI.clearChatLogs();
+                        ('' !== localData.imgUrl_adult) && theUI.showSys('照片已儲存！ 將以成人模式進行配對👌')
                         theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock();
                         break;
                     case typeSet.enter:
@@ -342,16 +342,18 @@ function bindFileUpload(){
         dataType: "json",
         formData:function (form) {
             $('#send-hidden').attr('value',localData.uuid.substr(0,8));
+            (0 === localData.status) ? $('#send-tag').attr('value', true): $('#send-tag').attr('value', false);
             return form.serializeArray();
         },
         done: function(e, data) {
-            if (localData.status === 3)
-                ('img_url' in data.result)?theWS.msgSendWs(data.result['img_url'],!0):console.log(data.result['error']);
-            else if (localData.status === 1)
-                ('img_url' in data.result)?(localData.imgUrl_adult =data.result['img_url'],localStorage.imgUrl_adult = data.result['img_url'], theUI.showSys('上傳照片已儲存！'), setTimeout(theTerminal.match(),1000)):console.log(data.result['error']);
+            if (3 === localData.status)
+                ('img_url' in data.result) ? theWS.msgSendWs(data.result['img_url'],!0) : console.log(data.result['error']);
+            else if (0 === localData.status)
+                ('img_url' in data.result) ? (theUI.clearChatLogs(), processAdult(data.result['img_url'])) : console.log(data.result['error']);
         },
         always:function(e, data) {
             $('#send-hidden').attr('value','');
+            $('#send-tag').attr('value','');
         }
     })
     $(document).on('drop dragover', function (e) {
@@ -362,7 +364,7 @@ function bindFileUpload(){
 var chatWS = function(){
     function ms(msg, isImg=false){
         if(!1===toggle.discon){
-            chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror 而webSocket自動關閉
+            chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror 而webSocket突然自動關閉
                 'msg':msg,
                 'isImg':isImg
             }))
@@ -406,9 +408,22 @@ var chatWS = function(){
     }
 }
 
+function processAdult(img_url){
+    theUI.showQuestion('是否確定使用此圖片?<p class="text-center"><img class="img-fluid a-img" src=' +img_url+'alt="refresh again"></img></p>', ['更改','確定'], 2);
+    $('.a-q .a-0').on('click',function(e) {
+        setTimeout($('#send-img').click(), 200);
+    })
+    $('.a-q .a-1').on('click',function(e) {
+        localData.imgUrl_adult = img_url, localStorage.imgUrl_adult = img_url;
+        theTerminal.adult(img_url);
+        setTimeout(theTerminal.match(), 1000); // todo adult還未存入會影響後續的match() 故應該在後端執行 cmd_test或cmd_wait
+    })
+}
+
 function processTest(questions){
     for (let q of questions){ // q為{content:... ,choices:[y,n]}的物件
         theUI.showQuestion(q.content, q.choice, q.type);
+
     }
     theUI.showQuestion('是否提交答案?', ['提交'], 1).find('.a-0').removeClass('a-0').addClass('a-submit')
     localData.testResult = []
@@ -471,10 +486,9 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
 
         console.log('type in: ' + totalStr);
         
-        if (commandSet.goto.includes(cmdStr.toLowerCase()))
+        if (commandSet.goto === cmdStr.toLowerCase())
             (listStr.length===2 && listStr[1].length>0) ? go(listStr[1]) : theUI.showSys(wrongMsg+'：空格後加上前往的學校縮寫哦 <span class="a-point">/go xxx</span>');
-        else if (commandSet.match === cmdStr.toLowerCase())
-            m();
+
         else if (commandSet.image === cmdStr.toLowerCase())
             _a();
         else if (commandSet.change === cmdStr.toLowerCase())
@@ -483,10 +497,12 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
             le();
         else if (commandSet.profile === cmdStr.toLowerCase())
             (listStr.length===3 &&listStr[1].length>0 && listStr[2].length>0) ? p(listStr[1], listStr[2]) : theUI.showSys(wrongMsg+'：必須依序填入配對用的名稱與配對類型 <span class="a-point">/p 我的名字 fm</span>');
-        else if (commandSet.adult === cmdStr.toLowerCase())
-            a();
         else if (commandSet.rename === cmdStr.toLowerCase())
             (listStr.length==2 &&listStr[1].length>0) ? n(listStr[1]) : theUI.showSys(wrongMsg+'：空格後填入欲修改的名稱 <span class="a-point">/n 我的名字</span>');
+        else if (commandSet.match === cmdStr.toLowerCase())
+            m(),localData.imgUrl_adult = '', localStorage.imgUrl_adult = '';  // to distinguish normal mode from adult mode
+        else if (commandSet.adult === cmdStr.toLowerCase())
+            a();
         else if (commandSet.retest === cmdStr.toLowerCase())
             t();
         else if (commandSet.reset === cmdStr.toLowerCase())
@@ -553,7 +569,7 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
             term.name = name;
         }
     }
-    function m(){
+    function m(){  // is called by /match only in status 0
         if (1 === localData.status || 2 === localData.status){
             theUI.showSys('你已經在進行<span class="a-point">配對</span>了哦。');
         }else if (3 === localData.status){
@@ -566,12 +582,11 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
                 theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行配對哦，請輸入/go school_id');
                 return false
             }
-
-            ( 0!==localData.testResult.length && localData.testQuestions.length===localData.testResult.length)?w():t()
+            ( 0!==localData.testResult.length && localData.testQuestions.length===localData.testResult.length)?w():t();
         }
         
     }
-    function t(){  // is called by /match and /retest
+    function t(){  // is called by /match or /retest only in status 0
         if (1 === localData.status){
             theUI.showSys('你已經在<span class="a-point">重新作答</span>了哦。');
         }else if (2 ===localData.status || 3 === localData.status){
@@ -590,8 +605,9 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
             }));
         }
     }
-    function w(){  // is called by /match and processTest()
-        if(0 === localData.status || 1 === localData.status){ // 必須有school name tpye
+
+    function w(){  // is called by /match in status 0 and processTest() in status 1
+        if(0 === localData.status || 1 === localData.status){
             chatSocket.send(JSON.stringify({
                 'cmd':'wait',
                 'testResult':localData.testResult
@@ -616,7 +632,7 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
             }));
         }
     }
-    function a(){
+    function a(imgUrl=null){
         if (1 === localData.status || 2 === localData.status){
             theUI.showSys('你已經在進行<span class="a-point">成人模式配對</span>了哦。');
         }else if (3 === localData.status){
@@ -629,9 +645,15 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
                 theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行成人模式配對哦，請輸入/go school_id');
                 return false
             }
-
-            theUI.showSys('確定開啟成人模式嗎？😂 使用成人模式需要先上傳任意照片。 提醒：為保護使用者安全，請不要上傳任何容易透露個人真實訊息的照片。');
-            setTimeout($('#send-img').click(),1500);
+            if (null === imgUrl){
+                theUI.showSys('確定開啟成人模式嗎？😂 使用成人模式需要先上傳任意照片。 提醒：為保護使用者安全，請不要上傳任何容易透露個人真實訊息的照片。');
+                setTimeout($('#send-img').click(), 2000);
+            }else{
+                chatSocket.send(JSON.stringify({
+                    'cmd':'adult',
+                    'imgUrl':imgUrl
+                }));
+            }
         }
     }
     function r(){
@@ -646,8 +668,8 @@ var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是
     function _a(){
         if (3 !== localData.status){
             theUI.showSys('必須與人連線後你才能用將圖傳對方哦');
-        }else{
-            $('#send-img').click();
+        }else{  // 3 === localData.status
+            setTimeout($('#send-img').click(), 500);
         }
         
     }
@@ -1007,8 +1029,9 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     }
     toggle ={
         writing:!1, // 為避免input欄多次重複輸入
+        uploading:!1, // 為避免圖片檔多次重複上傳
         click:!1, // 為避免多次重複點擊
-        focus:!1, // 表示focus在input欄
+        focus:!1, // 表示focus正在input欄
         scroll:!1, // 表示捲軸正在滾動
         text:!0, // todo 當出現bootbox時 離線後上線是否還要停留在bootbox
         discon:!1,  // 表示對方斷線 重連時直接從後端抓取資料

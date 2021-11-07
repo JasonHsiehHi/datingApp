@@ -2,18 +2,21 @@
 ## 目前todo
 '顯示更多...','chatLog250句限制', 
 '防止用ws做script攻擊(html語法)','傳送時斷線', 
-'/leave和/change都要加上dialog並變更anonName',
-'禁止連續上傳', '房間內限制上傳數量'
+'/leave和/change都要加上dialog 並變更anonName(由房間出來時)',
+'禁止連續上傳圖片', '房間內限制上傳圖片數量'
 
 '加上信箱註冊功能 並修改更新多數方法'
 '改版後加上後端檢測變數 以防用戶透過console傳送資料'
-
+'刪除cmd-/r 因為信箱註冊後便不能直接做更動'
+'修改並統一用語：尤其是status的部分 配對和成人模式都不好聽'
+‘應該用遊戲概念包裝 並加入遊戲元素：改掉配對遊戲這個怪名稱’
+'男女生的標誌 應改用想youtube一樣的顏色亮燈'
 
 'ga', 'seo'
-'修改並統一用語 尤其是status的部分'
+'nginx'
+'開頭畫面 處理流量過載'
 
 ## 未來todo
-'開頭畫面 處理流量過載'
 
 '瀏覽器不支援websocket功能 需用protocols_whitelist替代'
 '回答題目的回饋'
@@ -28,15 +31,19 @@ chatSocket.onopen
 負責與後端建立連線並匯入localData資料 傳送open指令和import指令
 
 chatSocket.onmessage
-接收後端訊息data做分流後再依據status來調用theUI做回應 
+接收後端訊息data做分流後再依據status來調用theUI做回應 或theWS傳訊息給對方
 並更新用戶的status與其他localData值 
 唯一能變更status的時候 因為必須跟後端的self.player_data同步
 
-(onmessage)typeSet.greet
-只有greet是連線後自動觸發 故必須進行status辨識 其餘typeSet.都是用戶自行輸入指令後回傳
+  (onmessage)typeSet.greet
+  只有greet是連線後自動觸發 故必須進行status辨識 其餘typeSet.都是用戶自行輸入指令後回傳
 
 chatSocket.onclose
 斷線後進行重連
+
+bindFileUpload() - $("#send-img").fileupload({done:})
+接收後端訊息data(表示後端已經做好圖檔的改名與存取) 等同於chatSocket.onmessage
+因此可以調用theUI做回應 或theWS傳訊息給對方
 
 localData
 用於存放用戶身份(uuid,name...), 狀態status, 保留系統chatLogs,以及其他需存入後端資料庫的field
@@ -52,138 +59,177 @@ theTerminal.cmd()
 
 (theTerminal.) *
 判別輸入的指令參數是否符合內容規範(參數內容必須是規定的範圍內) 並判別status來決定是否要把訊息送到後端
+theTerminal只能傳送一次訊息到後端 不能使用theUI(由後端存取資料完後的chatSocket.onmessage使用)
+
+theTerminal.match()
+自己不做傳送 因此可以呼叫theTerminal.test()和theTerminal.wait()
+如此仍符合每個指令只做一次傳送的規則
 
 (theUI.) clearChatLogs(), storeChatLogs(), loadChatLogs()
-不能被其他theUI調用 只能供外部調用 (一般為後端存取資料完後的chatSocket.onmessage)
+不能被其他theUI調用 只能供外部調用 (一般為後端存取資料完後的chatSocket.onmessage使用)
+
+theWS.msgSendWs()
+在房間內(status===3)使用: 除了向對方傳訊息之外 也會進行theUI的showSelfMsg(msg)和showSelfImg(msg)
+
+theWS.msgsSendWs()
+一次向對方傳多個訊息 不會進行theUI的showSelfMsg()和showSelfImg() 因為通常是對方斷線未能收到訊息才會用theWS.msgsSendWs()補傳
+
+processTest()和processAdult()
+只為處理theUI.showQuestion()的按鍵(.a-0, .a-1 ...)綁定 如果要傳資料到後端需要調用theTerminal來實現
+
 
 # 手動測試流程
 status_0
   // DOM ready
   init localData (getLocalData())
-  check: (wrong log) {if browser can't use Storage}
+  * check: (wrong log) {if browser can't use Storage}
 
   init chatSocket object (chatroomWS())
-  check: (wrong log) {if browser can't use WebSocket}
+  * check: (wrong log) {if browser can't use WebSocket}
   
   send uuid to backend (chatSocket.onopen)
-  check: (uuid in db)
+  * check: (uuid in db)
   
   send data to backend (chatSocket.onopen)
-  check: (data in db) {if it's second or more connection}
+  * check: (data in db) {if it's second or more connection}
 
   receive GREET from backend (chatSocket.onmessage)
-  check: (anonName in storage, localData, profile)
-  check: (dialog) {data.dialog with theGate}
-  check: (dialogdiv size in RWD)
+  * check: (anonName in storage, localData, profile)
+  * check: (dialog) {data.dialog with theGate}
+  * check: (dialogdiv size in RWD)
     
     show dialog from backend (def cmd_open())
-    check:(msg) {in different time}
+    * check:(msg) {in different time}
 
     show dialog from theGate (theGate.intro() and theGate.tutor())
-    check: (tutor msg) {before cmd-/go}
-    check: (tutor msg) {after cmd-/go before cmd-/p}
-    check: (tutor msg) {after cmd-/p before cmd-/m}
-    check: (tutor msg) {after cmd-/m with testResult}
+    * check: (tutor msg) {before cmd-/go}
+    * check: (tutor msg) {after cmd-/go before cmd-/p}
+    * check: (tutor msg) {after cmd-/p before cmd-/m}
+    * check: (tutor msg) {after cmd-/m with testResult}
 
-    check: (intro msg) {before cmd-/p}
-    check: (intro msg) {after cmd-/p}
+    * check: (intro msg) {before cmd-/p}
+    * check: (intro msg) {after cmd-/p}
 
   init chatSocket object again (chatSocket.onclose)
-  check: (log)
+  * check: (log)
 
   do theUI work after loading website (loadLocalData())
-  check: (profile, mark and dialog)
-  check: (profile size and mark size in RWD)
+  * check: (profile, mark and dialog)
+  * check: (profile size and mark size in RWD)
 
   // cmd 
   type in /go school_id(theTerminal.goto())
-  check: (dialog for wrong form) {/go ntu ntu}
-  check: (dialog for wrong id) {/go nxu}
-  check: (dialog for the same id) {/go ntu again}
-  check: (school in storage, localData)
-  check: (school in db)
-  check: (mark and dialog) {/go ntu and /go nccu}
+  * check: (dialog for wrong form) {/go ntu ntu}
+  * check: (dialog for wrong id) {/go nxu}
+  * check: (dialog for the same id) {/go ntu again}
+  * check: (school in storage, localData)
+  * check: (school in db)
+  * check: (mark and dialog) {/go ntu and /go nccu}
 
   type in /p name mf (theTerminal.profile())
-  check: (dialog for wrong form) {/p jason}
-  check: (dialog for wrong matchType) {/p jason rr}
-  check: (dialog for wrong length) {/p jasonjasonjasonjason rr}
-  check: (name and matchType in storage, localData)
-  check: (name and matchType in db)
-  check: (dialog) {/p jason mf}
+  * check: (dialog for wrong form) {/p jason}
+  * check: (dialog for wrong matchType) {/p jason rr}
+  * check: (dialog for wrong length) {/p jasonjasonjasonjason rr}
+  * check: (name and matchType in storage, localData)
+  * check: (name and matchType in db)
+  * check: (dialog) {/p jason mf}
 
   type in /n name (theTerminal.rename())
-  check: (dialog for wrong form) {/n jason jason}
-  check: (dialog for wrong length) {/n jasonjasonjasonjason}
-  check: (name in storage, localData)
-  check: (name in db)
-  check: (dialog) {/n jason}
+  * check: (dialog for wrong form) {/n jason jason}
+  * check: (dialog for wrong length) {/n jasonjasonjasonjason}
+  * check: (name in storage, localData)
+  * check: (name in db)
+  * check: (dialog) {/n jason}
 
   type in /t (theTerminal.retest())
-  check: (QUESTION_ID_LIST randomly) {by utils.get_question_id_list_randomly()}
-  check: (QUESTION_ID_LIST specifiedly) {by setting caches:QUESTION_ID_LIST manually}
+  * check: (QUESTION_ID_LIST randomly) {by utils.get_question_id_list_randomly()}
+  * check: (QUESTION_ID_LIST specifiedly) {by setting caches:QUESTION_ID_LIST manually}
 
-  check: (testResult and hasTested in storage, localData)
-  check: (testResult and score in db)
-  check: (testResult and hasTested in storage, localData) {with uncompleted test}
-  check: (testResult and score in db) {with uncompleted test}
+  * check: (testResult and hasTested in storage, localData)
+  * check: (testResult and score in db)
+  * check: (testResult and hasTested in storage, localData) {with uncompleted test}
+  * check: (testResult and score in db) {with uncompleted test}
 
   type in /m (theTerminal.match() and theTerminal.wait())
-  check: (dialog for wrong step) {before cmd-/go and cmd-/p}
- 
+  * check: (dialog for wrong step) {before cmd-/go and cmd-/p}
+
+  type in /a (theTerminal.adult())
+  * check: (unloaded picture div of processAdult)
+  * check: (unloaded picture div of processAdult) {replace the old one by new one}
+  * check: (most 2 unloaded picture in db)
+  * check: (dialog for repeated upload) {type in /a repeatedly and fast}  # 先不用 因為還不知道用戶的使用習慣 而且$('#send-img').click()本來就有setTimeout
+  * check: (showQuestion div of processTest) {if haven't finished testResult}
+  * check: (showClock div) {if have finished testResult}
+
+
+  Drag-and-drop the picture to unload (bindFileUpload())
+  * check: (no reaction) # 只能在cmd-/a時上傳圖片
 
 
 status_1
   // DOM ready
   do theUI work after loading website (loadLocalData())
-  check: (no dialog from GREET)  # 信箱註冊後可解決
-  check: (no change in anonName)  # 信箱註冊後可解決 兩者都是receive: typeSet.greet執行
+  * check: (no dialog from GREET)  # 信箱註冊後可解決
+  * check: (no change in anonName)  # 信箱註冊後可解決 兩者都是receive: typeSet.greet執行
 
   init localData (getLocalData())
-  check: (the same data)
-  check: (status in storage, localData)
-  check: (status in db)
+  * check: (the same data)
+  * check: (status in storage, localData)
+  * check: (status in db)
+
+  recieve TEST from backend (chatSocket.onmessage) 
+  * check: (showQuestion div of processTest)
+
 
   type in /le (theTerminal.leave())
-  check: (status in storage, localData)
-  check: (status in db)
+  * check: (status in storage, localData)
+  * check: (status in db)
 
   type in /cg (theTerminal.change())
-  check: (status in storage, localData)
-  check: (status in db)
-  check: (empty testResult in storage, localData)
-  check: (empty testResult in db)
-
+  * check: (status in storage, localData)
+  * check: (status in db)
+  * check: (empty testResult in storage, localData)
+  * check: (empty testResult in db)
 
 
 status_2
   // DOM ready 
+  do theUI work after loading website (loadLocalData())
+
+
   recieve GREET from backend (chatSocket.onmessage) 
-  check:(no tutor msg from GREET)
+  * check:(no tutor msg from GREET)
 
   recieve WAIT from backend (chatSocket.onmessage) 
-  check: (begin with 00:00 in showClock div)
-  check: (then 00:01 in showClock div)
+  * check: (begin with 00:00 in showClock div)
+  * check: (then 00:01 in showClock div)
+  * check: (status and waiting_time in storage, localData)
+  * check: (status and waiting_time in db)
+
 
   type in /le (theTerminal.leave())
-  check: (status in storage, localData)
-  check: (status in db)
-  check: (begin with 00:00 in showClock div) {type in /le and then /m in small interval}
-  check: (then 00:01 in showClock div)
+  * check: (status in storage, localData)
+  * check: (status in db)
+  * check: (begin with 00:00 in showClock div) {type in /le and then /m fast}
+  * check: (then 00:01 in showClock div)
 
   type in /cg (theTerminal.change())
-  check: (status in storage, localData)
-  check: (status in db)
-  check: (begin with 00:00 in showClock div)
-  check: (then 00:01 in showClock div)
+  * check: (status in storage, localData)
+  * check: (status in db)
+  * check: (begin with 00:00 in showClock div)
+  * check: (then 00:01 in showClock div)
 
 
 status_3
   // DOM ready 
+  do theUI work after loading website (loadLocalData())
+
+  send msg to matcher (theWS.msgSendWs())
+  * check: (msg without script) {send msg with html or javascript script}
 
   type in /le (theTerminal.leave())
-  check: (status in storage, localData)
-  check: (status in db)
+  * check: (status in storage, localData)
+  * check: (status in db)
 
   type in /cg (theTerminal.change())
 

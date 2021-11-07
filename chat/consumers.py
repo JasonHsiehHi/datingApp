@@ -101,6 +101,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.cmd_profile(content['name'])
             elif command == 'test':
                 await self.cmd_test()
+            elif command == 'adult':
+                await self.cmd_adult(content['imgUrl'])
             elif command == 'wait':
                 await self.cmd_wait(content['testResult'])
             elif command == 'leave':
@@ -133,7 +135,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             sub.append(sub_t)
 
             school_id, roomNum = await utils.get_school_roomNum_max()
-            if roomNum > settings.PLENTY_ROOMNUM:
+            if roomNum > settings.PLENTY_ROOM_NUM:
                 dialog_sch = await utils.get_dialogue_dialog(self.robot_id, 'GREET', 'sch')
                 dialog_sch = dialog_sch.format(school_id)
                 dialog.append(dialog_sch)
@@ -183,9 +185,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'dialog': dialog
             })
 
-    async def cmd_profile(self, name, match_type=None):
+    async def cmd_profile(self, name, matchType=None):
         if self.player_data.status == 0:
-            if match_type is None:
+            if matchType is None:
                 action = 'RENAME'
                 self.player_data = await utils.set_player_profile(
                     self.player_data, name)
@@ -193,7 +195,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             else:
                 action = 'PROFILE'
                 self.player_data = await utils.set_player_profile(
-                    self.player_data, name, match_type)
+                    self.player_data, name, matchType)
 
             await self.send_json({
                 'type': action
@@ -212,6 +214,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'TEST',
                 'questions': question_list,
             })
+
+    async def cmd_adult(self, imgUrl):
+        if self.player_data.status == 0:
+            self.player_data = await utils.set_player_imgUrl(self.player_data, imgUrl)
 
     async def cmd_wait(self, testResult=None):  # 即使client端的testResult存在 仍再次傳入
         if self.player_data.status is not None:  # self.player_data.status == 0,1,2,3 皆可

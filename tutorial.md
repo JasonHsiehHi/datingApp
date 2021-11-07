@@ -1039,14 +1039,34 @@ FileField不同於字串或數值變數 故需要提供存放位置 (因性能�
 
 upload_to屬性會接在MEDIA_ROOT之後
 若MEDIA_ROOT = BASE_DIR / 'media' 則最後會存放在：BASE_DIR / 'media/uploads/'
+class Photo(models.Model):
+  image = models.ImageField(upload_to='uploads/')
+ImageField為FileField的子類 且多加了驗證是否為圖片的步驟
 
-image = models.ImageField(upload_to='uploads/')
-為FileField的子類 但多加了驗證是否為圖片的步驟
-self.image.name  //output: 'uploads/originalName.jpg'
-self.image.path  //output: '/media/uploads/originalName.jpg' 
-self.image.url  //output: 'http://media.example.com/uploads/originalName.jpg''
+photo.image.name  //output: 'uploads/originalName.jpg'
+photo.image.path  //output: '/media/uploads/originalName.jpg' 
+photo.image.url  //output: 'http://media.example.com/uploads/originalName.jpg''
+
 path是在FileSystem的位置 url是真正client端要取用的位置
 只要改變image.name後image.path和image.url都會改變
+
+等同FileField(upload_to='uploads/') 使用其變數時會調用fieldFile
+self.image為fieldFile的子類 因此同樣可以調用相關的API
+
+除了上述的屬性之外 fieldFile也提供修改的方法：
+photo.image.save(filename, filecontent, save=True)  # photo.save()為querySet的方法 與此無關
+用於先創建model的實例 但還未綁定相關檔案時： 過程相關麻煩
+from django.core.files import File
+f = open('/path/to/hello.world')
+myfile = File(f)
+photo = Photo.objects.create(uploader='jason')
+photo.image.save('goodImage', myfile)  # 其中myfile變數必須用django.core.files.File物件 不能用python內建的file物件
+
+photo.image.delete(save=True)
+用於刪除檔案 save屬性表示刪除檔案後是否將變動存入instance中
+預設為save=True 若改為save=False則會導致instance和實際檔案系統不同步
+
+
 
 dialog = models.JSONField(null=True)
 JSONField用於存放物件objecy或陣列list 
@@ -1301,8 +1321,14 @@ Book.objects.filter(headline='Lennon').update(genre="sci-fi")
 book.genre = "sci-fi"
 book.save() 需用book = Book.objects.get(pk=1)存入記憶體 導致浪費內存
 
-另外save()會傳送pre_save或post_save這兩種signal給其他使用此record的實例
+另外save()會傳送pre_save或post_save這兩種signal 同樣delete()同樣也有pre_delete或post_delete兩種signal
 差異在於內存中的實例是否要保有舊資料或直接進行更新
+
+相關的應用：表示在每次Image的實例存入時都會執行相關的方法
+@receiver(post_save, sender=Image)
+def auto_change_file_path(sender):
+  ...
+
 
 view內部變數：
 此時的templates的預設url為:templates/catalog/book_list.html
@@ -1443,6 +1469,7 @@ from django.shortcuts import get_object_or_404
 - - - ---------------------------------------------------
 # forms.py
 Form類別的用法為快速在view上建立輸入表單
+widget幫忙進行輸入表單時的檢測 若不符合model中field的格式則無法輸入 (form widget)
 class ExpenseModelForm(forms.ModelForm):  # 通常Form類別會與Model類別同開頭
   category = forms.ModelChoiceField(queryset=Category.objects.all(), label='類別', widget=forms.Select(attrs={'class':'form-control'}))
   description = forms.CharField(label='細節', widget=forms.Textarea(attrs={'class': 'tinymceTextarea'}))

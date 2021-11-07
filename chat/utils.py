@@ -87,6 +87,14 @@ def set_player_status(player, next_status):
         player.save()
     return player
 
+
+@database_sync_to_async
+def set_player_imgUrl(player, imgUrl):
+    player.imgUrl_adult = imgUrl
+    player.save()
+    return player
+
+
 @database_sync_to_async
 def create_room(id, matchType, school_id):
     room = Room.objects.create(id=id, matchType=matchType, school=school_id)
@@ -173,7 +181,7 @@ def process_player_match(someone):
 
 
 def duration_to_score(duration):
-    score_reduction = int(duration.seconds/60/settings.MINUTES_FOR_DURATION)
+    score_reduction = int(duration.seconds / 60 / settings.MINUTES_FOR_DURATION_TO_SCORE)
     return score_reduction
 
 

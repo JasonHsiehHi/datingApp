@@ -192,12 +192,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 QUESTION_CORRECT_RESULT = ['1', '1', '1', '1', '1']
 # caches:QUESTION_CORRECT_RESULT = ['1', '1', '1', '1', '1']
 
-MINUTES_FOR_DURATION = 20
+MINUTES_FOR_DURATION_TO_SCORE = 20
 
-CROWDED_ROOMNUM = 20  # standard: if more than that, the GREET will recommend the school
-PLENTY_ROOMNUM = 10
+CROWDED_ROOM_NUM = 20  # standard: if more than that, the GREET will recommend the school
+PLENTY_ROOM_NUM = 10
 
-SECONDS_FOR_CACHE_TTL = 60 * 15  # 用於緩衝內存相同的dialog
+SECONDS_FOR_CACHE_TTL = 60 * 30  # 用於緩衝內存相同的dialog 表示每半小時換一次
 DELETE_PHOTO_LEAVING_ROOM = False
-DELETE_PHOTO_CERTAIN_TIME = False
+DELETE_PHOTO_AFTER_TIME = False
 
+CERTAIN_TIME_FOR_DELETE_PHOTO = 24 * 15  # 每15天會把房間內照片檔刪除
+MAXIMUM_FOR_DELETE_PHOTO = 30  # 單一房間內的用戶最多只能留30份照片檔
