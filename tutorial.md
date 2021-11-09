@@ -5490,8 +5490,13 @@ row alignment system：row的重點在對齊方式
 <div class="row justify-content-around"> 表示裡面元素分開排列 但不靠右側和左側
 <div class="row justify-content-between"> 表示一樣是元素分開排列 但靠右側和左側
 
-justify則為主軸相關main axis(左右) align開頭都是橫軸相關cross axis(上下)
-亦即將同一寬度的元素歸為content 而讓多個元素等高對齊則用align items
+justify則為主軸相關main axis(左右) align開頭都是副軸相關cross axis(上下)
+亦即將同一寬度的元素歸為content 而讓多個元素等高對齊則用items
+
+(不常用)justify-items：此時主軸上的元素已有所在區塊 justify-items用於做靠右或靠左或置中
+(不常用)align-content：此時副軸上已有多行元素 align-content用於整體靠上或靠下或置中
+
+
 
 12-col system : 相同row中的空間會被分隔成12等分
 可用：
@@ -5547,6 +5552,16 @@ py：padding-top 和 padding-bottom
 border css寫法:
 border-top: 1px solid #E5E5E5; 必須指定三種參數 分別為width, style, color
 border-top-width:1px; 可直接指定其中一種
+- - -------------------------------------
+## bootstrap_font:
+字體大小選擇有分為'h1'~'h6'和'display-1'~'display-6'兩種：
+<p class="h1">h1. Bootstrap heading</p> 
+等同<h1>h1. Bootstrap heading</h1> 為早期用html元素標籤的方式
+
+<h1 class="display-1">Display 1</h1> 和 <h1 class="display-2">Display 2</h1> 
+同樣是<h1>標籤 但前者"display-1"比後者"display-2"大
+當已經決定所用字體大小<h1>時 在用display區分同等標籤<h1>的大小
+
 
 - - -------------------------------------
 ## bootstrap_navbar:
@@ -5617,6 +5632,8 @@ cards:
 
 <button>元素除了type="button"之外 還有type="submit" 和 type="reset" 都為配合<form>元素而使用 (submit為寄出完整form資料 reset為完全清除form當下資料)
 因此有些瀏覽器會將<button>元素預設為type="submit" 此時若沒有再設置type="button"就會出錯
+
+<input type="button">是html早期的寫法 但由於單標籤內部不能包其他元素 故之後改用<button></button>取代
 
 
 panel是由三部分組成 這裡使用panel-default (old-version)
@@ -5994,7 +6011,7 @@ flex內部的元素會沿著flex-direction屬性(row 水平佈局)方向繼續�
 
 flex-direction 決定row當主軸 則column自動變為交叉軸 (只有flexbox才有用到主軸與交叉軸)
 且所有同row的內部元素都會拉到等高以方便溢出後換行 (即align-items:stretch為預設值)
-flex-wrap:wrap 溢出後部會換行 為預設值
+flex-wrap:wrap 溢出後不會換行 為預設值
 flex-wrap:nowrap 溢出後自動換行
 
 可用flex-flow屬性：即flex-direction和flex-wrap之組合
@@ -6004,6 +6021,20 @@ flex-flow:row nowrap; 此為預設值
 flex元素才能做justify-content和align-items 可方便內部元素做定錨
 但內部元素不能自行用position:absolute做定錨設置 必須透過flex父元素來設置位置 
 此外flex元素不影響position:relative的whtrblz屬性值仍有效 兩者可連用
+
+flex-grow與flex-shrink：
+flex-grow用於決定子元素如何平分flexbox中剩餘空間
+.box1{flex-grow:1;}
+.box2{flex-grow:2;}
+此時平分方式為分為3等分 而box1填滿1等分 box2填滿2等分 
+預設值為flex-grow:0 表示不填滿flexbox的剩餘空間
+
+flex-shrink則是當多個子元素的總寬度超過flexbox的所有空間時 如何壓縮子元素的寬度
+.box1{flex-shrink:0;}
+.box2{flex-shrink:1;}
+此時box1不做任何壓縮 box2則會壓縮大剛好等於flexbox的所有空間
+預設值為flex-shrink:1 表示所有子元素的壓縮比例都相同
+
 
 
 ## grid佈局模式:
@@ -6215,7 +6246,7 @@ height:100vh和width:100vw: 常用於響應式設計
 } 
 
 .line_space{
-  white-space: normal; 連續空白字元會被合併為單一空白字元 且換行只在空間限制時發生
+  white-space: normal; 連續空白字元會被合併為單一空白字元 而換行只在空間限制時發生
   (white-space: nowrap 內部字串即使在空間限制時仍不換行)
   (white-space: pre-wrap 連續空白字元會被保留 且在換行字元,<br>與空間限制時都會發生)
 }  

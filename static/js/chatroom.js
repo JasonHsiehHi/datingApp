@@ -710,7 +710,7 @@ function msgReplacing(msg){
 
 var chatUI = function(){
     function sm(msg){
-        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt); 
         st(newElmt,1);
@@ -721,7 +721,7 @@ var chatUI = function(){
     }
 
     function m(msg){  // todo: 特殊符號', ", <, >等會不會有問題
-        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt); 
         localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',ut(!1);
@@ -731,7 +731,7 @@ var chatUI = function(){
     }
 
     function sy(msg){
-        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-pa a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt); 
         localData.lastSaid = 'sys',localStorage.lastSaid = 'sys',ut(!1);
@@ -743,13 +743,13 @@ var chatUI = function(){
     function q(question, choice_list, choice_num=2){  // todo 回答完題目後回饋 像是你與多少人的回答相同
         if (2 == choice_num){
             var newElmt_text = 
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
         }else if(4 == choice_num){
             var newElmt_text =  
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
         }else if(1 == choice_num){
             var newElmt_text =
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-pa a-clr d-inline"><p class="m-2">'+msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-pa a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
         }else{
             console.log('select: 1,2,4 for choice_num(param)');
             return false
@@ -785,7 +785,7 @@ var chatUI = function(){
 
     function si(imgUrl){
         var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
-        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-pa a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgElmt+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgElmt+'</span></p></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt);
         st(newElmt,1);
@@ -797,7 +797,7 @@ var chatUI = function(){
 
     function i(imgUrl){
         var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="send again please!"></img>';
-        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgElmt+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgElmt+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt); 
         localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',ut(!1);

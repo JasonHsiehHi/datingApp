@@ -1,3 +1,32 @@
+# todo_list LARP
+完成sidebar
+完成navbar
+完成modal
+完成信箱註冊與登入功能
+完成多人配對
+
+完成隨機生成內容的方式
+完成theGate.tutor教學
+修改background 
+
+# 架構圖 LARP
+
+
+# 手動測試流程 LARP
+
+
+# model data LARP
+
+
+
+
+
+
+
+
+
+
+
 # todo_list
 ## 目前todo
 '顯示更多...','chatLog250句限制', 
@@ -24,7 +53,7 @@
 'dialog GREET in status2'
 '新增互動動畫'
 
-# datingApp架構圖:
+# 架構圖:
 架構圖為描述程式碼的各項物件功能 流程圖則針對用戶的使用過程
 
 chatSocket.onopen

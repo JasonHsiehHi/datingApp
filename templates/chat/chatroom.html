@@ -36,14 +36,14 @@
         </div>
     </div>
 
-    <div class="modal fade" id="warning-modal" tabindex="-1">
+    <div class="modal fade" id="modal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="warning-modal-label"></h5>
+                    <h5 class="modal-title" id="modal-label"></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="warning-modal-content"></div>
+                <div class="modal-body" id="modal-content"></div>
             </div>
         </div>
     </div>
@@ -68,35 +68,74 @@
 
     <div id='sidebar' class='offcanvas offcanvas-start a-sidebar' tabindex="-1" >
         <div class="offcanvas-header">
-            <div class='offcanvas-title a-sidebar'>COMMAND指令集</div>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+            <div class='offcanvas-title a-sidebar h5'>A-LARP 匿名劇本殺</div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body a-sidebar">
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar">
-                    <div class='list-group list-group-flush'>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="前往你想去的學校(學校請輸入英文縮寫 像是:ntu, nccu, tku...等)">前往(goto)：<br><span class='a-cmd'>/go {school_id}</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="設置配對時使用的暱稱與配對類型(配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)">設置暱稱(profile)：<br><span class='a-cmd'>/p {your_name} {match_type}</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="更改當前的暱稱">改名(rename)：<br><span class='a-cmd'>/n {new_name}</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="開始配對並進入等待時間">配對(match)：<br><span class='a-cmd'>/m</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="重新填答配對的問題">重新配對(retest)：<br><span class='a-cmd'>/t</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="以成人模式開始配對，並增加配對附圖功能">成人模式配對(adult)：<br><span class='a-cmd'>/a</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="傳圖功能，必須與他人連線成功後才能使用">傳圖(@)：<br><span class='a-cmd'>/@</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="離開連線狀態或等待狀態">離開(leave)：<br><span class='a-cmd'>/le</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="再次配對或重新等待">換人(change)：<br><span class='a-cmd'>/cg</span></button>
-                        <button class='list-group-item list-group-item-action a-point' type="button" ondblclick="cmdBySidebar(this)" data-bs-toggle="tooltip" data-bs-placement="right" title="重置所有資料">重置(reset)：<br><span class='a-cmd'>/r</span></button>
+                    <div class='a-div a-sidebar'>
+                        <div>目前所在學校：</div>
+                        <div class='d-flex justify-content-between'>
+                            <span class='a-school a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="NTU 國立台灣大學" id='school'>NTU 國立台灣大學</span>
+                            <button id="goto-btn" class="btn btn-link a-sidebar" type="button">前往..</button>
+                        </div>
+                        
                     </div>
+                    <div class='a-div a-sidebar d-flex'>
+                        <div class='a-circle a-sidebar a-female' id="user-tag">小</div>
+                        <div class='ps-1 flex-grow-1'>
+                            <div class='d-flex justify-content-between'>
+                                <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="小小公主" id="user-name">小小公主</span>
+                                <button class="btn btn-link a-sidebar disabled" id="name-btn" type="button">更改..</button>
+                            </div>
+                            <div class='a-sub a-sidebar' id='user-role'>(偵探)</div>
+                        </div>
+                    </div>
+                    
+                    <div class='a-div a-sidebar'>
+                        <p class="h5">其他玩家：</p>
+                        <div class='list-group list-group-flush w-100'>
+                            <div class='list-group-item list-group-item-action a-div d-flex'>
+                                <div class='a-circle a-sidebar a-male'>大</div>
+                                <div class='ps-1 pt-1 flex-grow-1'>
+                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="大大人類大大人類大大人類大大人類大大人類">大大人類大大人類大大人類大大人類大大人類大大人類大大人類</span></div>
+                                    <div class='a-sub a-sidebar'>(同系學長)</div>
+                                </div>
+                            </div>
+                            <div class='list-group-item list-group-item-action a-div d-flex'>
+                                <div class='a-circle a-sidebar a-male'>超</div>
+                                <div class='ps-1 pt-1 flex-grow-1'>
+                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="超大人類">超大人類</span></div>
+                                    <div class='a-sub a-sidebar'>(通識課同學)</div>
+                                </div>
+                            </div>
+                            <div class='list-group-item list-group-item-action a-div d-flex'>
+                                <div class='a-circle a-sidebar a-male'>巨</div>
+                                <div class='ps-1 pt-1 flex-grow-1'>
+                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="巨大人類">巨大人類</span></div>
+                                    <div class='a-sub a-sidebar'>(酒吧老闆)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class='a-div a-sidebar' id='user-empty'>沒有其他玩家，你還沒進入遊戲哦。</div>
                 </div>
             </div>
         </div>
+        <div class='offcanvas-footer a-sidebar text-center my-3'>
+            <button class="btn btn-warning" id="start-btn" type="button">遊戲開始</button>
+        </div>
+        
     </div>
 
     <div class="a-section a-height">
-        <div class="a-container a-pa a-clr">
+        <div class="a-container a-clr">
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar" id='dialog'>
                     <div id='writing' class="a-chat d-none d-flex">
-                        <p class="a-dialogdiv a-matcher a-pa a-clr d-inline-flex">
+                        <p class="a-dialogdiv a-matcher a-clr d-inline-flex">
                             <span class="a-tri a-matcher"></span>
                             <span  class="a-writing">正在輸入...</span> 
                         </p>
@@ -107,7 +146,7 @@
     </div>
     <form id="send-form" target="_hidden" class="a-footer">
         {% csrf_token %} 
-        <div class="input-group a-pa a-clr">
+        <div class="input-group a-div a-clr">
             <input class="a-input a-clr form-control" id="send-text" type="text" placeholder="說什麼呢..." name="send-text">
             <input class="d-none form-control" id="send-hidden" type="text" name="send-hidden">
             <input class="d-none form-control" id="send-tag" type="text" name="send-tag">

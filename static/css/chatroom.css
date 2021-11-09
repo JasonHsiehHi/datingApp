@@ -1,12 +1,4 @@
-.a-chat{
-    margin-bottom: .5rem!important;
-}
-
-.a-img{
-    max-height: 30rem;
-    max-width: 25rem;
-}
-
+/* mark animation */
 .a-invisible-frame{
     opacity: 0;
     transform:scale(1);
@@ -37,8 +29,9 @@
     transform:scale(1);
 }
 
+/* navbar */
 .navbar-text.a-font{
-    font-size: 20px;
+    font-size: 20px;  /* 將px改成rem */
     font-weight: bold;
     color:Snow ; /*snow*/
 }
@@ -55,34 +48,104 @@
     box-shadow: 0 0 0 0.1rem black;
 }
 
+/* sidebar */
 .offcanvas.a-sidebar{
-    width:280px;
-    background: whitesmoke;  /* whitesmoke */
+    width: 320px;
+    background: #31353c;
 }
-
 .offcanvas-title.a-sidebar{
-    font-size: 24px;
-    color: #818181; /* like grey */
+    color: #b8bfce;
 }
 .offcanvas-body.a-sidebar{
-    padding:0 0;
+    padding: 0 0 4rem 0;
+    color: #b8bfce;
+    overflow: hidden;
+}
+.offcanvas-footer.a-sidebar{
+    position: absolute;
+    width: 100%;
+    bottom: 0;
 }
 
-.list-group-item.a-point{
+.a-school.a-sidebar{
+    font-size: larger;
+    font-weight: bolder;
+    color:#15c7ff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 240px;
+}
+
+.btn-link.a-sidebar{
+    font-size: 1.1rem;
+    padding: 0;
+}
+
+.a-div.a-sidebar{
+    border-top: 1px solid #3a3f48;
+    padding: 20px 10px 20px 10px;
+    overflow: hidden;
+}
+
+.a-title.a-sidebar{
+    color: #b8bfce;
+    /* height: 2rem; */
+    font-size: larger;
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+}
+.a-sub.a-sidebar{
+    height: 1.5rem;
+    color:#15c7ff;
+    overflow : hidden;
+    text-overflow : ellipsis;
+    white-space : nowrap;
+}
+
+.a-circle.a-sidebar{
+    border-radius: 50%;
+    border-width: 2px;
+    border-style: solid;
+    font-size: 2rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    display:inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.a-circle.a-female{
+    background:#f48fb0;
+    color: #cb3b6b;
+    border-color: #cb3b6b;
+}
+
+.a-circle.a-male{
+    background: #80d4fa;
+    color: #2690bf;
+    border-color: #2690bf;
+}
+
+.list-group-item.a-div{
     font-size: small;
-    color: gray;
+    background: #31353c;
 }
 
-span.a-cmd{
+
+span.a-cmd{   /* 刪掉 */
     font-weight: bolder;
     color: darkblue;  /* darkblue */
 }
 
-span.a-writing{
-    color: gray;  /* grey */
-    font-style: italic;
-}
 
+/* dialog */
+.a-chat{
+    margin-bottom: .5rem!important;
+}
 .a-dialogdiv{
     position: relative;
     margin-bottom: 0px;
@@ -90,18 +153,19 @@ span.a-writing{
     font-size: 120%;
     border-radius: 15px;
     word-break: break-word;
-}
-
-.a-dialogdiv.a-pa{
-    padding-top: 10px;
-    padding-right: 10px;
-    padding-bottom: 10px;
-    padding-left: 10px;
+    padding: 10px;
 }
 
 .a-dialogdiv.a-matcher{
     max-width: 75%;
     align-items:center;
+    margin-left: 10px;
+}
+
+.a-dialogdiv.a-self{
+    max-width: 75%;
+    align-items:center;
+    margin-right: 10px;
 }
 
 .a-choice{
@@ -131,19 +195,12 @@ span.a-writing{
     border-top-right-radius:0;
     border-top: 3px solid #dee2e6 !important;
     align-items: stretch;
+    padding: 0;
 }
-.a-answer.a-mid{
+.a-dialogdiv.a-answer.a-mid{
     border-bottom-left-radius:0;
     border-bottom-right-radius:0;
 }
-
-.a-answer.a-pa{
-    padding-right: 0;
-    padding-left: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
 
 .a-dialogdiv.a-question{
     width:75%;
@@ -154,18 +211,6 @@ span.a-writing{
 .a-question{
     line-height: 32px;
     letter-spacing: 1px;
-}
-
-.a-dialogdiv.a-self{
-    max-width: 75%;
-    align-items:center;
-}
-
-.a-matcher.a-pa{
-    margin-left: 10px;
-}
-.a-self.a-pa{
-    margin-right: 10px;
 }
 
 .a-tri{
@@ -188,6 +233,15 @@ span.a-writing{
     border-color: transparent transparent transparent #ffe34d;
 }
 
+span.a-writing{
+    color: gray;  /* grey */
+    font-style: italic;
+}
+
+.a-img{
+    max-height: 30rem;
+    max-width: 25rem;
+}
 .a-status{
     position: relative;
     bottom: 2px;
@@ -204,11 +258,6 @@ span.a-writing{
     right:5px
 }
 
-.a-wirting{
-    color:black;
-    font-style:italic;
-}
-
 .a-sys{
     font-weight: bold;
     color:DimGray; /* DimGray */
@@ -223,7 +272,7 @@ span.a-writing{
     color: darkorange;  /* DarkOrange*/
 }
 
-.input-group.a-pa{
+.input-group.a-div{
     padding: 6px 10px 8px;
 }
 
@@ -236,7 +285,6 @@ span.a-writing{
 .inner-scrollbar{
     width:50%;
 }
-
 
 .a-input{
     font-size: 120%;
@@ -330,25 +378,17 @@ span.a-writing{
 
 .a-container{
     width: 100%;
-    /* padding-right: 10px; */
-    /* padding-left: 10px; */
     margin-right: auto;
     margin-left: auto;
     height: 100%;
     overflow: hidden;
+    padding: 20px 30px 60px 30px;
 }
 
 @media (min-width: 768px){
     .a-container{
         max-width: 720px;
     }
-}
-
-.a-container.a-pa{
-    padding-left: 30px;
-    padding-right: 30px;
-    padding-bottom: 60px;
-    padding-top: 20px;
 }
 
 input, textarea, button, select, span{
