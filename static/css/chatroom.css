@@ -1,3 +1,9 @@
+/* google icons */
+.material-icons-outlined.md-18 {font-size: 18px;}
+.material-icons-outlined.md-20 {font-size: 20px;}
+.material-icons-outlined.md-28 { font-size: 28px;}
+.material-icons-outlined.md-inactive { color: rgba(0, 0, 0, 0.26); }
+
 /* mark animation */
 .a-invisible-frame{
     opacity: 0;
@@ -30,22 +36,38 @@
 }
 
 /* navbar */
-.navbar-text.a-font{
-    font-size: 20px;  /* 將px改成rem */
-    font-weight: bold;
-    color:Snow ; /*snow*/
+.navbar.a-div{
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
 }
-
-.navbar-text.a-type{
-    color: LightGray; /* lightgray */
-}
-
 .navbar.a-clr{
     background: #4e6a82bf; /* like SteelBlue #4e6a82bf*/
 }
-
 .navbar-toggler.a-clr:focus{
     box-shadow: 0 0 0 0.1rem black;
+}
+.navbar-toggler.a-div{
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
+.btn-group.a-radio{
+    width: 200px;
+}
+
+.navbar-text.a-font{
+    font-size: 20px;  /* 將px改成rem */
+    font-weight: bold;
+    color:Snow; /*snow*/
+}
+
+.dropdown-toggle::after{
+    display:none;
+}
+
+.dropdown-item-text.a-point, .dropdown-item.a-point{
+    background: #31353b;
+    color: #b8bfce;;
 }
 
 /* sidebar */
@@ -141,7 +163,6 @@ span.a-cmd{   /* 刪掉 */
     color: darkblue;  /* darkblue */
 }
 
-
 /* dialog */
 .a-chat{
     margin-bottom: .5rem!important;
@@ -168,6 +189,28 @@ span.a-cmd{   /* 刪掉 */
     margin-right: 10px;
 }
 
+.a-dialogdiv.a-question{
+    width:75%;
+    border-bottom-left-radius:0;
+    border-bottom-right-radius:0;
+}
+.a-question{
+    line-height: 32px;
+    letter-spacing: 1px;
+}
+
+.a-dialogdiv.a-answer{
+    width:75%;
+    border-top-left-radius:0;
+    border-top-right-radius:0;
+    border-top: 3px solid #dee2e6 !important;
+    align-items: stretch;
+    padding: 0;
+}
+.a-dialogdiv.a-answer.a-mid{
+    border-bottom-left-radius:0;
+    border-bottom-right-radius:0;
+}
 .a-choice{
     width: 100%;
     margin-bottom: 0;
@@ -189,36 +232,21 @@ span.a-cmd{   /* 刪掉 */
     border-left: 2px solid #dee2e6 !important;
 }
 
-.a-dialogdiv.a-answer{
-    width:75%;
-    border-top-left-radius:0;
-    border-top-right-radius:0;
-    border-top: 3px solid #dee2e6 !important;
-    align-items: stretch;
-    padding: 0;
-}
-.a-dialogdiv.a-answer.a-mid{
-    border-bottom-left-radius:0;
-    border-bottom-right-radius:0;
+
+span.a-writing{
+    color: gray;  /* grey */
+    font-style: italic;
 }
 
-.a-dialogdiv.a-question{
-    width:75%;
-    border-bottom-left-radius:0;
-    border-bottom-right-radius:0;
+img.a-img{
+    max-height: 30rem;
+    max-width: 25rem;
 }
-
-.a-question{
-    line-height: 32px;
-    letter-spacing: 1px;
-}
-
 .a-tri{
     width: 0;
     height: 0;
     border-style: solid;
 }
-
 .a-tri.a-matcher{
     position: absolute;
     left: -10px;
@@ -233,15 +261,6 @@ span.a-cmd{   /* 刪掉 */
     border-color: transparent transparent transparent #ffe34d;
 }
 
-span.a-writing{
-    color: gray;  /* grey */
-    font-style: italic;
-}
-
-.a-img{
-    max-height: 30rem;
-    max-width: 25rem;
-}
 .a-status{
     position: relative;
     bottom: 2px;
@@ -272,50 +291,32 @@ span.a-writing{
     color: darkorange;  /* DarkOrange*/
 }
 
-.input-group.a-div{
-    padding: 6px 10px 8px;
-}
-
-.outer-scrollbar{
+.a-container{
+    width: 100%;
+    margin-right: auto;
+    margin-left: auto;
     height: 100%;
-    width: 200%;
-    overflow-y: scroll;
+    overflow: hidden;
+    padding: 20px 30px 60px 30px;
 }
-
-.inner-scrollbar{
-    width:50%;
-}
-
-.a-input{
-    font-size: 120%;
-    border-radius: .25rem!important;
-}
-
-.input-group.a-clr{
-    background: #6299c7; /* like SteelBlue #6299c7*/
-}
-
-.a-input.a-clr{
-    background: AliceBlue;  /*AliceBlue*/
+@media (min-width: 768px){
+    .a-container{
+        max-width: 720px;
+    }
 }
 
 .a-container.a-clr{
     background: rgb(255 255 255 / 0%);
     border-radius: 0.50rem;
 }
-
-.a-sys.a-clr{
-    background: Snow ; /*Snow*/
+.outer-scrollbar{
+    height: 100%;
+    width: 200%;
+    overflow-y: scroll;
 }
-
-.a-matcher.a-clr{
-    background: #fff8dc; /*like Cornsilk #fff8dc*/
+.inner-scrollbar{
+    width:50%;
 }
-
-.a-self.a-clr{
-    background: #ffe34d; /*like Gold #ffe34d*/
-}
-
 .a-section{
     position: absolute;
     right: 0;
@@ -335,6 +336,19 @@ span.a-writing{
     }
 }
 
+.a-sys.a-clr{
+    background: Snow ; /*Snow*/
+}
+
+.a-matcher.a-clr{
+    background: #fff8dc; /*like Cornsilk #fff8dc*/
+}
+
+.a-self.a-clr{
+    background: #ffe34d; /*like Gold #ffe34d*/
+}
+
+/* footer */
 .a-footer{
     position: absolute;
     right:0;
@@ -342,6 +356,21 @@ span.a-writing{
     bottom:0;
 }
 
+.a-input{
+    font-size: 120%;
+    border-radius: .25rem!important;
+}
+.a-input.a-clr{
+    background: AliceBlue;  /*AliceBlue*/
+}
+.input-group.a-div{
+    padding: 6px 10px 8px;
+}
+.input-group.a-clr{
+    background: #6299c7; /* like SteelBlue #6299c7*/
+}
+
+/* background */
 .a-background{
     position: absolute;
     top: 0;
@@ -376,21 +405,7 @@ span.a-writing{
     max-height: 300px;
 }
 
-.a-container{
-    width: 100%;
-    margin-right: auto;
-    margin-left: auto;
-    height: 100%;
-    overflow: hidden;
-    padding: 20px 30px 60px 30px;
-}
-
-@media (min-width: 768px){
-    .a-container{
-        max-width: 720px;
-    }
-}
-
+/* font style */
 input, textarea, button, select, span{
     font-family: Helvetica, Arial, "Microsoft JhengHei", "PingFang", "メイリオ", "맑은 고딕", sans-serif;
 }

@@ -10,7 +10,7 @@
     <script src="{% static 'js/jquery-3.6.0.min.js'%}"></script>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css'%}"/>
     <script src="{% static 'js/bootstrap.bundle.min.js'%}"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/jquery-ui.min.css'%}"/>
     <script src="{% static '/js/jquery-ui.min.js'%}"></script>
     <script src="{% static '/js/jquery.fileupload.js'%}"></script>
@@ -48,25 +48,72 @@
         </div>
     </div>
 
-    <nav class="navbar a-clr">
+    <nav class="navbar a-div a-clr">
         <div class="container-fluid">
-            <button class="navbar-toggler btn a-clr" id='sidebar-btn' type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
-                <i class="material-icons a-sidebar-btn">format_align_left</i>
+            <button class="navbar-toggler btn a-div a-clr" id='sidebar-btn' type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+                <i class="material-icons-outlined md-28">ads_click</i>
             </button>
             <span class="navbar-text a-font d-inline-flex align-items-center">
+
                 <span class='a-matcher'>ACARD台北男</span>
                 <i class="material-icons">sync_alt</i>
                 <span class='a-self'>ACARD剛吃飽飯</span>
+
             </span>
-            <span class="navbar-text a-type">
+            <span class="navbar-text">
                 <i class="material-icons"></i>
                 <i class="material-icons"></i>
                 <i class="material-icons"></i>
+                
+                <button class="navbar-toggler btn a-div a-clr" id='leave-btn' type="button">
+                    <i class="material-icons-outlined md-28">meeting_room</i>
+                </button>
+
+                <div class="btn-group">
+                    <button class="navbar-toggler dropdown-toggle btn a-div a-clr" id='settings-btn' type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        <i class="material-icons-outlined md-28">settings</i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settings-btn">
+                        <li><span class="dropdown-item-text">
+                            <span>尋找對象：</span>
+                            <span class="btn-group a-radio">
+                            <input type="radio" class="btn-check" name="sex-radio" id="male-radio" autocomplete="off" checked>
+                            <label class="btn btn-outline-dark" for="male-radio"><i class="material-icons-outlined md-18 align-text-top">male</i>找男生</label>
+                            <input type="radio" class="btn-check" name="sex-radio" id="female-radio" autocomplete="off">
+                            <label class="btn btn-outline-dark" for="female-radio"><i class="material-icons-outlined md-18 align-text-top">female</i>找女生</label>
+                            </span>
+                        </span></li>
+                        <li><span class="dropdown-item-text">
+                            <span>遊戲模式：</span>
+                            <span class="btn-group a-radio">
+                            <input type="radio" class="btn-check" name="mode-radio" id="normal-radio" autocomplete="off">
+                            <label class="btn btn-outline-dark" for="normal-radio">正常模式</label>
+                            <input type="radio" class="btn-check" name="mode-radio" id="adult-radio" autocomplete="off" checked>
+                            <label class="btn btn-outline-dark" for="adult-radio">成人模式</label>
+                            </span>
+                        </span></li>
+                        <li><span class="dropdown-item-text"></span></li>
+                    </ul>
+                </div>
+
+                <div class="btn-group">
+                    <button class="navbar-toggler dropdown-toggle btn a-div a-clr" id='account-btn' type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="material-icons-outlined md-28">account_circle</i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-btn">
+                        <li><span class="dropdown-item-text a-point py-3"><span class='h5'>jasonhsieh@gmail.com</span><span class='h6 d-block mt-1 mb-0'>性別:男</span></span></li>
+                        <li><button class="dropdown-item py-1" type="button"><i class="material-icons-outlined md-18 align-text-top">logout</i> Logout</button></li>
+
+                        <li><button class="dropdown-item a-point py-3" type="button"><i class="material-icons-outlined md-18 align-text-top">assignment_ind</i> Sign Up</button></li>
+                        <li><button class="dropdown-item py-1" type="button"><i class="material-icons-outlined md-18 align-text-top">login</i> Login</button></li>
+                    </ul>
+                </div>
+
             </span>
         </div>
     </nav>
 
-    <div id='sidebar' class='offcanvas offcanvas-start a-sidebar' tabindex="-1" >
+    <div id='sidebar' class='offcanvas offcanvas-start a-sidebar' tabindex="-1" aria-labelledby="sidebar-btn">
         <div class="offcanvas-header">
             <div class='offcanvas-title a-sidebar h5'>A-LARP 匿名劇本殺</div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>

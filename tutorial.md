@@ -3295,6 +3295,7 @@ function formatAMPM(date) {
   <input type="radio" name="size" id="size_1" value="small">
   <input type="radio" name="size" id="size_2" value="medium">
   <input type="radio" name="size" id="size_3" value="large">
+form表單最後只會有一個name:value 故radio選項中只能選一個
 
 <form id='send_form'>
 有時<form>元素也可以完全不加屬性 所有eventHandler都用JS來執行
@@ -5784,18 +5785,23 @@ accordion(像手風琴一樣可以拉開收合)
   .....第二個item.....
 
 dropdown 下拉選單
-<div class="dropdown">
+<div class="dropdown btn-group">
   <button class="btn btn-secondary dropdown-toggle" type="button"
   id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"> Dropdown button </button>
   <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
     <li><a class="dropdown-item" href="#">Action</a></li>
     <li><a class="dropdown-item" href="#">Another action</a></li>
     <li><a class="dropdown-item" href="#">Something else here</a></li>
-  dropdown元素由dropdown-toggle和dropdown-menu兩個子元素組合而成
+dropdown元素由dropdown-toggle和dropdown-menu兩個子元素組合而成
+父元素一定要用 dropdown 或 btn-group 因為會修改元素屬性為 position:relative
+ 
+用於調整下拉表單的位置：
+data-bs-offset="10,20" offset用以表示相對於原先位置的偏移
+data-bs-reference="parent" reference則改變原先的參考元素 改用button的父元素為參考
+
 
 offcanvas 用於製作側欄sidebar
-<a class="btn btn-primary" role="button" data-bs-toggle="offcanvas" 
-href="#offcanvasExample" aria-controls="offcanvasExample">sidebar-button</a>
+<a class="btn btn-primary" role="button" data-bs-toggle="offcanvas" href="#offcanvasExample" aria-controls="offcanvasExample">sidebar-button</a>
 <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel">
   <div class="offcanvas-header">
     <div class='offcanvas-title'></div>
@@ -5939,9 +5945,10 @@ data-bs-toggle="button"  //按鈕
 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
 大多時候用<span>且不會夾帶任何content 表示行內元素
 aria-hidden="true" 讀屏器不會朗讀此元素
-FontAwesome(fa)與GoogleFonts是目前的主流
+FontAwesome(fa), GoogleFonts, feathericons是目前的主流
 fa: <i class="fa fa-paw" aria-hidden="true"></i>  // <i>原先用於將字體斜體 類似於<b>將字體粗體
 gf: <span class="material-icons-outlined">android</span>
+
 
 FontAwesome需要註冊會員 使用Font Awesome kit:
 <script src="[YOUR_KIT_CODE]" crossorigin="anonymous"></script>
@@ -5955,11 +5962,16 @@ GoogleFonts的icon提供5種風格：(目前已被整合為一種.material-icons
 <i class="material-icons-two-tone">donut_small</i>
 <i class="material-icons-round">donut_small</i>
 <i class="material-icons-sharp">donut_small</i>
+
 且必須針對特定的風格引進css:
 <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp" rel="stylesheet">
 
 可以添加自製的class屬性來換顏色與大小: 
 color:black 和 font-size:24px
+
+
+feathericons
+
 
 # bootstrap_display:
 (bs4後改成d-{attribute} ,d為display之意)
