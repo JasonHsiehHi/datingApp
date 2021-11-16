@@ -289,6 +289,12 @@ function installToolTip() {
     })
 }
 
+function loadDatalist() {
+    for (let school of schoolImgSet){
+        $('#school-options').append("<option value="+school+">");
+    }
+}
+
 function disableBackSpace() {
     $(document).keydown(function(e) {
         (8 == e.which || 8 == e.keyCode) && "text" != e.target.type  && e.preventDefault();
@@ -330,12 +336,29 @@ function bindMsgSend() {
     })
 }
 
-function cmdBySidebar(elmt){
+function bindModalToggle(){
+    for (let prop in modalTitle){
+        $("#"+prop+"-btn").on('click',function(a){
+            $("#"+prop+"-modal-form").removeClass('d-none');
+            $('#modal .modal-title').text(modalTitle[prop])
+            $('#modal').modal('show');
+        })
+    }
+    $('#modal').on('hide.bs.modal', function(e) {
+        $('#modal').find('form').each(function(a){
+            (!$(this).hasClass('d-none')) && $(this).addClass('d-none');
+        });
+    });
+}
+
+
+function cmdBySidebar(elmt){  // LARP用不到 刪掉 
     var text = $(elmt).find('.a-cmd').text();
     text = text.split(' ')[0]
     $("#send-text").val(text);
     $("#sidebar .btn-close").click();
 }
+
 
 function bindFileUpload(){
     $("#send-img").fileupload({
@@ -1027,6 +1050,13 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     st = {
         1:'配對遊戲中',2:'等待中',3:'連線中'
     }
+    modalTitle={
+        'goto':'前往學校',
+        'name':'遊戲暱稱',
+        'signup':'註冊信箱',
+        'login':'登入',
+        'logout':'登出'
+    }
     toggle ={
         writing:!1, // 為避免input欄多次重複輸入
         uploading:!1, // 為避免圖片檔多次重複上傳
@@ -1061,5 +1091,5 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
 
 $(document).ready(function() {
-    chatroomWS(), bindMsgSend(), bindFileUpload(), disableBackSpace(), installToolTip(), loadLocalData()
+    chatroomWS(), bindMsgSend(), bindFileUpload(), bindModalToggle(), disableBackSpace(), installToolTip(), loadDatalist(), loadLocalData()
 });

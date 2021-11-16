@@ -3,11 +3,14 @@
 完成navbar
 完成modal
 完成信箱註冊與登入功能
-完成多人配對
-
+修改background 
+完成多人數配對
 完成隨機生成內容的方式
 完成theGate.tutor教學
-修改background 
+
+變數轉譯問題 (name和msg都是由用戶填寫且會傳送到其他用戶的數據 要確保不會有xss攻擊)
+RWD調整
+GCE上線部署
 
 # 架構圖 LARP
 

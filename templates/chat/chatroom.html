@@ -36,14 +36,94 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modal" tabindex="-1">
+    <div class="modal fade" id="modal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modal-label"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-warning a-clr">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="close"></button>
                 </div>
-                <div class="modal-body" id="modal-content"></div>
+                <form class='d-none' id="signup-modal-form">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="signup-input-email" class="form-label">電子信箱Email:</label>
+                            <input type="email" class="form-control" id="signup-input-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signup-input-password" class="form-label">密碼Password:</label>
+                            <input type="password" class="form-control" id="signup-input-password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signup-input-comfirm" class="form-label">確認密碼:</label>
+                            <input type="password" class="form-control" id="signup-input-comfirm" required>
+                        </div>
+                        <p class='border border-3 border-warning'>提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會像其他玩家透露個人電子信箱。</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning-outlined" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+                <form class='d-none' id="login-modal-form">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="login-input-email" class="form-label">電子信箱Email:</label>
+                            <input type="email" class="form-control" id="login-input-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="login-input-password" class="form-label">密碼Password:</label>
+                            <input type="password" class="form-control" id="login-input-password" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning-outlined" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+                <form class='d-none' id="goto-modal-form">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3 row g-3 align-items-center">
+                            <div class="col-auto">
+                                <label for="goto-input" class="col-form-label">前往學校：</label>
+                            </div>
+                            <div class="col-auto">
+                                <input type="text" class="form-control" id="goto-input" list="school-options" required>
+                                <datalist id="school-options"></datalist>
+                            </div>
+                            <span class="form-text">* 學校請使用英文縮寫</span>
+
+                        </div>
+                        <p class='bg-light'><span class='text-danger'>提醒：</span>目前僅開放部分學校</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning-outlined" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+                <form class='d-none' id="name-modal-form">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3 row g-3 align-items-center">
+                            <div class="col-auto">
+                                <label for="name-input" class="col-form-label">遊戲暱稱：</label>
+                            </div>
+                            <div class="col-auto">
+                                <input type="text" class="form-control" id="name-input" required minlength='1' maxlength='20'>
+                            </div>   
+                            <span class="form-text">* 遊戲暱稱不能超過20個字</span>
+                        </div>
+                        <p class='bg-light'><span class='text-danger'>提醒：</span>暱稱在每場遊戲開始前都能再做變更哦</p>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+
             </div>
         </div>
     </div>
@@ -102,10 +182,10 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-btn">
                         <li><span class="dropdown-item-text a-point py-3"><span class='h5'>jasonhsieh@gmail.com</span><span class='h6 d-block mt-1 mb-0'>性別:男</span></span></li>
-                        <li><button class="dropdown-item py-1" type="button"><i class="material-icons-outlined md-18 align-text-top">logout</i> Logout</button></li>
+                        <li><button class="dropdown-item py-1" type="button" id="logout-btn"><i class="material-icons-outlined md-18 align-text-top">logout</i> 登出Logout</button></li>
 
-                        <li><button class="dropdown-item a-point py-3" type="button"><i class="material-icons-outlined md-18 align-text-top">assignment_ind</i> Sign Up</button></li>
-                        <li><button class="dropdown-item py-1" type="button"><i class="material-icons-outlined md-18 align-text-top">login</i> Login</button></li>
+                        <li><button class="dropdown-item a-point py-3" type="button" id="signup-btn"><i class="material-icons-outlined md-18 align-text-top">assignment_ind</i> 註冊Sign Up</button></li>
+                        <li><button class="dropdown-item py-1" type="button" id="login-btn"><i class="material-icons-outlined md-18 align-text-top">login</i> 登入Login</button></li>
                     </ul>
                 </div>
 
@@ -113,7 +193,7 @@
         </div>
     </nav>
 
-    <div id='sidebar' class='offcanvas offcanvas-start a-sidebar' tabindex="-1" aria-labelledby="sidebar-btn">
+    <div id='sidebar' class='offcanvas offcanvas-start a-sidebar' tabindex="-1" aria-labelledby="sidebar-btn" data-bs-scroll="true">
         <div class="offcanvas-header">
             <div class='offcanvas-title a-sidebar h5'>A-LARP 匿名劇本殺</div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
@@ -134,7 +214,7 @@
                         <div class='ps-1 flex-grow-1'>
                             <div class='d-flex justify-content-between'>
                                 <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="小小公主" id="user-name">小小公主</span>
-                                <button class="btn btn-link a-sidebar disabled" id="name-btn" type="button">更改..</button>
+                                <button class="btn btn-link a-sidebar" id="name-btn" type="button">更改..</button>
                             </div>
                             <div class='a-sub a-sidebar' id='user-role'>(偵探)</div>
                         </div>
@@ -172,7 +252,7 @@
             </div>
         </div>
         <div class='offcanvas-footer a-sidebar text-center my-3'>
-            <button class="btn btn-warning" id="start-btn" type="button">遊戲開始</button>
+            <button class="btn btn-warning" id="start-btn" type="button">開始遊戲</button>
         </div>
         
     </div>

@@ -1,3 +1,10 @@
+/* modal */
+.bg-light.a-clr{
+    background: #f2f2f3!important;
+}
+.bg-warning.a-clr{
+    background: #ffcc34!important;
+}
 /* google icons */
 .material-icons-outlined.md-18 {font-size: 18px;}
 .material-icons-outlined.md-20 {font-size: 20px;}
@@ -41,7 +48,7 @@
     padding-bottom: 0.2rem;
 }
 .navbar.a-clr{
-    background: #4e6a82bf; /* like SteelBlue #4e6a82bf*/
+    background: #4e6a82e0; /* like SteelBlue #4e6a82bf #4e6a82e0 */
 }
 .navbar-toggler.a-clr:focus{
     box-shadow: 0 0 0 0.1rem black;

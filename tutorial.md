@@ -633,8 +633,8 @@ SECRET_KEY = os.environ['SECRET_KEY']  # Read SECRET_KEY from an environment var
 若用heroku:
 heroku config:set DJANGO_SECRET_KEY=<your_secret_key>
 
-web上傳的文件或cookies都一定要經過資料清洗：以避免XSS攻擊(Cross site scripting)
-在inputfield欄中寫入可能惡意連接的代碼 進而影響伺服器後台
+web上傳的數據或cookies都一定要經過資料清洗：以避免XSS攻擊(Cross site scripting)
+xss即在inputfield欄中寫入可能惡意連接的代碼 進而影響伺服器後台
 
 表單加上{% csrf_token %} 可以確保上傳資料時一定要由特定頁面進行：
 以避免CSRF(cross-site request forgery) 即將惡意上傳文件丟給管理員並誘使他啟用
@@ -1703,7 +1703,7 @@ for (let i of iterable) {
 }
 object使用for-in 而array則使用for-of (array中的key就是list的index)
 因為in主要用於key 而of是針對value
-for-in變數位置在裡面 故表示key或index for-of為屬於物件的變數 故為value
+for-in變數位置在裡面 故表示key或index(鑰匙需要插在裡面) for-of為屬於物件的變數 故為value(數值為物件的所有物)
 
 in 表示在物件的'體內' 為屬性概念 用於object
 of 表示物件的所屬物 為內部變數概念 用於array
@@ -3233,14 +3233,17 @@ window.open(strurl,'_blank') 為非同步方法
 id用於html辨識 name則用於POST(request)表單傳送 value則可用於初始值
 value是為取代textContent 因為<input>屬於單一tag的元素
 
-<form method="post" action="{% url 'login' %}" target="framename">
+<form method="post" action="{% url 'login' %}" target="framename" autocomplete='off'>
+
+
 action的屬性值為URL 用於表示向此頁面發送表單
 method常用的只有："post"或"get"兩種 兩者都可以發送表單
 "post"屬於先建立連接 並由server端的來明確指示如何使用參數數據
 只要涉及server數據庫修改的 都應該使用"post"
 
-target屬性表示input後用以回應的顯示位置
-target="_blank"表示另外開啟新視窗 target="_hidden"則表示不顯示
+target屬性表示input後用以回應的顯示位置 target="_self"
+target="_blank"表示另外開啟新視窗 
+target="_hidden"則表示不顯示
 target="framename"則表示在特定的frame開啟
 
 "get"屬於一次傳入 數據會附在URL之後 並用問號進行分隔
@@ -3265,6 +3268,8 @@ target屬性用於在指定的iframe區塊打開 常用於做mousemove事件
 亦可直接用<iframe src="url" ></iframe> 導入其他網頁內容(但不被推薦)
 為避免重複:'<iframe id =' (new Date()).getTime() + "-" + parseInt(1e3 * Math.random()) +'</iframe>'
 若此物件只使用一次時 才會用(new Object())這種寫法
+
+autocomplete='on' / 'off' 等同於內部的input元素都是相同的autocomplete屬性設定
 
 # js_時間做法 new Date():
 new Date(86400000) // 輸出：1970-01-02 00:00:00 UTC (引入參數即為1970年開始算起的毫秒數)
@@ -3415,7 +3420,7 @@ if not forloop.last 插在forloop的區塊中 為使最後一次的loop不會加
 
 
 {% for o in some_list %}
-  <tr class="{% cycle 'row_odd' 'row_even' %}">....</tr>
+  <tr class="{% cycle 'row_odd' 'row_even' %}">{{ o }}</tr>
 {% endfor %} cycle與for常一起使用 
 //output:
 <tr class='row_odd'>...</tr>
@@ -3428,8 +3433,7 @@ if not forloop.last 插在forloop的區塊中 為使最後一次的loop不會加
 <td class="{{ rowcolors }}">...</td> //output row1
 <td class="{% cycle rowcolors %}">...</td>  //output row2
 不使用for迴圈也可以 但要將{%cycle as cycle_name%}命名
-當碰到第二次{%cycle cycle_name%}時 即填入cycle中的下一個變數
-若為{%cycle_name%} 則仍使用cycle中的當前變數
+當碰到第二次{%cycle cycle_name%}時 即填入cycle中的下一個變數 若為{%cycle_name%} 則仍使用cycle中的當前變數
 
 
 <li class="{% if bookinst.is_overdue %}text-danger{% endif %}">
@@ -5478,7 +5482,7 @@ border可設置圓角 屬於元素的邊框線 而outline用於點擊後顯目�
 }
 <div class="row no-gutters">  同理 放入特定屬性no-gutters
 可以使row中的col之間不會有padding隔開
-
+<div class="row g-3"> 最常見 表示每個col之間的寬度
 
 row alignment system：row的重點在對齊方式
 <div class="row align-items-start"> 表示對齊container的上緣
@@ -5669,8 +5673,26 @@ semantic element語境化色彩 是html5的功能：
 對於制式化的網站而言 直接使用語境顏色會方便許多 
 例如warning-黃色 danger-紅色 在admin這種管理員網頁非常好用
 
-加上form-control 才能使用bs對於input的格式規範 
-EX: email格式, password格式...
+html5所提供的type屬性值: 
+type="url" 可以檢驗字串是否符合url格式 一樣使用內建的正則表示法
+type="email" 可以檢驗字串是否符合email格式 檢驗方法為<input>標籤的正則表示法
+type="password" 可以自動將字串轉為"*"
+
+type="tel" 在手機上會自動切換到數字鍵盤
+type="date" 會有瀏覽器提供的日期選擇器
+
+此外<input>元素也有其他相關屬性：
+pattern=".+@beststartupever.com" 能夠自建正則表示法
+title="請輸入beststartupever公司的信箱" title屬性必須跟在pattern屬性之後 表示當檢測錯誤發生時所顯示的內容
+
+size="32" 為input輸入框的長度 能顯示32個字元
+minlength="3" maxlength="64" 真正能輸入的最少與最多字元
+list='email-list' 可以用<datalist id="email-list">在input欄建立選擇清單
+required 則規定該值不能為空
+
+autocomplete="on" 讓瀏覽器的密碼系統可以自動輸入密碼  "off"則關閉功能
+autocomplete="current-password" 則只在二次造訪時自動輸入密碼
+
 
 ## bootstarp_form-group:
 <div class="form-group">
@@ -5681,7 +5703,8 @@ class="form-group"僅為元素的佈局 用於內部元素之間會自動換行(
 此為input的from-control 由label(標題), input(輸入欄), small(補語)組來而成
 class="form-control"才能用bs內建的type篩選功能 並用type="emeil"決定輸入的格式規範  
 aria-describedby="id_name"為<input>元素用於決定使用哪個補語<small>元素
-for="id_name"為<label>元素用於決定標題所針對的<input>元素
+for="id_name"為<label>元素的屬性 可點擊聚焦在屬性值的元素
+
 
 <div class="form-group">
   <label for="FormControlFile1">Example file input</label>
@@ -5839,6 +5862,11 @@ data-bs-target="#myModal" 觸發標記為<div class="modal" id='myModal'>的moda
 
 另可再JS中用主動顯示或主動退出 以取代html中的<button data-bs-toggle='modal'>
 $('.form_modal').modal('show') 或 $('.form_modal').modal('hide')
+bootstrap的許多插件都會使用到jquery 因此bootstrap會針對特定元件擴充jquery功能
+
+若不使用jquery的話 則需要創建bootstrap的Modal實例 (反而更麻煩)
+var myModal = new bootstrap.Modal(document.getElementById('myModal'), options)
+
 
 除此之外也可讓modal當作事件來觸發：
 $('.form_modal').on('show.bs.modal', function(e) { // 退出用'hide.bs.modal'取代
