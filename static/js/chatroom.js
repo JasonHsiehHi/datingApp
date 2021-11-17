@@ -350,7 +350,60 @@ function bindModalToggle(){
         });
     });
 }
+function bindFormSubmit(){
+    $('#name-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        var formArray = $(this).serializeArray();
+        formArray.push({name:"uuid-input",value: localData.uuid});
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: formArray,
+            dataType: "json",
+            success: function(data) {
+                if('name' in data){
+                    localData.name = data['name'], localStorage.name = data['name'], theUI.refreshProfile();
+                    theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 已修改完畢');
+                    $('#modal').modal('hide');
+                }else{
+                    console.log(data['error']);
+                } 
+            },
+            error: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
 
+    $('#goto-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        var formArray = $(this).serializeArray();
+        formArray.push({name:"uuid-input",value: localData.uuid});
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: formArray,
+            dataType: "json",
+            success: function(data) {
+                if('school' in data){
+                    localData.school = data['school'], localStorage.school = data['school'],theUI.refreshProfile();
+                    var school = localData.school;
+                    theUI.clearChatLogs();
+                    theUI.gotoSchoolAsync(function(){
+                        var li = data['dialog'];
+                        li.splice(0,0,['已抵達<span class="a-point">'+school + schoolSet[school] +'</span>了😎',!1]); // insert msg into data.dialog
+                        theUI.showMsgsAsync(li);
+                    });
+                    $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
+                }else{
+                    console.log(data['error']);
+                } 
+            },
+            error: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+
+}
 
 function cmdBySidebar(elmt){  // LARP用不到 刪掉 
     var text = $(elmt).find('.a-cmd').text();
@@ -363,7 +416,7 @@ function cmdBySidebar(elmt){  // LARP用不到 刪掉
 function bindFileUpload(){
     $("#send-img").fileupload({
         dataType: "json",
-        formData:function (form) {
+        formData: function (form) {
             $('#send-hidden').attr('value',localData.uuid.substr(0,8));
             (0 === localData.status) ? $('#send-tag').attr('value', true): $('#send-tag').attr('value', false);
             return form.serializeArray();
@@ -911,6 +964,11 @@ var chatUI = function(){
             $('.navbar-text.a-type .material-icons:eq(1)').text(inRoom);
             $('.navbar-text.a-type .material-icons:eq(2)').text(matcher);
         }
+        // 增加sidebar部分的更新
+        var school_name = localData.school+' '+schoolSet[localData.school];
+        $('#school').text(school_name), $('#school').attr('data-bs-original-title', school_name);
+        $('#user-name').text(localData.name), $('#user-name').attr('data-bs-original-title', localData.name);
+
     }
 
     function go(callback=null){  // async function: callback after function has completed
@@ -1091,5 +1149,7 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
 
 $(document).ready(function() {
-    chatroomWS(), bindMsgSend(), bindFileUpload(), bindModalToggle(), disableBackSpace(), installToolTip(), loadDatalist(), loadLocalData()
+    chatroomWS();
+    bindMsgSend(), bindFileUpload(), bindModalToggle(), bindFormSubmit(), loadDatalist(), disableBackSpace(), installToolTip();
+    loadLocalData();
 });

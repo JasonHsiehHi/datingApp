@@ -58,11 +58,11 @@
                             <label for="signup-input-comfirm" class="form-label">確認密碼:</label>
                             <input type="password" class="form-control" id="signup-input-comfirm" required>
                         </div>
-                        <p class='border border-3 border-warning'>提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會像其他玩家透露個人電子信箱。</p>
+                        <p class='border border-3 border-warning p-1'>提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會像其他玩家透露個人電子信箱。</p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-warning-outlined" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
                 <form class='d-none' id="login-modal-form">
@@ -78,11 +78,22 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-warning-outlined" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-                <form class='d-none' id="goto-modal-form">
+                <form class='d-none' id="logout-modal-form">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3"><p>確定要登出嗎？</p></div>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+
+                <form class='d-none' id="goto-modal-form" data-url="post_school">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3 row g-3 align-items-center">
@@ -90,20 +101,21 @@
                                 <label for="goto-input" class="col-form-label">前往學校：</label>
                             </div>
                             <div class="col-auto">
-                                <input type="text" class="form-control" id="goto-input" list="school-options" required>
+                                <input type="text" class="form-control" id="goto-input" name="goto-input" list="school-options" required>
                                 <datalist id="school-options"></datalist>
                             </div>
                             <span class="form-text">* 學校請使用英文縮寫</span>
 
                         </div>
-                        <p class='bg-light'><span class='text-danger'>提醒：</span>目前僅開放部分學校</p>
+                        <p class='border border-3 border-warning p-1'>提醒：目前僅開放部分學校</p>
+                        <p class='text-danger p-1 a-error'></p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-warning-outlined" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-                <form class='d-none' id="name-modal-form">
+                <form class='d-none' id="name-modal-form" data-url="post_name">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3 row g-3 align-items-center">
@@ -111,16 +123,16 @@
                                 <label for="name-input" class="col-form-label">遊戲暱稱：</label>
                             </div>
                             <div class="col-auto">
-                                <input type="text" class="form-control" id="name-input" required minlength='1' maxlength='20'>
+                                <input type="text" class="form-control" id="name-input" name="name-input" required minlength='1' maxlength='20'>
                             </div>   
                             <span class="form-text">* 遊戲暱稱不能超過20個字</span>
                         </div>
-                        <p class='bg-light'><span class='text-danger'>提醒：</span>暱稱在每場遊戲開始前都能再做變更哦</p>
-
+                        <p class='border border-3 border-warning p-1'>提醒：暱稱在每場遊戲開始前都能再做變更哦</p>
+                        <p class='text-danger p-1 a-error'></p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-warning" type="submit">確定</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
 
@@ -188,7 +200,6 @@
                         <li><button class="dropdown-item py-1" type="button" id="login-btn"><i class="material-icons-outlined md-18 align-text-top">login</i> 登入Login</button></li>
                     </ul>
                 </div>
-
             </span>
         </div>
     </nav>
@@ -204,7 +215,7 @@
                     <div class='a-div a-sidebar'>
                         <div>目前所在學校：</div>
                         <div class='d-flex justify-content-between'>
-                            <span class='a-school a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="NTU 國立台灣大學" id='school'>NTU 國立台灣大學</span>
+                            <span class='a-school a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='NTU 國立台灣大學' id='school'>NTU 國立台灣大學</span>
                             <button id="goto-btn" class="btn btn-link a-sidebar" type="button">前往..</button>
                         </div>
                         
@@ -213,7 +224,7 @@
                         <div class='a-circle a-sidebar a-female' id="user-tag">小</div>
                         <div class='ps-1 flex-grow-1'>
                             <div class='d-flex justify-content-between'>
-                                <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="小小公主" id="user-name">小小公主</span>
+                                <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='小小公主' id="user-name">小小公主</span>
                                 <button class="btn btn-link a-sidebar" id="name-btn" type="button">更改..</button>
                             </div>
                             <div class='a-sub a-sidebar' id='user-role'>(偵探)</div>

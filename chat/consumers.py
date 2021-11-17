@@ -6,6 +6,7 @@ import time
 import sys
 from datingApp import settings
 
+
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
         self.player_data = None  # todo self.player_data自動變為None的問題

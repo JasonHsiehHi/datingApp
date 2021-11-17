@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from .models import Photo
+from .models import Photo, Player, School, Room
+from . import utils
 from django.http import JsonResponse
 import os
 import sys
@@ -21,3 +22,24 @@ def upload_image(request):
         return JsonResponse({'img_url': photo.image.url})
     else:
         return JsonResponse({"error": "it's not through ajax."})
+
+
+def post_school(request):
+    if request.is_ajax and request.method == "POST":
+        school = School.objects.get(name=request.POST['goto-input'].upper())  # todo school_id檢測 把schoolImgSet存入cache中
+        player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'],
+                                                          defaults={'school': school})
+        dialog = []  # todo dialog GOTO 動態資訊
+        return JsonResponse({"school": school.name, "dialog": dialog})
+    else:
+        return JsonResponse({"error": "it's not through ajax."})
+
+
+def post_name(request):
+    if request.is_ajax and request.method == "POST":
+        player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'],
+                                                          defaults={'name': request.POST['name-input']})
+        return JsonResponse({"name": player.name})
+    else:
+        return JsonResponse({"error": "it's not through ajax."})
+

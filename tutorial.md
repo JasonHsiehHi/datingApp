@@ -745,7 +745,7 @@ class SchoolPerson(models.Model):
 
 
 t1 = Teacher.objects.get(username='Jason')
-s1 = Student.objects.fet(username='Smith')
+s1 = Student.objects.get(username='Smith')
 g1 = SchoolPerson(content_object=t1, tag='teacher1')  # 將物件變數存入generic中 並加上tag
 g2 = SchoolPerson(content_object=s1, tag='student1')
 
@@ -1121,6 +1121,7 @@ class Meta:
   verbose_name = 'message'
   verbose_name_plural = 'messages'  # verbose_name都用於設定顯示於admin的欄位名稱
   ordering = ('-timestamp',)  # 用來排放資料的順序
+  unique_together = ('field1', 'field2',)  # 資料庫中不能有重複的tuple組
 metadata為後設資料, 中介資料, 元資料 即此資料是用來描述主要資料
 
 
@@ -1271,6 +1272,9 @@ Book.objects.create(title="goodbook", author="goodman", summary="it is a good bo
 Book.objects.bulk_create([Book(title="goodbook"),Book(title="badbook")])
 批量創建 一次放入多個實例的的list
 
+get_or_create(...,defaults={}) 和 update_or_create(...,defaults={}) 對應GET/POST如果沒有檔案則直接創建新的 
+會返回querySet和bool值兩項 bool直用來表示是否為新創建的
+default屬性存放要做更新的field 若沒有找到則直接創建
 
 Book.objects.get(pk=1)  # 不能為None 如果沒找到會觸發error
 Book.objects.filter(genre="science")  # 充許為None
@@ -2443,6 +2447,7 @@ prop()則較常用於只有屬性名而無屬性值的元素 會回傳true,false
 但因為是bool值而非字串 故並不適合用attr()
 <input class='form-control' id='send-img' type='file' name='send-img' multiple>
 $("ul li:eq(0)").prop("multiple") 會回傳true
+另外prop()可以處理需要即時更新狀態的屬性 而attr()則為取html檔的初始狀態 但對於部分屬性兩者可以互通
 
 由於常見的class屬性有多個 因而延伸出addClass()和removeClass():
 如此就不需用attr('class','d-none')導致取代掉原先的class屬性值
@@ -2600,6 +2605,10 @@ $.ajax({
 contentType 用 !1 取代 "multipart/form-data" 
 其原因為 "multipart/form-data" 只適合直接寫在html的<form>POST請求 
 其為符合多項<input>的表單 因此不同input資料之間會有boundary 
+
+常見的dataType為text, json, jsonp, script, html, xml 最常用的text, json
+jsonp為完成在網頁上顯示跨站資源 此時ajax的options改為dataType:'jsonp'和jsonp:!0
+script則可在傳回時自動執行js檔 
 
 
 通常與$.ajax()一同出現的非同步方法：
