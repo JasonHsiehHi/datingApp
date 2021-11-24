@@ -1,0 +1,23 @@
+{% extends "chat/chatroom.html" %}
+{% block modalForm %}
+<form class='d-none' id="activate-modal-form">
+    <div class="modal-body">
+        <div class="mb-3"><p></p></div>
+    </div>
+    <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">確定</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block script %}
+<script id="activate-script">
+window.onload = function() {
+    $("#activate-modal-form").removeClass('d-none');
+    $('#modal .modal-title').text('{{title}}');
+    $('#modal .modal-body p').text('{{msg}}');
+    $('#modal').modal('show');
+}
+
+</script>
+{% endblock %}

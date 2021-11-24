@@ -672,6 +672,8 @@ INSTALLED_APPS = [ , ,...]
 ## INSTALLED_APPS: admin, sessions, auth, contenttypes, messages, staticfiles
 auth APP:
 ~contrib.auth 在views.py中
+若有用django.contrib.auth:
+則經過view的request物件中會有user實例 可用request.user.is_authenticated等功能
 
 admin APP:
 ~admin在admin.py中
@@ -679,6 +681,13 @@ admin APP:
 sessions APP:
 原先的cookie將key-value pair都存放在client端
 但因為cookie可被修改或刪除 故改用session將資料存放在server端
+
+若有用django.contrib.sessions:
+則經過view的request物件中會有session物件 可用於處理相關變數 
+另外auth的用戶登入登出也需要使用到session功能
+
+後端的session_key會對應到前端的cookie 故同一台電腦的同一個瀏覽器只會存一組session
+故只要前段送來內有特定cookie的請求 經過session的middleware就對自動進行匹對 此時就能維持用戶的登入狀態
 
 def setCookie(request,key=None,value=None):
   response.set_cookie(key,value)
@@ -691,7 +700,7 @@ def getCookie(request,key=None):
       return HttpResponse('Cookie 不存在!')
 
 def setSession(request):
-  request.session['is_login'] = True
+  request.session['is_login'] = True  # session像是一個dict 可讓用戶透過view將資料存在其中
   response = HttpResponse('session 儲存完畢')
   return response
 
@@ -894,6 +903,7 @@ var newStr = str.replace(re, (match) => { // 'JOHN SMITH' 用於替換大小寫
 
 - - - -------------------------------------------------------
 # urls.py(外部urls.py 和 內部urls.py):
+
 外部的urls.py用include()導到內部catalog的urls.py 
 而非catalog app的功能則會使用外部的urls.py:
 path('admin/', admin.site.urls)  # admin site
@@ -929,7 +939,7 @@ recursive：在lookups操作上可以透過多個外鍵來查找不同model的�
 lazy：當抓取此model類別的資料時外鍵的資料不會事先被存取
 
 class Car(models.Model):
-  manufacturer = models.ForeignKey('Manufacturer', null=True, on_delete=models.SET_NULL)
+  manufacturer = models.ForeignKey('Manufacturer', null=True, on_delete=models.SET_NULL, related_name='car')
 class Manufacturer(models.Model):
   name = models.CharField(max_length=100)
 
@@ -939,6 +949,9 @@ models.CASCADE(默認)
 models.SET_NULL, null=True
 資料不完整也無所謂 可直接轉為null 通常表示此外鍵屬性不影響資料完整性
 
+related_name屬性用於manufacturer的反向關係名稱
+可用manufacturer.car.all() 表示querySet
+
 每個模型的屬性都是資料庫的一項field 而每個field會被映射到資料庫內的column：
 model之間的關係可分為:一對一,一對多,多對多 這三種
 其中一對多最常見 可用：ForeignKey() 
@@ -946,6 +959,7 @@ model之間的關係可分為:一對一,一對多,多對多 這三種
 
 OneToOneField就是unique=True的ForeignKey 
 將兩表分開的原因不是因為重複性 而是可設置不同的權限以方便資訊管理
+另外有時不想修改現成的model時 也可以OneToOneField將新的model與此做連結 (常用於User模型的擴充)
 
 ManyToManyField重點在於改善原先ForeignKeyㄧ對多的局限性 使關係改為多對多
 django會自行生成源model與目標model之映射關係的中間表
@@ -1024,10 +1038,11 @@ model中必須要有DateField或DateTimeField才能用
 大部分的field屬性都跟validators相關
 def validate_even(value):  # 可以寫validate function來作為validators的參數
   if value % 2 != 0:
-      raise ValidationError(
-          _('%(value)s is not an even number'),
-          params={'value': value},
-      )
+    raise ValidationError(
+      _('%(value)s is not an even number'),
+      params={'value': value},
+    )
+  
 even_field = models.IntegerField(validators=[validate_even])
 
 import uuid (python)
@@ -1067,16 +1082,15 @@ photo.image.delete(save=True)
 預設為save=True 若改為save=False則會導致instance和實際檔案系統不同步
 
 
-
 dialog = models.JSONField(null=True)
 JSONField用於存放物件objecy或陣列list 
 存取為變數時 不需要再做JSON.loads()轉成原形態 會自動進行轉換
 models.JSONfield 與 postrgreSQL.fields.JSONfield 兩者是完全相同的
 
 
-
 image的編碼方式(base64): 編碼的主要目的是將字元都位元化(0,1)以方便傳輸
 
+## 檔案轉碼相關
 base64：為6 bits為一單位 故共有2^6=64種可列印字元 
 (因為英文A-Za-z0-9共有62個 之後再加上'+', '/'常用字元 故早期時已包含所有可用字元)
 
@@ -1124,6 +1138,8 @@ class Meta:
   unique_together = ('field1', 'field2',)  # 資料庫中不能有重複的tuple組
 metadata為後設資料, 中介資料, 元資料 即此資料是用來描述主要資料
 
+title = models.CharField(max_length=50, verbose_name='Title') # field也能設置verbose_name 
+除了在admin顯示之外 也可以在對應的form表單上已title屬性表示 title = forms.CharField(max_length=50, title='Title')
 
 QuerySet.get()相關的例外exception (Model.DoesNotExist 和 Model.MultipleObjectsReturned)：
 資料庫沒有資料時引發DoesNotExist 
@@ -1366,11 +1382,19 @@ from django.contrib.auth.decorators import login_required
 def my_view(request):
   ......
 
-與其下方法等價：裝飾器會會讓未授權的用戶導向settings.LOGIN_URL 最後?next= 則導向現在的網頁位置
+與下面方法等價：@login_required會讓未授權的用戶導向settings.LOGIN_URL 最後?next= 則導向現在的網頁位置
+
 def my_view(request):
-  if not request.user.is_authenticated:
-    return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
   ......
+  if not request.user.is_authenticated:  # 當用戶登入後的每一次請求request.user.is_authenticated都會回傳True
+    return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
+    
+只要有auth就可用request.user屬性：
+如果當前為登入狀態login 表示後端有對應的session時會回傳User實例 若為登出裝態logout 則只會回傳AnonymousUser實例
+
+除了user.is_authenticated之外 還有user.is_active:
+差別在於用戶資料有在資料庫中 但屬於被凍結的狀態 此時is_authenticated為True 但is_active為False
+此外當用戶已傳送資料但未完成連結激活前 也可採用is_active=False
 
 同理也與mixins方法等價： (mixins用於類別的繼承 有點類似java的interface)
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -1378,9 +1402,25 @@ class MyView(LoginRequiredMixin, View):
   login_url = settings.LOGIN_URL  # 直接設為屬性即可
   ...
 
+另外login和authenticate之差異在於是否有sessions保留user資料：
+
+def login(request):
+  user = authenticate(request, username='john', password='secret')  # 用於一次性驗證帳號密碼 會回傳user實例
+  if user is not None:
+    login(request, user) # Redirect to a success page.  # 當驗證成功後則需要登入 才能在後端創建sessions保留用戶資料 
+    ...
+  else:
+    # Return an 'invalid login' error message.
+    ...
+
+def logout_view(request):
+  logout(request)  # Redirect to a success page.  # 登出不需要將user作為參數 因為相對應得user資料已經存在sessions中 且登出後會刪除sessions
+
+
 使用裝飾器'@'來設置權限許可：
 from django.contrib.auth.decorators import permission_required
-@permission_required('catalog.can_mark_returned')
+
+@permission_required('catalog.can_mark_returned') # catalog.can_mark_returned 為app_name.codename
 @permission_required('catalog.can_edit')
 def my_view(request):
   ......
@@ -1398,6 +1438,10 @@ codename用於判定權限代碼 name則用於顯示權限名稱 content_type則
 ...
 {% endif %}
 
+同理裝飾器@permission_required('codename')可用if取代：
+if user.has_perm('codename'):
+
+
 也可用創建被限制之view的方式來實現：登入前後頁面不同的效果
 from django.contrib.auth.mixins import PermissionRequiredMixin
 class MyView(PermissionRequiredMixin, generic.View):
@@ -1410,6 +1454,19 @@ class AuthorCreate(PermissionRequiredMixin, CreateView):  # 為創建視圖(view
 {% if user.is_authenticated %}...{%endif%} 或 {% if perms.restaurants.can_comment%}...{%endif%} 
 直接使用模板語言可以在相同頁面上依據使用者來呈現不同內容
 
+可以在views.py做裝飾器判別式:
+def user_can_comment(user):
+  return user.is_authenticated and user.has_perm('restaurants.can_comment')
+
+@user_passes_test(user_can_comment, login_url='/accounts/login/')
+def comment(request,id):
+  ....
+
+此方法等價於：
+@permission_required('restaurants.can_comment')
+@login_required
+def comment(request,id):
+  ....
 
 其中User的管理方法也適用於model的操作：
 from django.contrib.auth.models import User
@@ -1434,15 +1491,12 @@ group1.permissions.add(p1)
 group2.permissions.add(p2)
 user.groups.add(group1,group2) # 可以將使用者加到特定的group 此時就擁有此group的權限
 
-
-若有用django.contrib.auth:
-則經過view的request物件中會有user物件 可用request.user.is_authenticated等功能
-若有用django.contrib.sessions:
-則經過view的request物件中會有session物件 可用於處理相關變數
-
+django內建的User模型很大一部分在處理permission和group功能
+這兩件事一起的:因為可以將permission綁定在特定group 再讓user加入group中
 
 permissions = (("can_mark_returned", "Set book as returned"),)
 會放在資料庫model裡面的class Meta:之中
+
 
 data = self.cleaned_data['originalDate']
 會清除不符合規範的資料
@@ -1457,7 +1511,7 @@ def renew(request, pk):
 通常用於post請求 以完成在網站頁面進行驗證等動作 Redirect用於重新連接到指定的URL
 redirect()和render()都是django.shortcuts的方法 用於view中來返回網頁
 用法為：redirect(url) 和render(request,template_name,context_dict)
-( template_name必須輸入從BASE_DIR之後的完整路徑 'chat/index.html' )
+(template_name必須輸入從BASE_DIR之後的完整路徑 'chat/index.html')
 
 HttpResponseRedirect與redirect的差異：
 HttpResponseRedirect()參數只能是url  而redirect()參數除了url外仍可放入其他變數
@@ -1467,14 +1521,47 @@ lazy在程式語言當中通常表示不會馬上執行 以避免發生未加載
 即為延後執行的reverse('all-borrowed') 常用於刪除資料後的重整
 
 
+## 不同status的常見HttpResponse類別
 from django.shortcuts import get_object_or_404
-當紀錄不存在時 自動引發http404
+當資料庫中沒有record時 自動引發http404
+如果不使用get_object_or_404 則會引發Model.DoesNotExist 再拋出Http404("No Model matches the given query.")
+此時會返回 HttpResponseNotFound("<h1>Page not found</h1>") 
+使用方法等同status=404的HttpResponse("<h1>Page not found</h1>")
+
+def my_view(request):
+  obj = get_object_or_404(MyModel, pk=1)
+等價於：
+def my_view(request):
+  try:
+    obj = MyModel.objects.get(pk=1)
+  except MyModel.DoesNotExist:
+    raise Http404("No MyModel matches the given query.")  
+
+其他HttpResponse類別還有
+status=500 為 HttpResponseServerError
+status=403 為 HttpResponseForbidden
+status=410 為 HttpResponseGone
+
+## 用view做寄信功能：
+from django.core.mail import send_mail, send_mass_mail
+send_mail()寄送單一信件 而send_mass_mail()連續寄送多份信件 
+差別在於send_mail()每次都要重開SMTP服務 而send_mass_mail()則只開第一次
+
+send_status = send_mail()  # 回傳0或1表示是否寄件成功
+send_status = send_mass_mail() # 回傳整數表示寄件成功的件數
+
+
+msg ='thank you the registration!' 直接在郵件中傳送text訊息
+
+template = loader.get_template('email.html')
+html_msg = template.render({"msg": "123456"}) 或可在郵件中做html渲染
+
 
 - - - ---------------------------------------------------
 # forms.py
 Form類別的用法為快速在view上建立輸入表單
 widget幫忙進行輸入表單時的檢測 若不符合model中field的格式則無法輸入 (form widget)
-class ExpenseModelForm(forms.ModelForm):  # 通常Form類別會與Model類別同開頭
+class ExpenseModelForm(forms.ModelForm):  # 通常Form類別會與Model類別同開頭 兩邊的field會有對應關係
   category = forms.ModelChoiceField(queryset=Category.objects.all(), label='類別', widget=forms.Select(attrs={'class':'form-control'}))
   description = forms.CharField(label='細節', widget=forms.Textarea(attrs={'class': 'tinymceTextarea'}))
 
@@ -1491,7 +1578,7 @@ class ExpenseModelForm(forms.ModelForm):  # 通常Form類別會與Model類別同
     model = Expense  
     fields = ('name', 'price') # 表示可供輸入的資料欄 若為全部則用fields = '__all__'
 
-    widgets = {  # 表示顯示在html上的輸入格式 (用在form = ExpenseModelForm()) 
+    widgets = {  # 表示顯示在html上的輸入格式 (用在form = ExpenseModelForm()) 故如果沒有要用template的話 並不需要另外設置widgets
       'name': forms.TextInput(attrs={'class': 'form-control'}),  # attrs使用html的屬性 
       'price': forms.NumberInput(attrs={'class': 'form-control'})
     }  # widgets屬性本來就有預設 額外加上是為了後面option的參數
@@ -1512,9 +1599,7 @@ def index(request):
   if request.method == "POST":  # 用url將client端的request作為參數引入此view 故可用request.method來判別請求方法
     form = ExpenseModelForm(request.POST)  # 為將POST表單資料傳入Form
     if form.is_valid():  # 可能為資料不充許留空null 且又沒有預設值 必須要完全符合對應的model格式才會通過
-      # 直接save()比較好：
-      # 一般處理資料應放在client端 好處是不用另外從databnase調資料
-      form.save()
+      form.save()  # 一般處理資料應放在client端 好處是不用另外從database調資料
       return redirect("/expenses") # 最後要用redirect()導回原網址
 
     else:
@@ -1526,8 +1611,39 @@ def index(request):
     'form':form  # key值的字串變數會傳入html模板的{{ form }}
   })
 
+form.cleaned_data 會在form.is_valid後使用：
+只要為True表示cleaned_data必定會有所有的field 但若為False則只會留下驗證通過的field
+form.full_clean()一般不會直接使用 而是用form.is_valid的bool值判斷使否驗證通過
+
+clean方法主要針對form 等同是model的validate之外在多一層資料清洗的過程 適合用clean方法的資料：
+model上的field格式正確但不適合存入資料庫的資料 例如：有敏感字詞需要排除的資料
+或是針對form上的其他field來做調整的資料 例如：當fieldA與fieldB重複時 fieldB改為None
+
+驗證過程為讓輸入form中的資料通過驗證器validators: 即內建的正則表示法 若資料不通過時會自動引發ValidationError
+form.is_valid的驗證流程分為兩大步 為先做form的clean方法後在做model的clean方法 
+
+可以自訂validators或使用field形式內建的validators
+如果不通過validators 則最後回傳的ValidationError會有包含所有validators的message_dict
+slug = forms.CharField(validators=[validators.validate_slug, validate_too_long]) 
+def validate_too_long(string):
+  if len(string) > 20:
+    raise ValidationError(
+      _(' %(string)s is more then 20 characters'),  # _()表示gettext() 為翻譯成多國語言
+      params={'string': string},
+    )
+
+可用{{ form.non_field_errors }} 將form.clean()的error作為python的變數傳給前端
+同理{{ form.errors }}則為form.clean_<fieldname>()的error 
+並為messages_dict形式  例如：{'sender': ['Enter a valid email address.'], 'title': ['This field is required.'] }
+
+
+
+用form的好處是GET可以渲染給client端 而POST則可以再將資料存入database 同一個視圖只用一個view搞定
 form = ExpenseModelForm() 用於在view中呈現表單
 form = ExpenseModelForm(request.POST) 用於上傳表單內容
+
+除了繼承ModelForm類別之外 也可以繼承Form類別：
+ModelForm是modal導向 需要在meta中設置model 而Form就是一般表單 不需要設置現存的model 可用於自定義其他field
 
 new_record = form.save() 
 ser_instance = serializers.serialize('json', [ new_record, ]) 可用於返回json格式的資料
@@ -1647,7 +1763,7 @@ Content-Type: text/plain
 
 401 需身分驗證 (SSL key...)
 403 無讀取權限
-404 伺服器未找到目標網址 檔案不存在
+404 伺服器未找到目標網址 resource不存在
 408 瀏覽器請求時間過長
 
 500 伺服器發生錯誤
@@ -2261,8 +2377,6 @@ empty()不刪除自身但會清空內部子元素 此時DOM結構就不會有內
 detach()幾乎等同remove() 但會保留綁定的事件 如果用remove()刪除則需要重新綁定事件
 
 
-
-
 $("ul").append(content)表示直接插在子元素中的最後一個 可取代JS的appendChild()
 $("ul").append(content).scrollTop($("ul").prop('scrollHeight')); // 滾軸移動到$("ul")的下方
 $("ul").append() 會回傳子節點 故後面可以繼續執行
@@ -2608,8 +2722,15 @@ contentType 用 !1 取代 "multipart/form-data"
 
 常見的dataType為text, json, jsonp, script, html, xml 最常用的text, json
 jsonp為完成在網頁上顯示跨站資源 此時ajax的options改為dataType:'jsonp'和jsonp:!0
-script則可在傳回時自動執行js檔 
+script則可在傳回時自動執行js檔 html則可在傳回時讀取html檔
 
+用ajax回傳html檔: (dtl模板只會在後端生成 故對前端而言就是一般的html檔 同樣可由ajax載入)
+dataType:html,
+success: function(res){
+  var html = $(res).find('.wrap');
+  $('#router').html(html);
+  $('#router').load(./test.html .wrap);  // 最後要做load()才會執行html檔的JS
+} 
 
 通常與$.ajax()一同出現的非同步方法：
 ~Deferred Object 為jquery專用於處理非同步問題的物件 
@@ -3238,6 +3359,10 @@ window.open(strurl,'_blank') 為非同步方法
 {%if...%}和{{}}同樣使用next變數 可用於當input輸入完資料並submit
 {% endif %}
 
+<p>{{msg}}</p>  msg在python為字串形式 則可直接做為p元素的text 
+<input value='{{msg}}'>  但若插在標籤屬性值 則msg的外圍應該加上'' 
+簡而之dtl模板語言的變數可以插在html中的任何地方 只要符合格式即可
+
 <input id="team_name" type="text" name="name_field" value="Default name for team.">
 id用於html辨識 name則用於POST(request)表單傳送 value則可用於初始值
 value是為取代textContent 因為<input>屬於單一tag的元素
@@ -3516,7 +3641,7 @@ value={'key': name}
   ...
 </script>
 
-<img src={{ profile_photo }}> 不要把html的標籤屬性值作為變數 供外部使用者input
+<img src='{{ profile_photo }}'> 不要把html的標籤屬性值作為變數 供外部使用者input
 若input為"/img/home-bg.jpg onload=alert(1)" 就會導致django的轉譯無法防範
 
 django template comment {#...#} 
@@ -4287,8 +4412,6 @@ conda update thepackage
 conda remove thepackage
 source deactivate
 
-
-
 vi test.txt / vim test.txt  # 開啟文件檔
 ## django指令
 python3 -m django --version (-m表示不執行,僅作為script : 通常後面會接module 而非執行python)
@@ -4321,11 +4444,6 @@ FTP:21Port DNS:53Port HTTP:80Port
 print('len(dialogues):'+str(num), file=sys.stderr)
 用於在runserver的情況下做除錯
 
-python manage.py shell 進入django的互動模式 可用於手動操作database
-關鍵是可以在網站運行時做變更 sqlite資料庫和redis資料庫都能使用
-如同在網頁上操作資料或呈現view.py裡面的訊息 可按CTRL+D離開
-SSH(secure shell)在terminal與遠端伺服器之間建立安全通道 github或gcp都需要使用SSH
-
 python manage.py collectstatic
 將STATICFILES_DIRS路徑中所收集到的static檔 收集放入STATIC_ROOT中
 故不應該把static檔放入STATIC_ROOT中 不然會被蓋掉
@@ -4333,8 +4451,14 @@ python manage.py collectstatic
 python manage.py validate
 用於驗證model
 
+## 進入django的互動模式
+python manage.py shell 可用於手動操作database (CTRL+D離開)
+關鍵是可以在網站運行時做變更 sqlite資料庫和redis資料庫都能使用
+如同在網頁上操作資料或呈現view.py裡面的訊息 可按CTRL+D離開
+SSH(secure shell)在terminal與遠端伺服器之間建立安全通道 github或gcp都需要使用SSH
+
 ## redis-server指令
-redis-server用於架設django緩沖系統
+redis-server用於架設django緩沖系統  (CTRL+D離開)
 pip django-redis 必須安裝django-redis (不同於channel內建的redis庫)
 redis-server 開啟Redis伺服器 才能使用redis-cli指令
 redis-server redis.conf 可用conf檔做IP、port、logfile和datafile(dir)的設置

@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 
 class Room(models.Model):
@@ -39,8 +40,10 @@ class Player(models.Model):
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
 
     testResult = models.JSONField(max_length=100, null=True, default=None)
-    score = models.FloatField(default=None, null=True)
+    score = models.FloatField(null=True, default=None)
     waiting_time = models.DateTimeField(null=True, default=None)
+
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, default=None, related_name='profile')
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.uuid)

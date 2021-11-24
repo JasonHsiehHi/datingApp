@@ -6,4 +6,10 @@ urlpatterns = [
     path('upload_photo', views.upload_image, name='upload_photo'),
     path('post_school', views.post_school, name='post_school'),
     path('post_name', views.post_name, name='post_name'),
+    path('signup', views.signup, name='signup'),
+    path('signup/<str:token>/?next=/chat/', views.activate, name='activate'),
+    path('login', views.log_in, name='login'),
+    path('logout', views.log_out, name='logout'),
+    path('change_pwd', views.change_pwd, name='change_pwd')
+
 ]

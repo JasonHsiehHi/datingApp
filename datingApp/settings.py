@@ -13,9 +13,12 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+DOMAIN = 'http://127.0.0.1:8000'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
@@ -203,3 +206,15 @@ DELETE_PHOTO_AFTER_TIME = False
 
 CERTAIN_TIME_FOR_DELETE_PHOTO = 24 * 15  # 每15天會把房間內照片檔刪除
 MAXIMUM_FOR_DELETE_PHOTO = 30  # 單一房間內的用戶最多只能留30份照片檔
+
+# for SMTP
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = str(os.getenv('GMAIL'))
+EMAIL_HOST_PASSWORD = str(os.getenv('GMAIL_FOR_MAC_MAIL'))
+EMAIL_FROM = 'TEST <'+str(os.getenv('GMAIL'))+'>'
+
+# for signup
+SECONDS_FOR_CACHE_TOKEN = 1800

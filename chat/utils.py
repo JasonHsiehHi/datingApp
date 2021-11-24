@@ -2,7 +2,7 @@ from channels.db import database_sync_to_async
 from django.db.models import Q, F
 from .models import Room, Player, School, Question, Dialogue, Robot
 import json
-import datetime
+from datetime import datetime, timezone
 from django.core.cache import cache
 from random import randint, sample
 import sys
@@ -26,7 +26,7 @@ def set_player_data(player, data):  # todo 用戶直接改localStorage問題
     if 'school' in data:
         data['school'] = School.objects.get(name=data['school'])
     if 'waiting_time' in data:
-        data['waiting_time'] = datetime.datetime.strptime(data['waiting_time'], '%Y-%m-%d %H:%M:%S')
+        data['waiting_time'] = datetime.strptime(data['waiting_time'], '%Y-%m-%d %H:%M:%S')
     if 'testResult' in data and len(data['testResult']) == len(correct_result):
         count = 0
         for i, j in zip(data['testResult'], correct_result):
@@ -137,7 +137,7 @@ def process_player_wait(player, next_status):
     school, name, matchType = player.school, player.name, player.matchType
     if all([school, name, matchType]) and player.status != next_status:
         player.status = next_status
-        player.waiting_time = datetime.datetime.now(tz=datetime.timezone.utc) if (next_status == 2) else None
+        player.waiting_time = datetime.now(tz=timezone.utc) if (next_status == 2) else None
         if matchType == 'fm':
             school.femaleNumForMale = school.femaleNumForMale + 1 if (next_status == 2) else school.femaleNumForMale - 1
 
@@ -149,7 +149,6 @@ def process_player_wait(player, next_status):
 
         elif matchType == 'mm':
             school.maleNumForMale = school.maleNumForMale + 1 if (next_status == 2) else school.maleNumForMale - 1
-
 
         player.save()
         school.save()

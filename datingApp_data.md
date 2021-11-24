@@ -3,10 +3,11 @@
 完成navbar
 完成modal
 完成信箱註冊與登入功能
-修改background 
+修改background 與新增劇本名在sidebar
 完成多人數配對
 完成隨機生成內容的方式
 完成theGate.tutor教學
+完成房間計時器 時間到會自動退房
 
 變數轉譯問題 (name和msg都是由用戶填寫且會傳送到其他用戶的數據 要確保不會有xss攻擊)
 RWD調整

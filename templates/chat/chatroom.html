@@ -43,49 +43,69 @@
                     <h5 class="modal-title"></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="close"></button>
                 </div>
-                <form class='d-none' id="signup-modal-form">
+                <form class='d-none' id="signup-modal-form" data-url="signup">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3">
+                            <label for="signup-input-gender" class="form-label">性別Gender:</label>
+                            <div class="row g-3" id="signup-input-gender">
+                                <div class="col-5">
+                                    <input class="form-check-input" type="radio" name="signup-input-gender" value='m' id="signup-input-male" required>
+                                    <label class="form-check-label" for="signup-input-male">男生</label>
+                                </div>
+                                <div class="col-5">
+                                    <input class="form-check-input" type="radio" name="signup-input-gender" value='f' id="signup-input-female" required>
+                                    <label class="form-check-label" for="signup-input-female">女生</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
                             <label for="signup-input-email" class="form-label">電子信箱Email:</label>
-                            <input type="email" class="form-control" id="signup-input-email" required>
+                            <input type="email" class="form-control" id="signup-input-email" name="signup-input-email" required>
                         </div>
                         <div class="mb-3">
                             <label for="signup-input-password" class="form-label">密碼Password:</label>
-                            <input type="password" class="form-control" id="signup-input-password" required>
+                            <input type="password" class="form-control" id="signup-input-password" name="signup-input-password" required>
+                            <span class="form-text">* 密碼至少包含8個字元，且由至少一個數字和至少一個英文字母組成。</span>
                         </div>
                         <div class="mb-3">
-                            <label for="signup-input-comfirm" class="form-label">確認密碼:</label>
-                            <input type="password" class="form-control" id="signup-input-comfirm" required>
+                            <label for="signup-input-confirm" class="form-label">確認密碼:</label>
+                            <input type="password" class="form-control" id="signup-input-confirm" name="signup-input-confirm" required>
                         </div>
-                        <p class='border border-3 border-warning p-1'>提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會像其他玩家透露個人電子信箱。</p>
+                        <p class='border border-3 border-warning'>
+                        提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會像其他玩家透露個人電子信箱。<br>
+                        提醒：性別綁定電子信箱，一經註冊便不得更改哦。
+                        </p>
+                        <p class='text-danger p-1 a-error'></p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-                <form class='d-none' id="login-modal-form">
+                <form class='d-none' id="login-modal-form" data-url="login">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="login-input-email" class="form-label">電子信箱Email:</label>
-                            <input type="email" class="form-control" id="login-input-email" required>
+                            <input type="email" class="form-control" id="login-input-email" name="login-input-email" required>
                         </div>
                         <div class="mb-3">
                             <label for="login-input-password" class="form-label">密碼Password:</label>
-                            <input type="password" class="form-control" id="login-input-password" required>
+                            <input type="password" class="form-control" id="login-input-password" name="login-input-password" required>
                         </div>
+                        <p class='text-danger p-1 a-error'></p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-                <form class='d-none' id="logout-modal-form">
+                <form class='d-none' id="logout-modal-form" data-url="logout">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3"><p>確定要登出嗎？</p></div>
+                        <p class='text-danger p-1 a-error'></p>
                     </div>
                     <div class="modal-footer justify-content-center">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -135,7 +155,15 @@
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-
+                <form class='d-none' id="notice-modal-form">
+                    <div class="modal-body">
+                        <div class="mb-3"><p></p></div>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-warning" data-bs-dismiss="modal">確定</button>
+                    </div>
+                </form>
+                {% block modalForm %}{% endblock %}
             </div>
         </div>
     </div>
@@ -237,21 +265,21 @@
                             <div class='list-group-item list-group-item-action a-div d-flex'>
                                 <div class='a-circle a-sidebar a-male'>大</div>
                                 <div class='ps-1 pt-1 flex-grow-1'>
-                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="大大人類大大人類大大人類大大人類大大人類">大大人類大大人類大大人類大大人類大大人類大大人類大大人類</span></div>
+                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="大大人類大大人類大大人類大大人類大大人類">大大人類大大人類大大人類大大人類大大人類大大人類大大人類</span></div>
                                     <div class='a-sub a-sidebar'>(同系學長)</div>
                                 </div>
                             </div>
                             <div class='list-group-item list-group-item-action a-div d-flex'>
                                 <div class='a-circle a-sidebar a-male'>超</div>
                                 <div class='ps-1 pt-1 flex-grow-1'>
-                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="超大人類">超大人類</span></div>
+                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="超大人類">超大人類</span></div>
                                     <div class='a-sub a-sidebar'>(通識課同學)</div>
                                 </div>
                             </div>
                             <div class='list-group-item list-group-item-action a-div d-flex'>
                                 <div class='a-circle a-sidebar a-male'>巨</div>
                                 <div class='ps-1 pt-1 flex-grow-1'>
-                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" title="巨大人類">巨大人類</span></div>
+                                    <div class='d-flex'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="巨大人類">巨大人類</span></div>
                                     <div class='a-sub a-sidebar'>(酒吧老闆)</div>
                                 </div>
                             </div>
@@ -292,5 +320,6 @@
             <input class="d-none form-control" id="send-img" type="file" name="send-img" data-url="upload_photo" accept="image/*" multiple>
         </div>
     </form>
+    {% block script %}{% endblock %}
 </body>
 </html>

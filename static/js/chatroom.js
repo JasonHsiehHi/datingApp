@@ -282,6 +282,10 @@ function loadLocalData(){  // loadLocalData just do theUI work (chatSocket.onope
     $('#send-text').focus();
 }
 
+function loadLoginStatus(){ 
+
+}
+
 function installToolTip() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -295,14 +299,8 @@ function loadDatalist() {
     }
 }
 
-function disableBackSpace() {
-    $(document).keydown(function(e) {
-        (8 == e.which || 8 == e.keyCode) && "text" != e.target.type  && e.preventDefault();
-    })
-}
-
 function bindMsgSend() {
-    $("#send-text").on('keypress',function(a) {
+    $("#send-text").on('keypress',function(a){
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
             var text = $("#send-text").val();  
@@ -316,13 +314,13 @@ function bindMsgSend() {
             theWS.writingNowWs(!0), toggle.writing = !0;
         }
         (null !== term.timerId_writing) && clearTimeout(term.timerId_writing);  // 當時間超過10秒再發送 theWS.writingNowWs(!1)
-        term.timerId_writing = setTimeout(theWS.writingNowWs(!1),10000);
+        term.timerId_writing = setTimeout(function(){theWS.writingNowWs(!1)},10000);
     })
-    $("#send-text").on('focus',function(a) {
+    $("#send-text").on('focus',function(a){
         toggle.focus = !0;
         theUI.scrollToNow(), theUI.unreadTitle(!0);
     })
-    $("#send-text").on('blur',function(a) {
+    $("#send-text").on('blur',function(a){
         toggle.focus = !1;
         if (3 === localData.status && !0 == toggle.writing){
             theWS.writingNowWs(!1), toggle.writing = !1;
@@ -344,15 +342,27 @@ function bindModalToggle(){
             $('#modal').modal('show');
         })
     }
-    $('#modal').on('hide.bs.modal', function(e) {
+    $('#modal').on('hidden.bs.modal', function(e) {
         $('#modal').find('form').each(function(a){
             (!$(this).hasClass('d-none')) && $(this).addClass('d-none');
         });
+        $('#modal .a-error').text('');
+        (!0 === term.next_modal) && (showNoticeModal(term.next_msg), term.next_modal=!1);
     });
 }
+
+function showNoticeModal(msg){
+    $("#notice-modal-form").removeClass('d-none');
+    $('#modal .modal-title').text(modalTitle['notice']);
+    $('#notice-modal-form .modal-body p').text(msg);
+    $('#modal').modal('show');
+}
+
 function bindFormSubmit(){
     $('#name-modal-form').on('submit', function(e) {
         e.preventDefault();
+        // todo 驗證資料
+
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
@@ -369,13 +379,15 @@ function bindFormSubmit(){
                     console.log(data['error']);
                 } 
             },
-            error: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 
     $('#goto-modal-form').on('submit', function(e) {
         e.preventDefault();
+        // todo 驗證資料
+
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
@@ -398,12 +410,84 @@ function bindFormSubmit(){
                     console.log(data['error']);
                 } 
             },
-            error: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#modal p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 
+    $('#signup-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        // todo 驗證資料:email不符合標準, pwd不符合標準
+        // todo 不應該出現GET的url
+        var formArray = $(this).serializeArray();
+        formArray.push({name:"uuid-input",value: localData.uuid});
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: formArray,
+            dataType: "json",
+            success: function(data) {
+                if('send_result' in data){
+                    var msg = (true === data['send_result'])? "已成功將註冊認證信寄到你的信箱了哦！": "寄件失敗，請稍候再試。";
+                    term.next_modal = !0, term.next_msg = msg, $('#modal').modal('hide');
+                }else if('already_signup' in data){ 
+                    $('#modal p.a-error').text('此電子信箱已經註冊過了哦！如果您的密碼遺失可選擇重設密碼。')
+                }else{
+                    console.log(data['error']);
+                }
+            },
+            error: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+
+    $('#login-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        // todo 驗證資料
+
+        var formArray = $(this).serializeArray();
+        formArray.push({name:"uuid-input",value: localData.uuid});
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: formArray,
+            dataType: "json",
+            success: function(data) {
+
+            },
+            error: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+
+    $('#logout-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        // todo 驗證資料
+
+        var formArray = $(this).serializeArray();
+        formArray.push({name:"uuid-input",value: localData.uuid});
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: formArray,
+            dataType: "json",
+            success: function(data) {
+
+            },
+            error: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+
+    $('#change-pwd-modal-form').on('submit', function(e) {
+
+    })
+    $('#reset-pwd-modal-form').on('submit', function(e) {
+        
+    })
+
 }
+
 
 function cmdBySidebar(elmt){  // LARP用不到 刪掉 
     var text = $(elmt).find('.a-cmd').text();
@@ -1039,6 +1123,43 @@ var chatUI = function(){
     }
 }
 
+function setCookie(cname, cvalue, exdays) {
+    const d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    let expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+  
+function getCookie(cname) {
+    let name = cname + "=";
+    let ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+  
+function checkCookie() {
+    let user = getCookie("username");
+    if (user != "") {
+        alert("Welcome again " + user);
+    } else {
+        user = prompt("Please enter your name:", "");
+        if (user != "" && user != null) {
+            setCookie("username", user, 365);
+        }
+    }
+}
+
+function eraseCookie(cname) {   
+    document.cookie = cname +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
 
 !function(a){
     a.uuid = function() {
@@ -1113,7 +1234,8 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
         'name':'遊戲暱稱',
         'signup':'註冊信箱',
         'login':'登入',
-        'logout':'登出'
+        'logout':'登出',
+        'notice':'通知'
     }
     toggle ={
         writing:!1, // 為避免input欄多次重複輸入
@@ -1138,7 +1260,9 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
         showMsgs_text:'',
         emlt_for_status:[],
         timerId_clock: null,
-        timerId_writing: null
+        timerId_writing: null,
+        next_modal:!1,
+        next_msg:''
     },
     chatSocket = null,
     theUI = chatUI(),
@@ -1150,6 +1274,6 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
 
 $(document).ready(function() {
     chatroomWS();
-    bindMsgSend(), bindFileUpload(), bindModalToggle(), bindFormSubmit(), loadDatalist(), disableBackSpace(), installToolTip();
-    loadLocalData();
+    bindMsgSend(), bindFileUpload(), bindModalToggle(), bindFormSubmit(), loadDatalist(), installToolTip();    
+    loadLocalData(),loadLoginStatus();
 });
