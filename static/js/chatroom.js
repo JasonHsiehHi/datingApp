@@ -282,8 +282,21 @@ function loadLocalData(){  // loadLocalData just do theUI work (chatSocket.onope
     $('#send-text').focus();
 }
 
-function loadLoginStatus(){ 
+function appearElmtId(elmt_id){
+    ($('#'+elmt_id).hasClass('d-none')) && $('#'+elmt_id).removeClass('d-none');
+}
+function disappearElmtId(elmt_id){
+    (!$('#'+elmt_id).hasClass('d-none')) && $('#'+elmt_id).addClass('d-none');
+}
 
+function loadLoginStatus(){ 
+    if (!0 === loginStatus){
+        appearElmtId('user-info'), appearElmtId('logout-btn'), appearElmtId('change-pwd-btn');
+        disappearElmtId('signup-btn'), disappearElmtId('login-btn'), disappearElmtId('reset-pwd-btn');
+    }else{
+        appearElmtId('signup-btn'), appearElmtId('login-btn'), appearElmtId('reset-pwd-btn');
+        disappearElmtId('user-info'), disappearElmtId('logout-btn'), disappearElmtId('change-pwd-btn');
+    }
 }
 
 function installToolTip() {
@@ -426,9 +439,9 @@ function bindFormSubmit(){
             url: $(this).data('url'),
             data: formArray,
             dataType: "json",
-            success: function(data) {
+            success: function(data) {  // todo 提醒用戶需要等一下
                 if('send_result' in data){
-                    var msg = (true === data['send_result'])? "已成功將註冊認證信寄到你的信箱了哦！": "寄件失敗，請稍候再試。";
+                    var msg = (!0 === data['send_result'])? "已成功將註冊認證信寄到你的信箱了哦！": "寄件失敗，請稍候再試。";
                     term.next_modal = !0, term.next_msg = msg, $('#modal').modal('hide');
                 }else if('already_signup' in data){ 
                     $('#modal p.a-error').text('此電子信箱已經註冊過了哦！如果您的密碼遺失可選擇重設密碼。')
@@ -453,6 +466,23 @@ function bindFormSubmit(){
             data: formArray,
             dataType: "json",
             success: function(data) {
+                if ('login' in data){
+                    var msg = (!0 === data['login'])?'帳號登入成功！': '登入失敗，密碼錯誤或信箱還未完成註冊驗證。';
+                    if (!0 === data['login']){
+                        for (let prep in data['player']){
+                            localData[prep] = data['player'][prep], localStorage[prep] = data['player'][prep];
+                        }
+                        theUI.refreshProfile(), loginStatus = !0, loadLoginStatus();
+                    }
+                    term.next_modal = !0, term.next_msg = msg, $('#modal').modal('hide');
+
+                    $('#modal').on('hidden.bs.modal', function(e) {
+                        window.location.href = "/chat";
+                    });
+
+                }else{
+                    console.log(data['error']);
+                }
 
             },
             error: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
@@ -462,17 +492,22 @@ function bindFormSubmit(){
 
     $('#logout-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // todo 驗證資料
-
-        var formArray = $(this).serializeArray();
-        formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
             type: 'POST',
             url: $(this).data('url'),
-            data: formArray,
+            data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
+                if('logout' in data){
+                    loginStatus = !1,loadLoginStatus();
+                    term.next_modal = !0, term.next_msg = '帳號已登出！', $('#modal').modal('hide');
 
+                    $('#modal').on('hidden.bs.modal', function(e) {
+                        window.location.href = "/chat";
+                    });
+                }else{
+                    console.log(data['error']);
+                }
             },
             error: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
@@ -480,9 +515,11 @@ function bindFormSubmit(){
     })
 
     $('#change-pwd-modal-form').on('submit', function(e) {
+        e.preventDefault();
 
     })
     $('#reset-pwd-modal-form').on('submit', function(e) {
+        e.preventDefault();
         
     })
 
@@ -1188,7 +1225,8 @@ Date.prototype.Format = function (fmt) {
     return fmt;
 }
 
-var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
+var loginStatus, 
+    TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     unreadMsg = 0,
     school_url = '/static/img/mark/',
     schoolImgSet = new Set([
@@ -1235,7 +1273,9 @@ var TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
         'signup':'註冊信箱',
         'login':'登入',
         'logout':'登出',
-        'notice':'通知'
+        'notice':'通知',
+        'change-pwd':'變更密碼',
+        'reset-pwd':'重置密碼'
     }
     toggle ={
         writing:!1, // 為避免input欄多次重複輸入

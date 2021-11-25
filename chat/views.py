@@ -4,10 +4,10 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
-from django import forms as f
+from django.forms.models import model_to_dict
+from django.forms import ValidationError
 from .models import Photo, Player, School, Room
 from datingApp import settings
 
@@ -18,8 +18,10 @@ from hashlib import md5
 import os
 import sys
 
+
 def chatroom(request):
-    return render(request, 'chat/chatroom.html')
+    loginStatus = True if request.user.is_authenticated else False
+    return render(request, 'chat/chatroom.html', {'loginStatus': loginStatus})
 
 
 def upload_image(request):
@@ -41,7 +43,7 @@ def post_school(request):
         school_name = request.POST['goto-input'].upper()
         filter_result = School.objects.filter(name__exact=school_name)
         if len(filter_result) == 0:
-            raise f.ValidationError("the school hasn't been available yet.")
+            raise ValidationError("the school hasn't been available yet.")
         else:
             school = filter_result[0]
             player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'],
@@ -56,7 +58,7 @@ def post_name(request):  # todo 加上修改權限permission用於替代self.pla
     if request.is_ajax and request.method == "POST":
         name = request.POST['name-input']
         if len(name) > 20:
-            raise f.ValidationError("the length of name is more than 20 characters.")
+            raise ValidationError("the length of name is more than 20 characters.")
         else:
             player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'],
                                                               defaults={'name': name})
@@ -71,7 +73,7 @@ def signup(request):
         password1 = request.POST['signup-input-password']  # 前端才需要檢查password-confirm
         password2 = request.POST['signup-input-confirm']
         filter_result = User.objects.filter(username__exact=email)
-        # todo 加上f.ValidationError做資料驗證
+        # todo 加上ValidationError做資料驗證
 
         if len(filter_result) == 1:
             if filter_result[0].is_active is False:
@@ -79,7 +81,7 @@ def signup(request):
                 if seconds > settings.SECONDS_FOR_CACHE_TOKEN:
                     user = signup_create_user(email, password2, again=True)
                     player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'],
-                                                                      defaults={'user': user})
+                                                                      defaults={'user': user, 'registered': True})
                     isSent = signup_send_mail(email)
                     return JsonResponse({"send_result": isSent})
                 else:
@@ -90,7 +92,7 @@ def signup(request):
         else:
             user = signup_create_user(email, password2)
             player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'],
-                                                              defaults={'user': user})
+                                                              defaults={'user': user, 'registered': True})
             isSent = signup_send_mail(email)
             return JsonResponse({"send_result": isSent})
     else:
@@ -109,7 +111,7 @@ def signup_create_user(email, password, again=False):
 
 def signup_send_mail(email):
     token = get_random_str()
-    url = '/'.join([settings.DOMAIN, 'chat', 'signup', token, '?next=/chat'])  # todo 幾秒後自動轉向/chat
+    url = '/'.join([settings.DOMAIN, 'chat', 'signup', token])
     html_msg = render_to_string('chat/signup_mail.html', {'url': url})
 
     title = 'A-LARP匿名狼人殺 註冊認證信'
@@ -136,16 +138,14 @@ def activate(request, token):
     email = cache.get(token)
     if email is None:
         return render(request, 'chat/chatroom_activate.html', {"title": '啟用失敗',
-                                                               "msg": '驗證連結可能已過期，或所驗證的使用者不存在，請重新註冊。',
-                                                               "reload": settings.DOMAIN+'/chat/'})
+                                                               "msg": '驗證連結可能已過期，或所驗證的使用者不存在，請重新註冊。'})
     else:
         user = User.objects.get(username=email)
         user.is_active = True
         user.save()
         login(request, user)
         return render(request, 'chat/chatroom_activate.html', {"title": '啟用成功',
-                                                               "msg": '信箱註冊成功，現在可以開始遊戲了哦！',
-                                                               "reload": settings.DOMAIN+'/chat/'})
+                                                               "msg": '信箱註冊成功，現在可以開始遊戲了哦！'})
 
 
 def log_in(request):
@@ -155,29 +155,24 @@ def log_in(request):
                             password=request.POST['login-input-password'])
         if user is not None and user.is_active:
             login(request, user)
-            player_dict = user.profile.values('uuid', 'name', 'school')  # 更新前端
-
-            # todo title和msg寫在前端就好
-            return JsonResponse({"title": '登入成功', 'msg': '帳號登入成功！', 'player': player_dict})
+            player_dict = model_to_dict(user.profile, fields=['uuid', 'name', 'school'])
+            return JsonResponse({"login": True, 'player': player_dict})
         else:
-            return JsonResponse({'title': '登入失敗', 'msg': '登入失敗，信箱還未完成註冊驗證或密碼錯誤。'})
+            return JsonResponse({"login": False})
 
     else:
         return JsonResponse({"error": "it's not through ajax."})
 
 
-@login_required
 def log_out(request):
     if request.is_ajax and request.method == 'POST':
-        logout(request)
-
-        # todo title和msg寫在前端就好
-        return JsonResponse({"title": '登出', 'msg': '帳號已登出！'})
+        if request.user.is_authenticated:
+            logout(request)
+            return JsonResponse({"logout": True})
     else:
         return JsonResponse({"error": "it's not through ajax."})
 
 
-@login_required
 def change_pwd(request):
     if request.is_ajax and request.method == 'POST':
         old_password = ['change-pwd-input-old']

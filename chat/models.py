@@ -44,6 +44,7 @@ class Player(models.Model):
     waiting_time = models.DateTimeField(null=True, default=None)
 
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, default=None, related_name='profile')
+    registered = models.BooleanField(default=False)
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.uuid)

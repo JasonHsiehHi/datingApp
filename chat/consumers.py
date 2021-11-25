@@ -34,7 +34,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 room_id,
                 self.channel_name
             )
-        await utils.delete_player(str(self.player_data.uuid))
+
+        self.player_data = await utils.refresh_player(self.player_data)
+        if self.player_data.registered is False:
+            await utils.delete_player(str(self.player_data.uuid))
 
     # receive from client side first
     async def receive_json(self, content):

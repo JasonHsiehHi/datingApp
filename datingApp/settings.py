@@ -216,5 +216,5 @@ EMAIL_HOST_USER = str(os.getenv('GMAIL'))
 EMAIL_HOST_PASSWORD = str(os.getenv('GMAIL_FOR_MAC_MAIL'))
 EMAIL_FROM = 'TEST <'+str(os.getenv('GMAIL'))+'>'
 
-# for signup
+# for chat signup
 SECONDS_FOR_CACHE_TOKEN = 1800

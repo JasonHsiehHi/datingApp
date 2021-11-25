@@ -15,9 +15,13 @@
 window.onload = function() {
     $("#activate-modal-form").removeClass('d-none');
     $('#modal .modal-title').text('{{title}}');
-    $('#modal .modal-body p').text('{{msg}}');
+    $('#activate-modal-form .modal-body p').text('{{msg}}');
     $('#modal').modal('show');
 }
+
+$('#modal').on('hidden.bs.modal', function(e) {
+    window.location.href = "/chat";
+});
 
 </script>
 {% endblock %}

@@ -96,6 +96,13 @@ def set_player_imgUrl(player, imgUrl):
 
 
 @database_sync_to_async
+def refresh_player(player):
+    uuid = player.uuid
+    new_player = Player.objects.get(uuid=uuid)
+    return new_player
+
+
+@database_sync_to_async
 def create_room(id, matchType, school_id):
     room = Room.objects.create(id=id, matchType=matchType, school=school_id)
     School.objext.filter(name=school_id).update(roomNum=F('roomNum') + 1)
@@ -185,7 +192,7 @@ def duration_to_score(duration):
 
 
 @database_sync_to_async
-def check_players_num(school_id, target_matchType):  # todo 應與其他process合併 減少訪問資料庫
+def check_players_num(school_id, target_matchType):  # todo 應與其他process合併或直接刪除 減少訪問資料庫
     school = School.objects.get(name=school_id)
     players_in = Player.objects.filter(Q(school=school) & Q(status=2) & Q(matchType=target_matchType))
     num = len(players_in)

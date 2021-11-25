@@ -1261,18 +1261,21 @@ Entry.objects.order_by('author', 'pub_date').distinct('author', 'pub_date') 若�
 Entry.objects.order_by('author', 'pub_date').reverse() reverse用於將排完後的順序反轉
 Entry.objects.order_by('author', 'pub_date').first() order_by()也會與first()或last()連用
 
-Book.objects.get(pk=4).values() 輸出dict並將所有的field作為key值 
+Book.objects.filter(pk=4).values() 輸出dict並將所有的field作為key值 
 output : {'pk': 4, 'name': 'Beatles Blog', 'tagline': 'All the latest Beatles news.'}
-Book.objects.get(pk=4).values('pk','name') 只選擇其中幾項field
+Book.objects.filter(pk=4).values('pk','name') 只選擇其中幾項field
 output : {'pk': 4, 'name': 'Beatles Blog'}
 
 Book.objects.filter(type='s').values('pk','name') 如果querySet有多個instance 則會以list形式返回
 output : [{'pk': 4, 'name': 'Beatles Blog'},{'pk': 5, 'name': 'Jason Blog'}]
 
-Book.objects.get(pk=4).values('pk','name',lower_name=Lower('name')) 如同annotate 可自行增加field
-Book.objects.get(pk=4).values_list('pk','name')
+Book.objects.filter(pk=4).values('pk','name',lower_name=Lower('name')) 如同annotate 可自行增加field
+Book.objects.filter(pk=4).values_list('pk','name')
 output: (4, 'Beatles Blog') tuple取代dict
 Book.objects.filter(genre='math').values_list('id', flat=True) 會將多組tuple壓成list
+
+values()和values_list()不能用在單一個instance上 例如：Book.objects.get(pk=4)
+只能由Book.objects.filter(pk=4) 或 Book.objects.all()等querySet使用
 
 values()和values_list()因為仍是querySet 故必須用list()轉為python的list形式
 同理Entry.objects.all()仍然是querySet 必須用list()才能取其中的各個quertSet
@@ -1292,9 +1295,9 @@ get_or_create(...,defaults={}) 和 update_or_create(...,defaults={}) 對應GET/P
 會返回querySet和bool值兩項 bool直用來表示是否為新創建的
 default屬性存放要做更新的field 若沒有找到則直接創建
 
-Book.objects.get(pk=1)  # 不能為None 如果沒找到會觸發error
-Book.objects.filter(genre="science")  # 充許為None
-Book.objects.exclude(genre="comic")
+Book.objects.get(pk=1)  # 不能為None 如果沒找到會觸發error 返回單一instence
+Book.objects.filter(genre="science")  # 充許為None 返回querySet充許繼續縮小範圍
+Book.objects.exclude(genre="comic")  # 類似於filter() 返回querySet充許繼續縮小範圍
 get(),filter(),exclude() 用於縮小範圍
 
 既然查詢集是一種集合 自然能實現交集,聯集等應用：
@@ -1317,9 +1320,9 @@ Book.objects.filter(enrty__headline__contains='Lennon')  也可用於找ForignKe
 Entry.objects.filter(headline__startswith='First') 必須由此字串開頭
 Entry.objects.filter(headline__endswith='2021') 必須由此字串結尾
 
-get()和filter()最後回傳的內容都為querySet 但仍有少許差異
+filter()最後回傳的內容為querySet 不同於get()的模型實例instance
 filter()可能為空 而get()不充許為空
-filter()的回傳值可用list()取各個querySet 而get()的回傳值本身就是單一的querySet
+filter()的回傳值可用list()取各個單一實例 而get()的回傳值本身就是單一實例
 
 Book.objects.filter(pk__in=[1,4,7]) 在list中的其中一個
 Book.objects.filter(pk__gt=14) pk>14

@@ -20,6 +20,7 @@
     <script src="{% static 'js/test_db.js'%}"></script>
     <script src="{% static 'js/db.js'%}"></script>
     <script src="{% static 'js/chatroom.js'%}"></script>
+    <script>loginStatus = ('{{loginStatus}}' === 'True')</script>
 
 </head>
 <body>
@@ -105,6 +106,50 @@
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3"><p>確定要登出嗎？</p></div>
+                        <p class='text-danger p-1 a-error'></p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+
+                <form class='d-none' id="change-pwd-modal-form" data-url="change_pwd">
+                    {% csrf_token %}
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label for="change-pwd-input-old" class="form-label">舊密碼Old Password:</label>
+                            <input type="password" class="form-control" id="change-pwd-input-old" name="change-pwd-input-old" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="change-pwd-input-password" class="form-label">密碼Password:</label>
+                            <input type="password" class="form-control" id="change-pwd-input-password" name="change-pwd-input-password" required>
+                            <span class="form-text">* 密碼至少包含8個字元，且由至少一個數字和至少一個英文字母組成。</span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="change-pwd-input-confirm" class="form-label">確認密碼:</label>
+                            <input type="password" class="form-control" id="change-pwd-input-confirm" name="change-pwd-input-confirm" required>
+                        </div>
+                        <p class='text-danger p-1 a-error'></p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+
+                <form class='d-none' id="reset-pwd-modal-form" data-url="reset_pwd">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="reset-pwd-input-email" class="form-label">電子信箱Email:</label>
+                            <input type="email" class="form-control" id="reset-pwd-input-email" name="reset-pwd-input-email" required>
+                        </div>
+                        <p class='border border-3 border-warning'>
+                        會為此註冊帳號建立臨時密碼並寄到電子信箱，請用戶於登入後再自行變更密碼。
+                        </p>
                         <p class='text-danger p-1 a-error'></p>
                     </div>
                     <div class="modal-footer justify-content-center">
@@ -221,11 +266,12 @@
                         <i class="material-icons-outlined md-28">account_circle</i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-btn">
-                        <li><span class="dropdown-item-text a-point py-3"><span class='h5'>jasonhsieh@gmail.com</span><span class='h6 d-block mt-1 mb-0'>性別:男</span></span></li>
+                        <li><span class="dropdown-item-text a-point py-3" id="user-info"><span class='h5'>jasonhsieh@gmail.com</span><span class='h6 d-block mt-1 mb-0'>性別:男</span></span></li>
+                        <li><button class="dropdown-item py-1" type="button" id="change-pwd-btn"><i class="material-icons-outlined md-18 align-text-top">build</i> 變更密碼</button></li>
                         <li><button class="dropdown-item py-1" type="button" id="logout-btn"><i class="material-icons-outlined md-18 align-text-top">logout</i> 登出Logout</button></li>
-
                         <li><button class="dropdown-item a-point py-3" type="button" id="signup-btn"><i class="material-icons-outlined md-18 align-text-top">assignment_ind</i> 註冊Sign Up</button></li>
                         <li><button class="dropdown-item py-1" type="button" id="login-btn"><i class="material-icons-outlined md-18 align-text-top">login</i> 登入Login</button></li>
+                        <li><button class="dropdown-item py-1" type="button" id="reset-pwd-btn"><i class="material-icons-outlined md-18 align-text-top">email</i> 密碼遺失？</button></li>
                     </ul>
                 </div>
             </span>
