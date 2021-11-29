@@ -355,6 +355,24 @@ function bindModalToggle(){
             $('#modal').modal('show');
         })
     }
+
+    $("#start-btn").on('click',function(a){
+
+        $.ajax({
+            
+        })
+    })
+
+    // 之後要移到不同劇本的JS檔
+    $("#interact-btn").on('click',function(a){
+        
+    })
+
+    $("#action-btn").on('click',function(a){
+        
+    })
+
+
     $('#modal').on('hidden.bs.modal', function(e) {
         $('#modal').find('form').each(function(a){
             (!$(this).hasClass('d-none')) && $(this).addClass('d-none');
@@ -363,6 +381,8 @@ function bindModalToggle(){
         (!0 === term.next_modal) && (showNoticeModal(term.next_msg), term.next_modal=!1);
     });
 }
+
+
 
 function showNoticeModal(msg){
     $("#notice-modal-form").removeClass('d-none');
@@ -384,13 +404,13 @@ function bindFormSubmit(){
             data: formArray,
             dataType: "json",
             success: function(data) {
-                if('name' in data){
+                if (!0 === data['result']){
                     localData.name = data['name'], localStorage.name = data['name'], theUI.refreshProfile();
                     theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 已修改完畢');
                     $('#modal').modal('hide');
                 }else{
-                    console.log(data['error']);
-                } 
+                    $('#name-modal-form p.a-error').text(data['msg']);
+                }
             },
             error: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
@@ -409,7 +429,7 @@ function bindFormSubmit(){
             data: formArray,
             dataType: "json",
             success: function(data) {
-                if('school' in data){
+                if (!0 === data['result']){
                     localData.school = data['school'], localStorage.school = data['school'],theUI.refreshProfile();
                     var school = localData.school;
                     theUI.clearChatLogs();
@@ -420,8 +440,8 @@ function bindFormSubmit(){
                     });
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
-                    console.log(data['error']);
-                } 
+                    $('#goto-modal-form p.a-error').text(data['msg']);
+                }
             },
             error: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
@@ -431,7 +451,7 @@ function bindFormSubmit(){
     $('#signup-modal-form').on('submit', function(e) {
         e.preventDefault();
         // todo 驗證資料:email不符合標準, pwd不符合標準
-        // todo 不應該出現GET的url
+
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
@@ -439,14 +459,11 @@ function bindFormSubmit(){
             url: $(this).data('url'),
             data: formArray,
             dataType: "json",
-            success: function(data) {  // todo 提醒用戶需要等一下
-                if('send_result' in data){
-                    var msg = (!0 === data['send_result'])? "已成功將註冊認證信寄到你的信箱了哦！": "寄件失敗，請稍候再試。";
-                    term.next_modal = !0, term.next_msg = msg, $('#modal').modal('hide');
-                }else if('already_signup' in data){ 
-                    $('#modal p.a-error').text('此電子信箱已經註冊過了哦！如果您的密碼遺失可選擇重設密碼。')
+            success: function(data) {  // todo 寄信需要提醒用戶需要等一下 將確認btn圖示換成小圈圈
+                if (!0 === data['result']){
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
                 }else{
-                    console.log(data['error']);
+                    $('#signup-modal-form p.a-error').text(data['msg']);
                 }
             },
             error: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
@@ -457,33 +474,25 @@ function bindFormSubmit(){
     $('#login-modal-form').on('submit', function(e) {
         e.preventDefault();
         // todo 驗證資料
-
-        var formArray = $(this).serializeArray();
-        formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
             type: 'POST',
             url: $(this).data('url'),
-            data: formArray,
+            data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
-                if ('login' in data){
-                    var msg = (!0 === data['login'])?'帳號登入成功！': '登入失敗，密碼錯誤或信箱還未完成註冊驗證。';
-                    if (!0 === data['login']){
-                        for (let prep in data['player']){
-                            localData[prep] = data['player'][prep], localStorage[prep] = data['player'][prep];
-                        }
-                        theUI.refreshProfile(), loginStatus = !0, loadLoginStatus();
+                if (!0 === data['result']){
+                    for (let prep in data['player']){
+                        localData[prep] = data['player'][prep], localStorage[prep] = data['player'][prep];
                     }
-                    term.next_modal = !0, term.next_msg = msg, $('#modal').modal('hide');
+                    theUI.refreshProfile(), loginStatus = !0, loadLoginStatus();
 
-                    $('#modal').on('hidden.bs.modal', function(e) {
-                        window.location.href = "/chat";
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    $('#modal').on('hide.bs.modal', function(e) {
+                        (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
-
                 }else{
-                    console.log(data['error']);
+                    $('#login-modal-form p.a-error').text(data['msg']);
                 }
-
             },
             error: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
@@ -498,15 +507,14 @@ function bindFormSubmit(){
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
-                if('logout' in data){
+                if (!0 === data['result']){
                     loginStatus = !1,loadLoginStatus();
-                    term.next_modal = !0, term.next_msg = '帳號已登出！', $('#modal').modal('hide');
-
-                    $('#modal').on('hidden.bs.modal', function(e) {
-                        window.location.href = "/chat";
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    $('#modal').on('hide.bs.modal', function(e) {
+                        (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
                 }else{
-                    console.log(data['error']);
+                    $('#logout-modal-form p.a-error').text(data['msg']);
                 }
             },
             error: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
@@ -516,10 +524,47 @@ function bindFormSubmit(){
 
     $('#change-pwd-modal-form').on('submit', function(e) {
         e.preventDefault();
+        // 資料驗證
 
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: $(this).serializeArray(),
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    $('#modal').on('hide.bs.modal', function(e) {
+                        (!1 === term.next_modal) && (window.location.href = "/chat");
+                    });
+                }else{
+                    $('#change-pwd-modal-form p.a-error').text(data['msg'])
+                }
+            },
+            error: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
     })
+
     $('#reset-pwd-modal-form').on('submit', function(e) {
         e.preventDefault();
+        // 資料驗證
+
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: $(this).serializeArray(),
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){  // todo 寄信需要提醒用戶等一下
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                }else{
+                    $('#reset-pwd-modal-form p.a-error').text(data['msg'])
+                }
+            },
+            error: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
         
     })
 
@@ -1275,7 +1320,8 @@ var loginStatus,
         'logout':'登出',
         'notice':'通知',
         'change-pwd':'變更密碼',
-        'reset-pwd':'重置密碼'
+        'reset-pwd':'重置密碼',
+        'leave':'離開'
     }
     toggle ={
         writing:!1, // 為避免input欄多次重複輸入

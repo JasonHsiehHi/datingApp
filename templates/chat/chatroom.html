@@ -208,6 +208,19 @@
                         <button type="button" class="btn btn-warning" data-bs-dismiss="modal">確定</button>
                     </div>
                 </form>
+
+                <form class='d-none' id="leave-modal-form" data-url="leave">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3"><p>確定要離開嗎？</p></div>
+                        <p class='text-danger p-1 a-error'></p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+
                 {% block modalForm %}{% endblock %}
             </div>
         </div>
@@ -295,10 +308,10 @@
                         
                     </div>
                     <div class='a-div a-sidebar d-flex'>
-                        <div class='a-circle a-sidebar a-female' id="user-tag">小</div>
+                        <div class='a-circle a-sidebar a-female' id="user-tag">取</div>
                         <div class='ps-1 flex-grow-1'>
                             <div class='d-flex justify-content-between'>
-                                <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='小小公主' id="user-name">小小公主</span>
+                                <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='取個暱稱吧' id="user-name">取個暱稱吧</span>
                                 <button class="btn btn-link a-sidebar" id="name-btn" type="button">更改..</button>
                             </div>
                             <div class='a-sub a-sidebar' id='user-role'>(偵探)</div>

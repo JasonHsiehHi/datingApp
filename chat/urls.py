@@ -11,5 +11,7 @@ urlpatterns = [
     path('login', views.log_in, name='login'),
     path('logout', views.log_out, name='logout'),
     path('change_pwd', views.change_pwd, name='change_pwd'),
-    path('reset_pwd', views.reset_pwd, name='reset_pwd')
+    path('reset_pwd', views.reset_pwd, name='reset_pwd'),
+    path('start_game', views.start_game, name='start_game'),
+    path('start_game/<str:game_name>', views.in_game, name='in_game'),
 ]

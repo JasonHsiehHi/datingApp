@@ -218,3 +218,4 @@ EMAIL_FROM = 'TEST <'+str(os.getenv('GMAIL'))+'>'
 
 # for chat signup
 SECONDS_FOR_CACHE_TOKEN = 1800
+SECONDS_FOR_CACHE_EMAIL = 600

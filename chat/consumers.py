@@ -19,7 +19,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             str(self.player_data.uuid),
             self.channel_name
         )
-        if self.player_data.status == 3:
+
+        if self.player_data.status == 3:  # 舊版 需要修改
             room_id = str(self.player_data.room_id)
 
             self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), True)
@@ -34,6 +35,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 room_id,
                 self.channel_name
             )
+
+        if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
+            await utils.set_player_isPrepared(False)
 
         self.player_data = await utils.refresh_player(self.player_data)
         if self.player_data.registered is False:
@@ -120,6 +124,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     # 主要用於調用資料庫 且調用結束後仍須通知對方 self.channel_layer.group_send()
     # 每個command最後都需回傳給client端 提供UI做回應 self.send_json()
+
+    async def call_others_start_game(self): # todo 建房者要告訴別人遊戲開始
+        pass
 
     # called by receive_json to response client side
     async def cmd_open(self, uuid, isFirst):

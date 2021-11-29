@@ -846,7 +846,7 @@ re.match(pattern, string) 每一個re都是一組pattern 並放入要驗證的st
 針對單一字符的規範：
 [abc]表示只充許a,b,c三種字符 (數量透過{}決定) ; [^abc]則表示除a,b,c之外都充許
 \w匹配任何字符 等同[a-zA-Z0-9] ; \d匹配任何數字 等同[0-9] ; \s匹配任何空白字符 等同[ \t\n\r\f\v]
-.最好用 除了\n以外的任何字元[^\n] \+用於所有被限制的字元 等同[+]
+.可以取代大部分的字元 除了\n以外的任何字元[^\n] \+用於所有被限制的字元 等同[+]
 \W 則為[^a-z A-Z 0-9] \D和\S則同理
 {m,n}表示字符出現數量在m,n之間
 +:等同{1,} 至少出現一次以上 ; *等同{0,} 可充許不出現或任何次數 ; ?等同{0,1} 有或沒有且最多一個
@@ -860,6 +860,18 @@ re.match(pattern, string) 每一個re都是一組pattern 並放入要驗證的st
 /g: 表示全文查找 若只有/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/ 則只找符合的第一項
 /i: 則為忽略大小寫
 /m: 則為多行查找 用於有換行符的string
+
+~常用的password正則
+re.match(r"^(?=.*[\d])(?=.*[A-Z])(?=.*[a-z])(?=.*[@#$])[\w\d@#$]{6,12}$", password)
+
+(?=...)為lockahead：本身不佔用任何字元 僅用於判別是否符合 
+abc(?=[1-9]) // output: 'abc1'中的'abc'(lockahead不佔字元) 'abcw'則不符合
+
+r"^(?=.*[\d])[\w\d@#$]" 由於lockahead前面沒有字元 會導致錯誤 必須加上^開頭
+同理r"[\w\d@#$](?<=.*[\d])$" lockbehind若放在最後要加上$結尾
+
+(?<=...)為lockbehind：因為(?=...)只能檢測字串右側 若要檢測字串左側 則用(?<=...)
+(?<=[1-9])abc // output: '1abc'中的'abc'(lockbehind不佔字元) 'abc'則不符合
 
 (?P<name>)和(?P=name):
 被匹配到的字串可透過<name>來設置別名 設置完後便可重複使用
@@ -1246,6 +1258,7 @@ Book.objects.all().aggregate(Avg('price'))  aggregate用於找特定屬性的總
 
 aggregate()用來取單一field數值 若要取整個instance則用order_by()後取first()
 Book.objects.order_by('-price').first() 等同取price最高的record
+'price'表示遞增 和'-price'表示遞減
 
 Book.objects.all().annotate(number_of_entries=Count('entry')) annotate在每筆record中 除了現有的field之外多增加其他資料欄
 q[0].number_of_entries  # 好處是annotate()的資料欄不會寫入database
@@ -1505,6 +1518,7 @@ data = self.cleaned_data['originalDate']
 會清除不符合規範的資料
 
 接受post請求 並用renew()回應：
+from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
@@ -1517,7 +1531,7 @@ redirect()和render()都是django.shortcuts的方法 用於view中來返回網�
 (template_name必須輸入從BASE_DIR之後的完整路徑 'chat/index.html')
 
 HttpResponseRedirect與redirect的差異：
-HttpResponseRedirect()參數只能是url  而redirect()參數除了url外仍可放入其他變數
+HttpResponseRedirect()參數只能是url  而redirect()參數除了url外仍可放入其他變數傳給視圖
 
 reverse_lazy('all-borrowed'))
 lazy在程式語言當中通常表示不會馬上執行 以避免發生未加載錯誤
@@ -6008,6 +6022,8 @@ var myModal = new bootstrap.Modal(document.getElementById('myModal'), options)
 $('.form_modal').on('show.bs.modal', function(e) { // 退出用'hide.bs.modal'取代
   // DO Something      
 });
+'hide.bs.modal'和'hidden.bs.modal' 當同一個元素有綁定多個事件時 此時前後順序的判斷會非常重要 綁定'hide.bs.modal'的順序會先於綁定'hidden.bs.modal'
+
 
 modal的組成：
 <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">

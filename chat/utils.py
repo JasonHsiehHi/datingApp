@@ -89,6 +89,17 @@ def set_player_status(player, next_status):
 
 
 @database_sync_to_async
+def set_player_isPrepared(player, isPrepared):
+    player.isPrepared = isPrepared
+    if isPrepared is False:
+        player.waiting_time = None
+    player.save()
+    return player
+
+
+
+
+@database_sync_to_async
 def set_player_imgUrl(player, imgUrl):
     player.imgUrl_adult = imgUrl
     player.save()
@@ -174,6 +185,7 @@ def process_player_match(someone):
     num = len(players_in)
     if num < 1:
         return None, None
+
     scoreDiffs = [abs(p.score-someone.score) for p in players_in]
     durations = [(someone.waiting_time-p.waiting_time) for p in players_in]
     li = [x - duration_to_score(y)for x, y in zip(scoreDiffs, durations)]
