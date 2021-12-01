@@ -62,7 +62,7 @@ def set_player_profile(player, name, matchType=None):
 
 
 @database_sync_to_async
-def set_player_room(player, room_id, matcherName=None):
+def set_player_room(player, room_id, matcherName=None):  # LARP room改為match
     if room_id is None:
         player.status = 0
         player.room = None
@@ -89,7 +89,7 @@ def set_player_status(player, next_status):
 
 
 @database_sync_to_async
-def set_player_isPrepared(player, isPrepared):
+def set_player_isPrepared(player, isPrepared):  # LARP
     player.isPrepared = isPrepared
     if isPrepared is False:
         player.waiting_time = None
@@ -97,6 +97,9 @@ def set_player_isPrepared(player, isPrepared):
     return player
 
 
+@database_sync_to_async
+def player_onoff(player, isOn):  # LARP
+    player.room.onoff_dict[int(player.user.id)] = isOn
 
 
 @database_sync_to_async
@@ -204,19 +207,7 @@ def duration_to_score(duration):
 
 
 @database_sync_to_async
-def check_players_num(school_id, target_matchType):  # todo 應與其他process合併或直接刪除 減少訪問資料庫
-    school = School.objects.get(name=school_id)
-    players_in = Player.objects.filter(Q(school=school) & Q(status=2) & Q(matchType=target_matchType))
-    num = len(players_in)
-    if target_matchType == 'fm' or target_matchType == 'mf':
-        isEnough = True if num >= 1 else False
-    else:
-        isEnough = True if num >= 2 else False
-    return isEnough  # 若為false則wait 若為true則match
-
-
-@database_sync_to_async
-def get_school_roomNum_max():
+def get_school_roomNum_max():  # LARP school改為city 表示city正在進行的遊戲數量
     school = School.objects.order_by('-roomNum').first()
     return str(school.name), int(school.roomNum)
 

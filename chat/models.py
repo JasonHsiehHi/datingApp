@@ -10,7 +10,8 @@ class Room(models.Model):
         ('ff', 'female->female')
     )
     id = models.CharField(max_length=20, primary_key=True)  # 換成rood_id 不要蓋過預設的id
-    userNum = models.IntegerField(default=0)  # 原本的model改到新的Match model
+    userNum = models.IntegerField(default=0)  # 原本的Room改到新的Match 表示兩個人開始通話
+
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
     school = models.CharField(max_length=10)
 
@@ -63,7 +64,8 @@ class Player(models.Model):
     isPrepared = models.BooleanField(default=False)
     game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
-    tag_int = models.IntegerField(null=True)
+    tag_int = models.IntegerField(null=True)  # 針對特定角色才有用 偵探：需要紀錄自己審問的人
+    tag_json = models.JSONField(max_length=25, null=True)
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.uuid)
@@ -71,6 +73,7 @@ class Player(models.Model):
 
 class Game(models.Model):
     name = models.CharField(max_length=20)
+    game_id = models.CharField(max_length=20, null=True)
     isAdult = models.BooleanField()
     isHetero = models.BooleanField()
     best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要 ex: 異性為[5,1] 同性為[5:0]

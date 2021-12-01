@@ -10,17 +10,23 @@ from datingApp import settings
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
         self.player_data = None  # todo self.player_data自動變為None的問題
+        # todo 是否把self.player_data刪掉 改用每次都做refresh_player
         self.robot_id = 3  # randint(1, 3)
+
+        self.count = 0
+
         await self.accept()
 
         # await self.close() to reject connection
     async def disconnect(self, close_code):
+        self.player_data = await utils.refresh_player(self.player_data)
+
         await self.channel_layer.group_discard(
             str(self.player_data.uuid),
             self.channel_name
         )
-
-        if self.player_data.status == 3:  # 舊版 需要修改
+        """  # 舊版 需要修改 進房間後斷線
+        if self.player_data.status == 3:  
             room_id = str(self.player_data.room_id)
 
             self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), True)
@@ -35,18 +41,27 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 room_id,
                 self.channel_name
             )
+        """
 
         if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
-            await utils.set_player_isPrepared(False)
+            await utils.set_player_isPrepared(self.player_data, False)
 
-        self.player_data = await utils.refresh_player(self.player_data)
-        if self.player_data.registered is False:
+        elif self.player_data.status == 2 or self.player_data.status == 3:  # 進入LARP遊戲後
+            await utils.player_onoff(self.player_data, False)
+
+        if self.player_data.registered is False:  # 用戶註冊前不儲存player資料
             await utils.delete_player(str(self.player_data.uuid))
 
     # receive from client side first
     async def receive_json(self, content):
         self.start = time.time()
-        command = content.get('cmd', None)  # todo 後端資料驗證 避免用戶直接操作console
+
+        call = content.get('call', None)  # LARP
+        if call == 'start':
+            await self.call_start_game()
+
+
+        command = content.get('cmd', None)
         if command is None and self.player_data.status == 3 and self.room_userNum == 2:
             room_id = str(self.player_data.room_id)
             if 'wn' in content:
@@ -125,17 +140,56 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     # 主要用於調用資料庫 且調用結束後仍須通知對方 self.channel_layer.group_send()
     # 每個command最後都需回傳給client端 提供UI做回應 self.send_json()
 
-    async def call_others_start_game(self): # todo 建房者要告訴別人遊戲開始
-        pass
+    async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'  是否需要堤防用戶console操作
+        self.player_data = await utils.refresh_player(self.player_data)
+        room = self.player_data.room
+        for player in room.player_set:
+            if player.uuid != self.player_data.uuid:
+                await self.channel_layer.group_send(str(player.uuid), {
+                    'type': 'start_game',
+                    'game': str(room.game.game_id),
+                    'player_dict': room.player_dict,
+                    'onoff_dict': room.onoff_dict,
+                    'from': str(self.player_data.uuid)
+                })
+
+    async def call_start_game_down(self, room_creator):  # 其他人告訴創房者'已加載完成'
+        await self.channel_layer.group_send(room_creator, {
+            'type': 'start_game_down'
+        })
+
+    async def start_game(self, event):  # 其他人接收'遊戲開始'訊息
+        await self.send_json({
+            "type": 'START',
+            "msg": '遊戲開始！',
+            "game": event['game'],
+            "player_dict": event['player_dict'],
+            "onoff_dict": event['onoff_dict']})
+
+        await self.call_start_game_down(event['from'])
+
+    async def start_game_down(self, event):  # 建房者接收'已加載完成'訊息
+        self.count = self.conut+1
+        room = self.player_data.room
+        if self.conut == room.playerNum-1:
+            await self.send_json({
+                "type": 'START',
+                "msg": '遊戲開始！',
+                "game": str(room.game.game_id),
+                "player_dict": room.player_dict,
+                "onoff_dict": room.onoff_dict})
+
+            self.count = 0
 
     # called by receive_json to response client side
-    async def cmd_open(self, uuid, isFirst):
-        await self.channel_layer.group_add(
+    async def cmd_open(self, uuid, isFirst):  # 幾乎只有open和import需要更新 其餘直接刪除
+        await self.channel_layer.group_add(  # todo uuid改用後端傳給前端 如此才能避免前端console操作
             uuid,
             self.channel_name
         )
         self.player_data = await utils.get_player(uuid)
 
+        # greet dialog LARP遊戲開始前 status要改
         if isFirst is True and (self.player_data.status == 0 or self.player_data.status == 2):
             dialog, sub = [], []
             t = int(datetime.now().strftime('%H'))
@@ -145,7 +199,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             dialog.append(dialog_t)
             sub.append(sub_t)
 
-            school_id, roomNum = await utils.get_school_roomNum_max()
+            school_id, roomNum = await utils.get_school_roomNum_max()  # 把學校改成城市
             if roomNum > settings.PLENTY_ROOM_NUM:
                 dialog_sch = await utils.get_dialogue_dialog(self.robot_id, 'GREET', 'sch')
                 dialog_sch = dialog_sch.format(school_id)
@@ -159,7 +213,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'anonName': robot
             })
 
-    async def cmd_import(self, data):
+    async def cmd_import(self, data):  # 根本不應該做import 除非POST 不然永遠只有後端可以傳給前端 反之不行
         self.player_data = await utils.set_player_data(self.player_data, data)
 
         if self.player_data.status == 3:
@@ -235,7 +289,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             if testResult is not None and (testResult != self.player_data.testResult):
                 self.player_data = await utils.set_player_score(self.player_data, testResult)
 
-            self.player_data = await utils.process_player_wait(self.player_data, 2)
+            self.player_data = await utils.process_player_wait(self.player_data, next_status=2)
             matcher_uuid, matcher_name = await utils.process_player_match(self.player_data)
 
             if matcher_uuid is None:
@@ -303,12 +357,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     # receive from other chatConsumers
     async def enter_room(self, event):
-        name, room_id = event['name'], event['room']  # todo room_id 太容易猜到 必須要改名
+        name, room_id = event['name'], event['room']
         await self.channel_layer.group_add(
             room_id,
             self.channel_name
         )
-        self.player_data = await utils.process_player_wait(self.player_data, 3)
+        self.player_data = await utils.process_player_wait(self.player_data, next_status=3)
         self.player_data = await utils.set_player_room(self.player_data, room_id, name)
         self.room_userNum = 2
         await self.send_json({

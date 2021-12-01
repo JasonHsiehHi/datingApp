@@ -48,7 +48,7 @@ def post_school(request):
         school_name = request.POST['goto-input'].upper()
         filter_result = School.objects.filter(name__exact=school_name)
         if len(filter_result) == 0:
-            return JsonResponse({"result": False, "msg": "抱歉，這所學校還未開放。"})
+            return JsonResponse({"result": False, "msg": "抱歉，所在城市還未開放。"})
 
         school = filter_result[0]
         Player.objects.update_or_create(uuid=request.POST['uuid-input'],
@@ -59,7 +59,7 @@ def post_school(request):
         print("error: it's not through ajax.", file=sys.stderr)
 
 
-def post_name(request):  # todo 加上修改權限permission用於替代self.player_data.status
+def post_name(request):  # todo 加上修改權限permission 用於替代self.player_data.status
     if request.is_ajax and request.method == "POST":
         name = request.POST['name-input']
         if len(name) > 20:
@@ -117,11 +117,14 @@ def signup(request):
 
 
 def signup_create_user(email, password):
-    # todo 測試時開放同信箱註冊 username名稱自動遞增
-    if settings.DEBUG is True:
-        pass
 
-    user = User.objects.create_user(username=email, password=password, email=email)
+    if settings.DEBUG is True:  # todo 測試時開放同信箱註冊 username名稱自動遞增
+        filter_result = User.objects.filter(email=email)
+        username = email+len(filter_result)
+    else:
+        username = email
+
+    user = User.objects.create_user(username=username, password=password, email=email)
     user.is_active = False
     user.save()
     return user
@@ -215,25 +218,27 @@ def validate_pwd(password1, password2):
 
 def change_pwd(request):
     if request.is_ajax and request.method == 'POST':
-        if request.user.is_authenticated:
-            old_password = request.POST['change-pwd-input-old']
-            password1 = request.POST['change-pwd-input-password']
-            password2 = request.POST['change-pwd-input-confirm']
-
-            user = request.user
-            if user.check_password(old_password) is False:
-                return JsonResponse({"result": False, "msg": '原密碼錯誤！'})
-
-            error_msg = validate_pwd(password1, password2)  # 密碼不符合條件
-            if error_msg is not None:
-                return JsonResponse({"result": False, "msg": error_msg})
-
-            user.set_password(password2)
-            user.save()
-            login(request, user)
-            return JsonResponse({"result": True, "msg": '變更密碼成功！'})
-        else:
+        if not request.user.is_authenticated:
             print("error: user isn't authenticated.", file=sys.stderr)
+            return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
+
+        old_password = request.POST['change-pwd-input-old']
+        password1 = request.POST['change-pwd-input-password']
+        password2 = request.POST['change-pwd-input-confirm']
+
+        user = request.user
+        if user.check_password(old_password) is False:
+            return JsonResponse({"result": False, "msg": '原密碼錯誤！'})
+
+        error_msg = validate_pwd(password1, password2)  # 密碼不符合條件
+        if error_msg is not None:
+            return JsonResponse({"result": False, "msg": error_msg})
+
+        user.set_password(password2)
+        user.save()
+        login(request, user)
+        return JsonResponse({"result": True, "msg": '變更密碼成功！'})
+
     else:
         print("error: it's not through ajax.", file=sys.stderr)
 
@@ -283,64 +288,75 @@ def reset_pwd_send_mail(email, temp_pwd):
 
 def start_game(request):
     if request.is_ajax and request.method == 'POST':
-        if request.user.is_authenticated:
-            # 已登入帳號 已前往學校 已改名(不能是預設的'取個暱稱吧')
-
-            # 再多加 Match 取代現在的Room 表示兩個人開始通話
-
-            # 互動鍵與行動鍵應該要分開來寫 不同劇本才能獨立
-            # 互動鍵與行動鍵都需要綁status 如此才不會有太多例外
-            # 針對不同劇本且特定角色才有的標記 例如偵探要全部都訪問完 Player 增加tag_int 之後增加tag_char tag_json
-            user = request.user
-            self_player = request.user.profile
-
-            games = Game.objects.filter(Q(isAdult=self_player.isAdult) & Q(isHetero=self_player.isHetero))
-            game = games[randint(0, len(games) - 1)]
-            self_player.game = game
-            self_player.isPrepared = True
-            self_player.waiting_time = datetime.now(tz=timezone.utc)
-            self_player.save()
-
-            players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))
-            male_players = players.filter(gender='m')
-            female_players = players.filter(gender='f')
-            maleNeeded = game.best_ratio[0]
-            femaleNeeded = game.best_ratio[1]
-
-            if len(male_players) >= maleNeeded and len(female_players) > femaleNeeded:
-                room = Room.objects.create(id=user.id, game=game)
-                if self_player.gender == 'm':
-                    players = female_players.order_by('waiting_time')[:femaleNeeded] + \
-                              self_player + male_players.order_by('waiting_time')[:maleNeeded-1]
-                else:
-                    players = self_player + female_players.order_by('waiting_time')[:femaleNeeded-1] + \
-                              male_players.order_by('waiting_time')[:maleNeeded]
-
-                roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
-
-                player_dict = {}
-                onoff_idct = {}
-                for player, role in zip(players, roles):
-                    player_dict[player.user.id] = [player.name, player.gender, role.name]
-                    onoff_idct[player.user.id] = 1
-
-                room.player_dict = player_dict
-                room.onoff_dict = onoff_idct
-                room.playerNum = femaleNeeded + maleNeeded
-                room.save()
-
-                self_player.room = room
-                self_player.save()
-
-                return JsonResponse({"result": True, "msg": '遊戲開始',
-                                     "player_dict": player_dict, "onoff_list": onoff_idct})
-            else:
-                return JsonResponse({"result": True, "msg": '請等待其他玩家進入遊戲！'})
-
-        else:
+        if not request.user.is_authenticated:
             print("error: user isn't authenticated.", file=sys.stderr)
+            return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
+
+        user = request.user
+        self_player = user.profile
+
+        if self_player.school is None:
+            return JsonResponse({"result": False, "msg": '尚未選擇所在城市'})
+        if self_player.name is None:
+            return JsonResponse({"result": False, "msg": '尚未取新的遊戲暱稱'})
+
+        game = get_game(self_player.isAdult, self_player.isHetero)
+
+        # 自己登記遊戲
+        self_player.game = game
+        self_player.isPrepared = True
+        self_player.waiting_time = datetime.now(tz=timezone.utc)
+        self_player.save()
+
+        # 判斷遊戲人數是否足夠
+        players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))  # todo 創房者獲取資料後 其他人才離線 問題
+        male_players = players.filter(gender='m')
+        female_players = players.filter(gender='f')
+        maleNeeded = game.best_ratio[0]
+        femaleNeeded = game.best_ratio[1]
+
+        # 人數足夠 建立房間
+        if len(male_players) >= maleNeeded and len(female_players) > femaleNeeded:
+            room = Room.objects.create(id=user.id, game=game)
+            if self_player.gender == 'm':
+                players = female_players.order_by('waiting_time')[:femaleNeeded] + \
+                          self_player + male_players.order_by('waiting_time')[:maleNeeded-1]
+            else:
+                players = self_player + female_players.order_by('waiting_time')[:femaleNeeded-1] + \
+                          male_players.order_by('waiting_time')[:maleNeeded]
+
+            roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
+
+            player_dict = {}
+            onoff_dict = {}
+            for player, role in zip(players, roles):
+                player.room = room  # todo 等待期間的玩家都不能存取資料庫以避免建房者發生錯誤 用player.status禁止上傳
+                player.save()
+                player_dict[player.user.id] = [player.name, player.gender, role.name]
+                onoff_dict[player.user.id] = True
+
+
+            room.player_dict = player_dict
+            room.onoff_dict = onoff_dict
+            room.playerNum = femaleNeeded + maleNeeded
+            room.save()
+
+            return JsonResponse({"result": True, "msg": '遊戲人數齊全，請等待加載...', "start": True})
+        # 人數不足 等待
+        else:
+            return JsonResponse({"result": True, "msg": '請等待其他玩家進入遊戲', "start": False})
+
     else:
         print("error: it's not through ajax.", file=sys.stderr)
+
+
+def get_game(isAdult, isHetero):
+    games = Game.objects.filter(Q(isAdult=isAdult) & Q(isHetero=isHetero))
+    game = games[randint(0, len(games) - 1)]
+
+    if settings.DEBUG is True:
+        game = Game.objects.get(id=1)
+    return game
 
 
 def get_roles_of_game(game, gender, num=1):
@@ -349,18 +365,23 @@ def get_roles_of_game(game, gender, num=1):
 
 
 def in_game(request, game_name):
-    # 先查看request.user 是否資料完全符合
+    # 先查看request.user 是否資料完全符合 遊戲房間必須正確 是否真的在遊戲進行中permission
+    # 被保持獨立 遊戲中的ajax則要傳送到 views_game_name.py
+    # consumers.py中也不會有個別遊戲專屬的method 而是所有遊戲都使用consumers.py的標配功能
     pass
 
 
+# 放到views_game_name.py
 def leave_game(request):
     pass
 
 
+# 放到views_game_name.py
 def enter_room(request):
     pass
 
 
+# 放到views_game_name.py
 def leave_room(request):
     pass
 

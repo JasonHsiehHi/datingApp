@@ -951,7 +951,8 @@ recursive：在lookups操作上可以透過多個外鍵來查找不同model的�
 lazy：當抓取此model類別的資料時外鍵的資料不會事先被存取
 
 class Car(models.Model):
-  manufacturer = models.ForeignKey('Manufacturer', null=True, on_delete=models.SET_NULL, related_name='car')
+  name = models.CharField(max_length=100)
+  manufacturer = models.ForeignKey('Manufacturer', null=True, on_delete=models.SET_NULL, related_name='car', related_query_name='car')
 class Manufacturer(models.Model):
   name = models.CharField(max_length=100)
 
@@ -963,6 +964,32 @@ models.SET_NULL, null=True
 
 related_name屬性用於manufacturer的反向關係名稱
 可用manufacturer.car.all() 表示querySet
+若不使用related_name 則預設為manufacturer.car_set.all()
+
+而related_query_name屬性用於反向filter中的名稱
+Manufacturer.objects.filter(car__name='car1')
+一定要加上related_query_name 才充許反向filter
+
+
+# select_related()和prefetch_related()
+當有使用外鍵連接的結構時使用(ForeignKey或ManyToManyField) 為減少多次訪問數據庫而存在
+當使用querySet抓取數據時 Article.objects.all()會訪問一次
+但此時只有該model的field值 其餘外鍵連結的model則無資料 
+像是 {{article.category.name}}或 {% for tag in article.tags.all %} 此時又需要訪問數據庫
+
+select_related()專門處理ForeignKey結構:
+Article.objects.all().select_related('category') querySet抓取資料時就涵蓋外鍵model資料
+Article.objects.select_related('author__name').get(id=13) querySet只抓取id=13的article及其外鍵author的資料
+Article.objects.select_related('category', 'author__name').get(id=13) 可抓取多個外鍵model資料
+
+prefetch_related()則處理ManyToManyField結構：
+因為直接當成ForeignKey處理 會導致最終生成的表格過於巨大
+Article.objects.all().prefetch_related('tags__name') 用法與select_related完全相同
+Article.objects.all().prefetch_related(
+    Prefetch('tags__name',  # Prefetch()可以篩選外鍵model的record 
+    queryset=Tag.objects.filter(name__startswith="P")),
+    to_attr='article_p_tag' # 最後將其加到Article的field中 (只會在querySet 不會寫入資料庫)
+)
 
 每個模型的屬性都是資料庫的一項field 而每個field會被映射到資料庫內的column：
 model之間的關係可分為:一對一,一對多,多對多 這三種
@@ -3465,7 +3492,7 @@ function formatAMPM(date) {
 'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
 
 只要有MIDDLEWARE有使用到：'django.middleware.csrf.CsrfViewMiddleware' 
-則從client端來的request就一定要有csrf_token
+則從client端來的request就一定要有csrf_token 且一定要放在form之中 不能用JS中抓取csrf_token
 
 
 若沒有在模板上附上則可在view使用@ensure_csrf_cookie：

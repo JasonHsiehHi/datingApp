@@ -101,7 +101,17 @@ function chatroomWS(){
                 }
             }else{
                 switch (data.type){ 
-                    case typeSet.greet: 
+                    case 'START':
+                        localData.player_dict = data['player_dict'], localStorage.player_dict = JSON.stringify(data['player_dict']);
+                        localData.onoff_dict = data['onoff_dict'], localStorage.onoff_dict = JSON.stringify(data['onoff_dict']);
+                        localData.status = 2, localStorage.status = '2';
+                        $('#modal').on('hide.bs.modal', function(e) {
+                            window.location.href = "/chat/start_game/"+data['game'];
+                        });
+                        break;
+
+                    // 不要使用typeSet了 難改又不好用
+                    case typeSet.greet:  
                         localData.anonName=data.anonName, localStorage.anonName=data.anonName, theUI.refreshProfile();
                         var li = data.dialog;
                         if (0 === localData.status)
@@ -151,7 +161,7 @@ function chatroomWS(){
                         localData.room = '', localStorage.room ='';
                         // todo 可能是/change而返回等待房 故anonName要做變更 需做theUI.refreshProfile()
                         theUI.clearChatLogs();
-                        ('' !== localData.imgUrl_adult) && theUI.showSys('照片已儲存！ 將以成人模式進行配對👌')
+                        ('' !== localData.imgUrl_adult) && theUI.showSys('照片已儲存！ 將以成人模式進行配對👌');
                         theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock();
                         break;
                     case typeSet.enter:
@@ -193,7 +203,7 @@ function LocalData(){
     this.name = '',
     this.matchType = '',
     this.isBanned = !1,
-    this.status = 0, // 1:inTest, 2:inWaiting, 3:inRoom
+    this.status = 0,
     this.lastSaid = 'sys',
     this.anonName = '',
     this.room = '',
@@ -203,6 +213,8 @@ function LocalData(){
     this.waiting_time = '',
     this.text_in_discon = [],
     this.imgUrl_adult = '',
+    this.player_dict = {},
+    this.onoff_dict = {},
     this.chatLogsNum = 0,
     this.chatLogsMaxNum = 250
     for (let i = 0;i<5;i++)
@@ -227,6 +239,8 @@ function getLocalData(){
             data.waiting_time = localStorage.waiting_time,
             data.text_in_discon =  JSON.parse(localStorage.text_in_discon),
             data.imgUrl_adult = localStorage.imgUrl_adult,
+            data.player_dict = JSON.parse(localStorage.player_dict),
+            data.onoff_dict = JSON.parse(localStorage.onoff_dict),
             data.chatLogsNum = +localStorage.chatLogsNum,
             data.chatLogsMaxNum = +localStorage.chatLogsMaxNum
             for (let i = 0;i<5;i++)
@@ -247,6 +261,8 @@ function getLocalData(){
             localStorage.waiting_time = '',
             localStorage.text_in_discon = '[]',
             localStorage.imgUrl_adult = '',
+            localStorage.player_dict = '{}'
+            localStorage.onoff_dict = '{}'
             localStorage.chatLogsNum = '0',
             localStorage.chatLogsMaxNum = '250'
             for (let i = 0;i<5;i++)
@@ -262,23 +278,27 @@ function getLocalData(){
 function loadLocalData(){  // loadLocalData just do theUI work (chatSocket.onopen had sent localData to back-end)
     theUI.refreshProfile();
     theUI.gotoSchoolAsync();
+
+    /* 針對不同status做回應
     switch (localData.status){
-        case 1:  // inTest 配對遊戲中
+        case 1:
             theUI.clearChatLogs();
             theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
             theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
             (localData.testQuestions.length>0)&&processTest(localData.testQuestions);
             break;
-        case 2:  // inWaiting 等待中
+        case 2:
             theUI.clearChatLogs();
             (''!==localData.waiting_time)&&(theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock(localData.waiting_time));
             break;
-        case 3:  // inRoom 連線中
+        case 3:
             theUI.loadChatLogs(30);  //todo '顯示更多'功能
             theUI.showSys('你與<span class="a-point">'+localData.anonName+'</span>待在一起');
-            // 重開只會顯示最後十行 其餘要點擊顯示更多 (必須要能夠辨識chatLog之中的元素個數)
+            // todo 重開只會顯示最後十行 其餘要點擊顯示更多 (必須要能夠辨識chatLog之中的元素個數)
             break;
     }
+    */
+
     $('#send-text').focus();
 }
 
@@ -296,19 +316,6 @@ function loadLoginStatus(){
     }else{
         appearElmtId('signup-btn'), appearElmtId('login-btn'), appearElmtId('reset-pwd-btn');
         disappearElmtId('user-info'), disappearElmtId('logout-btn'), disappearElmtId('change-pwd-btn');
-    }
-}
-
-function installToolTip() {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
-}
-
-function loadDatalist() {
-    for (let school of schoolImgSet){
-        $('#school-options').append("<option value="+school+">");
     }
 }
 
@@ -347,7 +354,7 @@ function bindMsgSend() {
     })
 }
 
-function bindModalToggle(){
+function bindModalPopup(){  // onclick to trigger modal
     for (let prop in modalTitle){
         $("#"+prop+"-btn").on('click',function(a){
             $("#"+prop+"-modal-form").removeClass('d-none');
@@ -356,23 +363,6 @@ function bindModalToggle(){
         })
     }
 
-    $("#start-btn").on('click',function(a){
-
-        $.ajax({
-            
-        })
-    })
-
-    // 之後要移到不同劇本的JS檔
-    $("#interact-btn").on('click',function(a){
-        
-    })
-
-    $("#action-btn").on('click',function(a){
-        
-    })
-
-
     $('#modal').on('hidden.bs.modal', function(e) {
         $('#modal').find('form').each(function(a){
             (!$(this).hasClass('d-none')) && $(this).addClass('d-none');
@@ -380,9 +370,8 @@ function bindModalToggle(){
         $('#modal .a-error').text('');
         (!0 === term.next_modal) && (showNoticeModal(term.next_msg), term.next_modal=!1);
     });
+
 }
-
-
 
 function showNoticeModal(msg){
     $("#notice-modal-form").removeClass('d-none');
@@ -392,10 +381,45 @@ function showNoticeModal(msg){
 }
 
 function bindFormSubmit(){
+    $("#start-form").on('submit',function(e){  // no modal form, only use notice-modal
+        e.preventDefault();
+        if (localData.name.length===0){
+            showNoticeModal('尚未取新的遊戲暱稱。');
+            return false
+        }else if (localData.school.length===0){
+            showNoticeModal('尚未選擇所在城市。');
+            return false
+        }
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: $(this).serializeArray(),
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){
+                    localData.status = 1, localStorage.status = '1';
+                    if (!0 === data['start']){
+                        theWS.callStartGame();
+                    }else{
+                        theUI.clearChatLogs();
+                        theUI.showSys('等待時間: <span class="a-clock a-point"></span>'), theUI.showClock();
+                    }
+                }else{
+                    showNoticeModal(data['msg']);
+                }
+            },
+            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+
     $('#name-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // todo 驗證資料
-
+        var name = $(this).find('input[name="name-input"]').val();
+        if (name.length>20){
+            $('#name-modal-form p.a-error').text('暱稱太長了，不能超過20個字元');
+            return false
+        }
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
@@ -419,7 +443,11 @@ function bindFormSubmit(){
 
     $('#goto-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // todo 驗證資料
+        var schoolId = $(this).find('input[name="goto-input"]').val();
+        if (schoolId === localData.school){
+            $('#goto-modal-form p.a-error').text('你目前已經在'+schoolId +schoolSet[schoolId] +'了哦');
+            return false
+        }
 
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
@@ -570,7 +598,6 @@ function bindFormSubmit(){
 
 }
 
-
 function cmdBySidebar(elmt){  // LARP用不到 刪掉 
     var text = $(elmt).find('.a-cmd').text();
     text = text.split(' ')[0]
@@ -578,8 +605,7 @@ function cmdBySidebar(elmt){  // LARP用不到 刪掉
     $("#sidebar .btn-close").click();
 }
 
-
-function bindFileUpload(){
+function bindFileUpload(){  // LARP用不到 刪掉
     $("#send-img").fileupload({
         dataType: "json",
         formData: function (form) {
@@ -642,11 +668,18 @@ var chatWS = function(){
         }
     }
 
+    function csg(){
+        chatSocket.send(JSON.stringify({
+            'call':'start'
+        }))
+    }
+
     return{
         msgSendWs:ms,
         msgsSendWs:mss,
         statusRespWs:st,
         writingNowWs:wn,
+        callStartGame:csg
     }
 }
 
@@ -669,7 +702,7 @@ function processTest(questions){
     }
     theUI.showQuestion('是否提交答案?', ['提交'], 1).find('.a-0').removeClass('a-0').addClass('a-submit')
     localData.testResult = []
-    localStorage.testResult=JSON.stringify(localData.testResult);
+    localStorage.testResult='[]';
 
     for (let s = 0;s<4;s++){
         var classStr = '.a-' + s.toString();
@@ -1060,7 +1093,7 @@ var chatUI = function(){
             var duration = h + ":" + m+':'+s;
             $('.a-clock').text(duration);
             
-            (2===localData.status) && (term.timerId_clock = setTimeout(time, 1000));
+            (1===localData.status) && (term.timerId_clock = setTimeout(time, 1000));
         } 
         var start = (null!==startTime)?(new Date(startTime)):(new Date());
         localData.waiting_time = start.Format('YYYY-MM-DD hh:mm:ss'), localStorage.waiting_time = localData.waiting_time;
@@ -1120,6 +1153,7 @@ var chatUI = function(){
     }
 
     function rp(){
+        // old 只有navbar部分
         $('.navbar-text.a-font>.a-matcher').text(localData.anonName);
         $('.navbar-text.a-font>.a-self').text(localData.name);
         if (''!==localData.matchType){
@@ -1133,8 +1167,8 @@ var chatUI = function(){
         // 增加sidebar部分的更新
         var school_name = localData.school+' '+schoolSet[localData.school];
         $('#school').text(school_name), $('#school').attr('data-bs-original-title', school_name);
-        $('#user-name').text(localData.name), $('#user-name').attr('data-bs-original-title', localData.name);
-
+        $('#user-tag').text(localData.name[0]);
+        $('#user-name').text(localData.name), $('#user-name').attr('data-bs-original-title', localData.name);   
     }
 
     function go(callback=null){  // async function: callback after function has completed
@@ -1243,6 +1277,19 @@ function eraseCookie(cname) {
     document.cookie = cname +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
+function installToolTip() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+}
+
+function loadDatalist() {
+    for (let school of schoolImgSet){
+        $('#school-options').append("<option value="+school+">");
+    }
+}
+
 !function(a){
     a.uuid = function() {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(a) {
@@ -1349,17 +1396,17 @@ var loginStatus,
         timerId_writing: null,
         next_modal:!1,
         next_msg:''
-    },
-    chatSocket = null,
+    }
+
+const chatSocket = null,
     theUI = chatUI(),
     theWS = chatWS(),
     theTerminal = chatTerminal(),
     theGate = checkGate(),
-    localData = getLocalData(),
-    csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+    localData = getLocalData()
 
 $(document).ready(function() {
     chatroomWS();
-    bindMsgSend(), bindFileUpload(), bindModalToggle(), bindFormSubmit(), loadDatalist(), installToolTip();    
+    bindMsgSend(), bindFileUpload(), bindModalPopup(), bindFormSubmit(), loadDatalist(), installToolTip();    
     loadLocalData(),loadLoginStatus();
 });
