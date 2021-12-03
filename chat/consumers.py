@@ -11,7 +11,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
         self.player_data = None  # todo self.player_data自動變為None的問題
         # todo 是否把self.player_data刪掉 改用每次都做refresh_player
-        self.robot_id = 3  # randint(1, 3)
+
+        self.uuid = None  # todo 只在成功註冊後才給定player資料
+
+        self.robot_id = 3  # randint(1, 3)  # 之後刪掉
 
         self.count = 0
 
@@ -19,38 +22,41 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         # await self.close() to reject connection
     async def disconnect(self, close_code):
-        self.player_data = await utils.refresh_player(self.player_data)
+        self.player_data = await utils.refresh_player(self.player_data)  # 沒有self.player_data 改用uuid來找就好
 
+        if self.player_data is None:
+            group_id = str(self.uuid)
+        else:
+            group_id = str(self.player_data.uuid)
+            await utils.set_player_isOn(self.player_data, False)
+
+            if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
+                await utils.set_player_isPrepared(self.player_data, False)
+
+            elif self.player_data.status == 2 or self.player_data.status == 3:  # 進入LARP遊戲後
+                await utils.player_onoff(self.player_data, False)
+
+            """  # 舊版 需要修改 進房間後斷線
+            if self.player_data.status == 3:  
+                room_id = str(self.player_data.room_id)
+    
+                self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), True)
+    
+                await self.channel_layer.group_send(room_id, {
+                    'type': 'is_disconnected',
+                    'boolean': True,
+                    'from': str(self.player_data.name)
+                })
+    
+                await self.channel_layer.group_discard(
+                    room_id,
+                    self.channel_name
+                )
+            """
         await self.channel_layer.group_discard(
-            str(self.player_data.uuid),
+            group_id,
             self.channel_name
         )
-        """  # 舊版 需要修改 進房間後斷線
-        if self.player_data.status == 3:  
-            room_id = str(self.player_data.room_id)
-
-            self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), True)
-
-            await self.channel_layer.group_send(room_id, {
-                'type': 'is_disconnected',
-                'boolean': True,
-                'from': str(self.player_data.name)
-            })
-
-            await self.channel_layer.group_discard(
-                room_id,
-                self.channel_name
-            )
-        """
-
-        if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
-            await utils.set_player_isPrepared(self.player_data, False)
-
-        elif self.player_data.status == 2 or self.player_data.status == 3:  # 進入LARP遊戲後
-            await utils.player_onoff(self.player_data, False)
-
-        if self.player_data.registered is False:  # 用戶註冊前不儲存player資料
-            await utils.delete_player(str(self.player_data.uuid))
 
     # receive from client side first
     async def receive_json(self, content):
@@ -59,7 +65,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         call = content.get('call', None)  # LARP
         if call == 'start':
             await self.call_start_game()
-
 
         command = content.get('cmd', None)
         if command is None and self.player_data.status == 3 and self.room_userNum == 2:
@@ -110,7 +115,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     't': self.start
                 })
 
-        elif command is not None:
+        elif command is not None:  # 之後整合到'call'
             print(command, file=sys.stderr)
             if command == 'open':
                 await self.cmd_open(content['uuid'], content['isFirst'])
@@ -142,6 +147,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'  是否需要堤防用戶console操作
         self.player_data = await utils.refresh_player(self.player_data)
+        self.player_data.status = 2
+        self.player_data.save()
         room = self.player_data.room
         for player in room.player_set:
             if player.uuid != self.player_data.uuid:
@@ -154,6 +161,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
 
     async def call_start_game_down(self, room_creator):  # 其他人告訴創房者'已加載完成'
+        self.player_data = await utils.refresh_player(self.player_data)
+        self.player_data.status = 2
+        self.player_data.save()
+
         await self.channel_layer.group_send(room_creator, {
             'type': 'start_game_down'
         })
@@ -183,14 +194,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     # called by receive_json to response client side
     async def cmd_open(self, uuid, isFirst):  # 幾乎只有open和import需要更新 其餘直接刪除
-        await self.channel_layer.group_add(  # todo uuid改用後端傳給前端 如此才能避免前端console操作
+
+        # 在login的地方傳入辨識碼 增加call_login() 並將group_add移到call_login()
+        await self.channel_layer.group_add(  # todo uuid是否改為後端傳給前端
             uuid,
             self.channel_name
         )
+
         self.player_data = await utils.get_player(uuid)
 
         # greet dialog LARP遊戲開始前 status要改
-        if isFirst is True and (self.player_data.status == 0 or self.player_data.status == 2):
+        if isFirst is True and (self.player_data is None or self.player_data.status == 0 or self.player_data.status == 2):
             dialog, sub = [], []
             t = int(datetime.now().strftime('%H'))
             robot = await utils.get_robot_name(self.robot_id)
@@ -213,9 +227,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'anonName': robot
             })
 
-    async def cmd_import(self, data):  # 根本不應該做import 除非POST 不然永遠只有後端可以傳給前端 反之不行
-        self.player_data = await utils.set_player_data(self.player_data, data)
+    async def cmd_import(self, data):
 
+        # 根本不應該做import 除非POST 不然永遠只有後端可以傳給前端 反之不行
+        # self.player_data = await utils.set_player_data(self.player_data, data)
+
+        '''
         if self.player_data.status == 3:
             room_id = str(self.player_data.room_id)
             await self.channel_layer.group_add(
@@ -236,6 +253,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'boolean': False,
                 'from': str(self.player_data.name)
             })
+        '''
 
     async def cmd_goto(self, school_id):
         if self.player_data.status == 0:  # todo school_id檢測 把schoolImgSet存入cache中
@@ -284,7 +302,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.player_data.status == 0:
             self.player_data = await utils.set_player_imgUrl(self.player_data, imgUrl)
 
-    async def cmd_wait(self, testResult=None):  # 即使client端的testResult存在 仍再次傳入
+    async def cmd_wait(self, testResult=None):  # # 合併到views.py Match
         if self.player_data.status is not None:  # self.player_data.status == 0,1,2,3 皆可
             if testResult is not None and (testResult != self.player_data.testResult):
                 self.player_data = await utils.set_player_score(self.player_data, testResult)
@@ -310,8 +328,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     'room': room_id
                 })
 
-    async def cmd_leave(self):
-
+    async def cmd_leave(self):  # 合併到views.py Match
         if self.player_data.status == 1:
             self.player_data = await utils.set_player_status(self.player_data, 0)
             await self.send_json({
@@ -356,7 +373,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             })
 
     # receive from other chatConsumers
-    async def enter_room(self, event):
+    async def enter_room(self, event):  # LARP 改到views.py
         name, room_id = event['name'], event['room']
         await self.channel_layer.group_add(
             room_id,
@@ -371,7 +388,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'matcherName': name
         })
 
-    async def leave_room(self, event):
+    async def leave_room(self, event):  # LARP 改到views.py
         await self.channel_layer.group_discard(
             str(self.player_data.room_id),
             self.channel_name

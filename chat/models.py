@@ -9,7 +9,7 @@ class Room(models.Model):
         ('mm', 'male->male'),
         ('ff', 'female->female')
     )
-    id = models.CharField(max_length=20, primary_key=True)  # 換成rood_id 不要蓋過預設的id
+    room_id = models.CharField(max_length=20, null=True)  # 換成rood_id 不要蓋過預設的id
     userNum = models.IntegerField(default=0)  # 原本的Room改到新的Match 表示兩個人開始通話
 
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
@@ -23,7 +23,7 @@ class Room(models.Model):
     onoff_dict = models.JSONField(max_length=25, null=True, default=dict)
 
     def __str__(self):
-        return "room-%s" % self.id
+        return "room-%s" % self.room_id
 
 
 class Player(models.Model):
@@ -42,7 +42,6 @@ class Player(models.Model):
     create_date = models.DateTimeField(default=timezone.now)
     anonName = models.CharField(max_length=25, null=True)
     name = models.CharField(max_length=25, null=True)
-    matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True)
     imgUrl_adult = models.URLField(null=True)
 
     isBanned = models.BooleanField(default=False)
@@ -51,17 +50,20 @@ class Player(models.Model):
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
 
-    testResult = models.JSONField(max_length=30, null=True)
-    score = models.FloatField(null=True)
+    matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True)  # 刪掉
+    testResult = models.JSONField(max_length=30, null=True)  # 刪掉
+    score = models.FloatField(null=True)  # 刪掉
+
     waiting_time = models.DateTimeField(null=True)
 
     user = models.OneToOneField(User, null=True, on_delete=models.SET_NULL, default=None, related_name='profile')
-    registered = models.BooleanField(default=False)
+    isRegistered = models.BooleanField(default=False)
 
     gender = models.CharField(max_length=1, choices=GENDER_TYPE, null=True)
-    isAdult = models.BooleanField(null=True)
-    isHetero = models.BooleanField(null=True)
+    isAdult = models.BooleanField(null=True, default=True)
+    isHetero = models.BooleanField(null=True, default=True)
     isPrepared = models.BooleanField(default=False)
+    isOn = models.BooleanField(default=False)
     game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
     tag_int = models.IntegerField(null=True)  # 針對特定角色才有用 偵探：需要紀錄自己審問的人
@@ -87,6 +89,17 @@ class GameRole(models.Model):  # todo 角色數量一定要多過遊戲人數 �
     name = models.CharField(max_length=10)
     gender = models.CharField(max_length=1, null=True)
     game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    group = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class GameEvent(models.Model):
+    name = models.CharField(max_length=20)
+    content = models.TextField(null=True)
+    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    group = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name

@@ -14,15 +14,31 @@ def get_player(uuid):
     try:
         player = Player.objects.get(uuid=uuid)
     except Player.DoesNotExist:
-        player = Player.objects.create(uuid=uuid)
+        player = None
     return player
 
 
 @database_sync_to_async
-def set_player_data(player, data):  # todo 用戶直接改localStorage問題
+def delete_player(uuid):
+    player = Player.objects.get(uuid=uuid)
+    player.delete()
+
+
+@database_sync_to_async
+def refresh_player(player):
+    if player is None:
+        new_player = None
+    else:
+        uuid = player.uuid
+        new_player = Player.objects.get(uuid=uuid)
+    return new_player
+
+
+@database_sync_to_async
+def set_player_data(player, data):  # 刪掉
     correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', settings.QUESTION_CORRECT_RESULT, None)
     if 'room' in data:
-        data['room'] = Room.objects.get(id=data['room'])
+        data['room'] = Room.objects.get(room_id=data['room'])
     if 'school' in data:
         data['school'] = School.objects.get(name=data['school'])
     if 'waiting_time' in data:
@@ -39,13 +55,7 @@ def set_player_data(player, data):  # todo 用戶直接改localStorage問題
 
 
 @database_sync_to_async
-def delete_player(uuid):
-    player = Player.objects.get(uuid=uuid)
-    player.delete()
-
-
-@database_sync_to_async
-def set_player_school(player, school_name):
+def set_player_school(player, school_name):  # 刪掉
     school = School.objects.get(name=school_name)
     player.school = school
     player.save()
@@ -53,7 +63,7 @@ def set_player_school(player, school_name):
 
 
 @database_sync_to_async
-def set_player_profile(player, name, matchType=None):
+def set_player_profile(player, name, matchType=None):  # 刪掉
     player.name = name
     if matchType is not None:
         player.matchType = matchType
@@ -62,15 +72,15 @@ def set_player_profile(player, name, matchType=None):
 
 
 @database_sync_to_async
-def set_player_room(player, room_id, matcherName=None):  # LARP room改為match
+def set_player_room(player, room_id, matcherName=None):  # LARP room改為match  且改到views.py執行
     if room_id is None:
         player.status = 0
         player.room = None
-        Room.objects.filter(id=room_id).delete()  # delete room by the user who leave first
+        Room.objects.filter(room_id=room_id).delete()  # delete room by the user who leave first
         School.objext.filter(name=str(player.school)).update(roomNum=F('roomNum') - 1)
     else:
         player.status = 3
-        room = Room.objects.get(id=room_id)
+        room = Room.objects.get(room_id=room_id)
         room.userNum = 2
         room.save()
         player.room = room
@@ -81,7 +91,7 @@ def set_player_room(player, room_id, matcherName=None):  # LARP room改為match
 
 
 @database_sync_to_async
-def set_player_status(player, next_status):
+def set_player_status(player, next_status):  # 刪掉 合併到views.py
     if player.status != next_status:
         player.status = next_status
         player.save()
@@ -91,15 +101,21 @@ def set_player_status(player, next_status):
 @database_sync_to_async
 def set_player_isPrepared(player, isPrepared):  # LARP
     player.isPrepared = isPrepared
-    if isPrepared is False:
-        player.waiting_time = None
     player.save()
     return player
 
 
 @database_sync_to_async
-def player_onoff(player, isOn):  # LARP
+def set_player_isOn(player, isOn):  # LARP isPrepared, isOnOff都用於處理disconnect() 之後要做合併
+    player.isPrepared = isOn
+    player.save()
+    return player
+
+
+@database_sync_to_async
+def player_onoff(player, isOn):  # LARP 用於處理disconnect() 之後要做合併
     player.room.onoff_dict[int(player.user.id)] = isOn
+    player.room.save()
 
 
 @database_sync_to_async
@@ -110,22 +126,15 @@ def set_player_imgUrl(player, imgUrl):
 
 
 @database_sync_to_async
-def refresh_player(player):
-    uuid = player.uuid
-    new_player = Player.objects.get(uuid=uuid)
-    return new_player
-
-
-@database_sync_to_async
 def create_room(id, matchType, school_id):
-    room = Room.objects.create(id=id, matchType=matchType, school=school_id)
+    room = Room.objects.create(room_id=id, matchType=matchType, school=school_id)
     School.objext.filter(name=school_id).update(roomNum=F('roomNum') + 1)
     return str(room.id)
 
 
 @database_sync_to_async
 def set_room_userNum(room_id, is_disconnected):
-    room = Room.objects.get(id=room_id)
+    room = Room.objects.get(room_id=room_id)
     n = -1 if is_disconnected else 1
     room.userNum = room.userNum + n
     room.save()
@@ -134,12 +143,12 @@ def set_room_userNum(room_id, is_disconnected):
 
 @database_sync_to_async
 def get_room_userNum(room_id):
-    room = Room.objects.get(id=room_id)
+    room = Room.objects.get(room_id=room_id)
     return int(room.userNum)
 
 
 @database_sync_to_async
-def set_player_score(player, testResult):
+def set_player_score(player, testResult):  # 刪掉
     correct_result = cache.get_or_set('QUESTION_CORRECT_RESULT', settings.QUESTION_CORRECT_RESULT, None)
     player.testResult = testResult
     if len(testResult) == 0:
@@ -154,7 +163,7 @@ def set_player_score(player, testResult):
 
 
 @database_sync_to_async
-def process_player_wait(player, next_status):
+def process_player_wait(player, next_status):  # 刪掉 合併到進入房間 Match
     school, name, matchType = player.school, player.name, player.matchType
     if all([school, name, matchType]) and player.status != next_status:
         player.status = next_status
@@ -177,7 +186,7 @@ def process_player_wait(player, next_status):
 
 
 @database_sync_to_async
-def process_player_match(someone):
+def process_player_match(someone):  # 刪掉
     match_type = someone.matchType
     players_in = Player.objects.filter(Q(school=someone.school) & Q(status=2))
 
@@ -201,7 +210,7 @@ def process_player_match(someone):
     return str(matcher.uuid), str(matcher.name)
 
 
-def duration_to_score(duration):
+def duration_to_score(duration):  # 刪掉
     score_reduction = int(duration.seconds / 60 / settings.MINUTES_FOR_DURATION_TO_SCORE)
     return score_reduction
 
@@ -245,13 +254,13 @@ def get_dialogue_dialog(speaker, action, sub, n=None):
 
 
 @database_sync_to_async
-def get_robot_name(speaker):
+def get_robot_name(speaker):  # 刪掉
     robot = Robot.objects.get(id=speaker)
     return str(robot.name)
 
 
 @database_sync_to_async
-def get_question_id_list_randomly(n=5, s_l_ratio=None):
+def get_question_id_list_randomly(n=5, s_l_ratio=None):  # 刪掉
     if s_l_ratio is None:
         s_l_ratio = [3, 2]
     id_list = []
@@ -264,7 +273,7 @@ def get_question_id_list_randomly(n=5, s_l_ratio=None):
 
 
 @database_sync_to_async
-def get_question_content_list(id_list):
+def get_question_content_list(id_list):  # 刪掉
     questions = Question.objects.filter(id__in=id_list).values('content', 'choice')
     return list(questions)
 

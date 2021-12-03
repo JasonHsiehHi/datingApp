@@ -23,7 +23,9 @@
 
     {% block script_file %}{% endblock %}
 
-    <script>loginStatus = ('{{loginStatus}}' === 'True')</script>
+    <script>
+    loginStatus = ('{{loginStatus}}' === 'True'), email = '{{email}}', gender = '{{gender}}';
+    </script>
 
 </head>
 <body>
@@ -212,10 +214,10 @@
                     </div>
                 </form>
 
-                <form class='d-none' id="leave-modal-form" data-url="leave"> <!-->放到game的html檔<-->
+                <form class='d-none' id="leave-modal-form" data-url="leave">
                     {% csrf_token %}
                     <div class="modal-body">
-                        <div class="mb-3"><p>確定要離開嗎？</p></div>  <!-->與notice-modal-form寫法類似<-->
+                        <div class="mb-3"><p>確定要離開嗎？</p></div>
                         <p class='text-danger p-1 a-error'></p>
                     </div>
                     <div class="modal-footer justify-content-center">
@@ -255,25 +257,28 @@
                         <i class="material-icons-outlined md-28">settings</i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settings-btn">
-                        <li><span class="dropdown-item-text">
-                            <span>尋找對象：</span>
-                            <span class="btn-group a-radio">
-                            <input type="radio" class="btn-check" name="sex-radio" id="male-radio" autocomplete="off" checked>
-                            <label class="btn btn-outline-dark" for="male-radio"><i class="material-icons-outlined md-18 align-text-top">male</i>找男生</label>
-                            <input type="radio" class="btn-check" name="sex-radio" id="female-radio" autocomplete="off">
-                            <label class="btn btn-outline-dark" for="female-radio"><i class="material-icons-outlined md-18 align-text-top">female</i>找女生</label>
-                            </span>
-                        </span></li>
-                        <li><span class="dropdown-item-text">
-                            <span>遊戲模式：</span>
-                            <span class="btn-group a-radio">
-                            <input type="radio" class="btn-check" name="mode-radio" id="normal-radio" autocomplete="off">
-                            <label class="btn btn-outline-dark" for="normal-radio">正常模式</label>
-                            <input type="radio" class="btn-check" name="mode-radio" id="adult-radio" autocomplete="off" checked>
-                            <label class="btn btn-outline-dark" for="adult-radio">成人模式</label>
-                            </span>
-                        </span></li>
-                        <li><span class="dropdown-item-text"></span></li>
+                        <form id="settings-form" data-url="settings">
+                            {% csrf_token %}
+                            <li><span class="dropdown-item-text">
+                                <span>尋找對象：</span>
+                                <span class="btn-group a-radio">
+                                <input type="radio" class="btn-check" name="sex-radio" id="male-radio" value='m' autocomplete="off" checked>
+                                <label class="btn btn-outline-dark" for="male-radio"><i class="material-icons-outlined md-18 align-text-top">male</i>找男生</label>
+                                <input type="radio" class="btn-check" name="sex-radio" id="female-radio" value='f' autocomplete="off">
+                                <label class="btn btn-outline-dark" for="female-radio"><i class="material-icons-outlined md-18 align-text-top">female</i>找女生</label>
+                                </span>
+                            </span></li>
+                            <li><span class="dropdown-item-text">
+                                <span>遊戲模式：</span>
+                                <span class="btn-group a-radio">
+                                <input type="radio" class="btn-check" name="mode-radio" id="normal-radio" value='0' autocomplete="off">
+                                <label class="btn btn-outline-dark" for="normal-radio">正常模式</label>
+                                <input type="radio" class="btn-check" name="mode-radio" id="adult-radio" value='1' autocomplete="off" checked>
+                                <label class="btn btn-outline-dark" for="adult-radio">成人模式</label>
+                                </span>
+                            </span></li>
+                            <li><span class="dropdown-item-text"><button class="d-none btn btn-dark" type="submit">確定</button></span></li>
+                        </form>
                     </ul>
                 </div>
 
@@ -303,7 +308,7 @@
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar">
                     <div class='a-div a-sidebar'>
-                        <div>目前所在學校：</div>
+                        <div>目前所在城市：</div>
                         <div class='d-flex justify-content-between'>
                             <span class='a-school a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='NTU 國立台灣大學' id='school'>NTU 國立台灣大學</span>
                             <button id="goto-btn" class="btn btn-link a-sidebar" type="button">前往..</button>
@@ -364,7 +369,7 @@
         <div class='offcanvas-footer a-sidebar text-center my-3'>
             <form data-url="start_game" id="start-form">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-warning" >開始遊戲</button>
+                <button type="submit" class="btn btn-warning" id="start-btn">開始遊戲</button>
             </form>
         </div>
         

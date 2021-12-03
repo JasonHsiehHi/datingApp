@@ -16,7 +16,7 @@ function chatroomWS(){
             }));
             (!0 === toggle.first) && (toggle.first = !1);
 
-            if('true'===localStorage.isSaved){
+            if('true'===localStorage.isSaved){  // 刪掉 前段不傳給後端
                 var data = {};
                 var li = ['name', 'matchType', 'school', 'anonName', 'room', 'isBanned', 'status', 'testResult', 'waiting_time'];
                 for (let i of li){
@@ -81,7 +81,7 @@ function chatroomWS(){
                     case typeSet.leave:
                         localData.status = 0, localStorage.status = '0';
                         localData.room = '', localStorage.room ='';
-                        // todo 返回房間外或等待房都加上dialog 故會訪問資料庫 anonName變更回管理員 theUI.refreshProfile()
+                        // todo 返回房間外或等待房都加上dialog 故會訪問資料庫 anonName變更回管理員 refreshProfile()
                         theUI.clearChatLogs();
                         if (localData.name===data.sender){
                             theUI.showSys('你已離開<span class="a-point">'+localData.anonName+'</span>');
@@ -199,31 +199,32 @@ function chatroomWS(){
 }
 
 function LocalData(){
-    this.uuid = $.uuid(),
-    this.name = '',
-    this.matchType = '',
-    this.isBanned = !1,
+    this.uuid = $.uuid(),  // 改為後端創建 並用於channel_group傳資料
+    this.name = '取個暱稱吧',
+    this.matchType = '',  // 刪掉 沒用
+    this.isBanned = !1,  // 刪掉 改成loginStatus的isBanned 前端不用留資料
     this.status = 0,
     this.lastSaid = 'sys',
     this.anonName = '',
-    this.room = '',
-    this.school = '',
-    this.testQuestions = [],
-    this.testResult = [],
+    this.room = '',  // 改掉 此資料可能在後端處理 不傳到前端
+    this.school = '',  // 改掉 school改成city
+    this.testQuestions = [],  // 刪掉
+    this.testResult = [],  // 刪掉
     this.waiting_time = '',
     this.text_in_discon = [],
     this.imgUrl_adult = '',
     this.player_dict = {},
     this.onoff_dict = {},
+    this.gender = '',  // 刪掉 用loginStatus的gender就好 用於註冊後就不會改變的資料
     this.chatLogsNum = 0,
-    this.chatLogsMaxNum = 250
+    this.chatLogsMaxNum = 250  // 改掉 不需要那摸複雜
     for (let i = 0;i<5;i++)
         this['chatLogs'+i.toString()] = ''
 }
 
 function getLocalData(){
     var data = new LocalData();
-    if (void 0 !== typeof(Storage)){
+    if ('undefined' !== typeof(Storage)){
         if ('true'===localStorage.isSaved){ 
             data.uuid = localStorage.uuid,
             data.name = localStorage.name,
@@ -241,14 +242,15 @@ function getLocalData(){
             data.imgUrl_adult = localStorage.imgUrl_adult,
             data.player_dict = JSON.parse(localStorage.player_dict),
             data.onoff_dict = JSON.parse(localStorage.onoff_dict),
+            data.gender = localStorage.gender,  
             data.chatLogsNum = +localStorage.chatLogsNum,
-            data.chatLogsMaxNum = +localStorage.chatLogsMaxNum
+            data.chatLogsMaxNum = +localStorage.chatLogsMaxNum 
             for (let i = 0;i<5;i++)
                 data['chatLogs'+i.toString()] = localStorage['chatLogs'+i.toString()]
         }else{
             localStorage.isSaved = 'true',
             localStorage.uuid = data.uuid,
-            localStorage.name = '',
+            localStorage.name = '取個暱稱吧',
             localStorage.matchType = '',
             localStorage.isBanned = 'false',
             localStorage.status = '0',
@@ -261,8 +263,9 @@ function getLocalData(){
             localStorage.waiting_time = '',
             localStorage.text_in_discon = '[]',
             localStorage.imgUrl_adult = '',
-            localStorage.player_dict = '{}'
-            localStorage.onoff_dict = '{}'
+            localStorage.player_dict = '{}',
+            localStorage.onoff_dict = '{}',
+            localStorage.gender = '',
             localStorage.chatLogsNum = '0',
             localStorage.chatLogsMaxNum = '250'
             for (let i = 0;i<5;i++)
@@ -276,29 +279,8 @@ function getLocalData(){
 }
 
 function loadLocalData(){  // loadLocalData just do theUI work (chatSocket.onopen had sent localData to back-end)
-    theUI.refreshProfile();
-    theUI.gotoSchoolAsync();
-
-    /* 針對不同status做回應
-    switch (localData.status){
-        case 1:
-            theUI.clearChatLogs();
-            theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
-            theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
-            (localData.testQuestions.length>0)&&processTest(localData.testQuestions);
-            break;
-        case 2:
-            theUI.clearChatLogs();
-            (''!==localData.waiting_time)&&(theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock(localData.waiting_time));
-            break;
-        case 3:
-            theUI.loadChatLogs(30);  //todo '顯示更多'功能
-            theUI.showSys('你與<span class="a-point">'+localData.anonName+'</span>待在一起');
-            // todo 重開只會顯示最後十行 其餘要點擊顯示更多 (必須要能夠辨識chatLog之中的元素個數)
-            break;
-    }
-    */
-
+    refreshProfile(), refreshStatus();
+    theUI.gotoSchoolAsync();  // 加一個'輸入城市名'的選項 即可
     $('#send-text').focus();
 }
 
@@ -309,15 +291,88 @@ function disappearElmtId(elmt_id){
     (!$('#'+elmt_id).hasClass('d-none')) && $('#'+elmt_id).addClass('d-none');
 }
 
+function disabledElmtId(elmt_id){
+    (void 0 === $('#'+elmt_id).attr('disabled')) && $('#'+elmt_id).attr('disabled', true);
+}
+function enabledElmtId(elmt_id){
+    (void 0 !== $('#'+elmt_id).attr('disabled')) && $('#'+elmt_id).removeAttr('disabled');
+}
+
+
 function loadLoginStatus(){ 
     if (!0 === loginStatus){
         appearElmtId('user-info'), appearElmtId('logout-btn'), appearElmtId('change-pwd-btn');
         disappearElmtId('signup-btn'), disappearElmtId('login-btn'), disappearElmtId('reset-pwd-btn');
+        $('#user-info>span:eq(0)').text(email);
+        $('#user-info>span:eq(1)').text('性別:' + ((gender == 'm')?'男':'女'));
+        unavailableBtn();
     }else{
         appearElmtId('signup-btn'), appearElmtId('login-btn'), appearElmtId('reset-pwd-btn');
         disappearElmtId('user-info'), disappearElmtId('logout-btn'), disappearElmtId('change-pwd-btn');
     }
+    
 }
+
+function unavailableBtn(){
+    if (gender==='m'){
+        $('#female-radio').click(),disabledElmtId('male-radio'), disabledElmtId('female-radio');
+    }else{
+        $('#male-radio').click(),disabledElmtId('male-radio'), disabledElmtId('female-radio');
+    }
+    $('#adult-radio').click(), disabledElmtId('adult-radio'), disabledElmtId('normal-radio');
+}
+
+
+function refreshProfile(){
+    // old 只有navbar部分
+    $('.navbar-text.a-font>.a-matcher').text(localData.anonName);
+    $('.navbar-text.a-font>.a-self').text(localData.name);
+    if (''!==localData.matchType){
+        var self = ('m'===localData.matchType[0])?'man':'woman';
+        var matcher = ('m'===localData.matchType[1])?'man':'woman';
+        var inRoom = (localData.status === 3)?'graphic_eq':'keyboard_arrow_right';
+        $('.navbar-text.a-type .material-icons:eq(0)').text(self);
+        $('.navbar-text.a-type .material-icons:eq(1)').text(inRoom);
+        $('.navbar-text.a-type .material-icons:eq(2)').text(matcher);
+    }
+    // 增加sidebar部分的更新
+    var school_name = localData.school+' '+schoolSet[localData.school];
+    $('#school').text(school_name), $('#school').attr('data-bs-original-title', school_name);
+    $('#user-tag').text(localData.name[0]);
+    $('#user-name').text(localData.name), $('#user-name').attr('data-bs-original-title', localData.name);   
+}
+
+function refreshStatus(){  // deal with all UI work about status
+    switch (localData.status){
+        case 0:
+            enabledElmtId('goto-btn'), enabledElmtId('name-btn');
+            enabledElmtId('start-btn'),$('#start-btn').text('開始遊戲'), disabledElmtId('leave-btn');
+            enabledElmtId('normal-radio'), enabledElmtId('adult-radio'), enabledElmtId('male-radio'), enabledElmtId('female-radio');
+            break;
+
+        case 1:
+            disabledElmtId('goto-btn'), disabledElmtId('name-btn');
+            disabledElmtId('start-btn'),$('#start-btn').text('等待中...'), enabledElmtId('leave-btn');
+            disabledElmtId('normal-radio'), disabledElmtId('adult-radio'), disabledElmtId('male-radio'), disabledElmtId('female-radio');
+
+            theUI.clearChatLogs();
+            (0!==localData.waiting_time.length)&&(theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock(localData.waiting_time));
+            break;
+        case 2:  // 移到refreshGameStatus()
+            theUI.clearChatLogs();
+            theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
+            theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
+            (localData.testQuestions.length>0)&&processTest(localData.testQuestions);
+            break;
+
+        case 3:
+            theUI.loadChatLogs(30);  //todo '顯示更多'功能
+            theUI.showSys('你與<span class="a-point">'+localData.anonName+'</span>待在一起');
+            // todo 重開只會顯示最後十行 其餘要點擊顯示更多 (必須要能夠辨識chatLog之中的元素個數)
+            break;
+    }
+}
+
 
 function bindMsgSend() {
     $("#send-text").on('keypress',function(a){
@@ -381,6 +436,39 @@ function showNoticeModal(msg){
 }
 
 function bindFormSubmit(){
+    $("#leave-modal-form").on('submit',function(e){  
+        e.preventDefault();
+        // 每次都讓status退一格 room->game->自動重新等待->取消等待
+        if (1 !== localData.status){  // 現在只處理status === 1
+            return false
+        }
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: $(this).serializeArray(),
+            dataType: "json",
+            success:function(data) {
+                if (!0 === data['result']){
+                    localData.waiting_time= '', localStorage.waiting_time = '';
+                    localData.status = 0, localStorage.status = '0', refreshStatus();
+                    theUI.showSys('停止等待')
+                    $('#modal').modal('hide');
+                }else{
+                    $('#leave-modal-form p.a-error').text(data['msg']);
+                }
+            },
+            error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            
+        })
+    })
+
+    $("#settings-form").on('submit',function(e){   
+        e.preventDefault();
+        // 改採關閉後檢驗資料是否改變 若改變則傳送 不變則不做反應
+        // 並在chatlog上顯示 像是改學校或改暱稱
+    })
+
     $("#start-form").on('submit',function(e){  // no modal form, only use notice-modal
         e.preventDefault();
         if (localData.name.length===0){
@@ -397,12 +485,13 @@ function bindFormSubmit(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    localData.status = 1, localStorage.status = '1';
+                    localData.status = 1, localStorage.status = '1', refreshStatus();
                     if (!0 === data['start']){
                         theWS.callStartGame();
                     }else{
                         theUI.clearChatLogs();
                         theUI.showSys('等待時間: <span class="a-clock a-point"></span>'), theUI.showClock();
+                        $('#sidebar').offcanvas('hide');
                     }
                 }else{
                     showNoticeModal(data['msg']);
@@ -429,7 +518,7 @@ function bindFormSubmit(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    localData.name = data['name'], localStorage.name = data['name'], theUI.refreshProfile();
+                    localData.name = data['name'], localStorage.name = data['name'], refreshProfile();
                     theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 已修改完畢');
                     $('#modal').modal('hide');
                 }else{
@@ -458,7 +547,7 @@ function bindFormSubmit(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    localData.school = data['school'], localStorage.school = data['school'],theUI.refreshProfile();
+                    localData.school = data['school'], localStorage.school = data['school'], refreshProfile();
                     var school = localData.school;
                     theUI.clearChatLogs();
                     theUI.gotoSchoolAsync(function(){
@@ -482,12 +571,16 @@ function bindFormSubmit(){
 
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
+        formArray.push({name:"goto-input",value: localData.school});
+        formArray.push({name:"name-input",value: localData.name});
+
+        $(this).find('.modal-footer button[type="submit"]').text('等待中...').attr('disabled', true);
         $.ajax({
             type: 'POST',
             url: $(this).data('url'),
             data: formArray,
             dataType: "json",
-            success: function(data) {  // todo 寄信需要提醒用戶需要等一下 將確認btn圖示換成小圈圈
+            success: function(data) {  
                 if (!0 === data['result']){
                     term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
                 }else{
@@ -495,7 +588,10 @@ function bindFormSubmit(){
                 }
             },
             error: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            timeout: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            complete: function(data, code) {  
+                $('#signup-modal-form button[type="submit"]').text('確定').removeAttr('disabled');
+            }
         })
     })
 
@@ -508,11 +604,12 @@ function bindFormSubmit(){
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
+                console.log(data['result']);
                 if (!0 === data['result']){
                     for (let prep in data['player']){
                         localData[prep] = data['player'][prep], localStorage[prep] = data['player'][prep];
                     }
-                    theUI.refreshProfile(), loginStatus = !0, loadLoginStatus();
+                    refreshProfile(), loginStatus = !0, loadLoginStatus();
 
                     term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
                     $('#modal').on('hide.bs.modal', function(e) {
@@ -683,7 +780,7 @@ var chatWS = function(){
     }
 }
 
-function processAdult(img_url){
+function processAdult(img_url){  // 刪掉
     theUI.showQuestion('是否確定使用此圖片?<p class="text-center"><img class="img-fluid a-img" src=' +img_url+'alt="refresh again"></img></p>', ['更改','確定'], 2);
     $('.a-q .a-0').on('click',function(e) {
         setTimeout($('#send-img').click(), 200);
@@ -695,7 +792,7 @@ function processAdult(img_url){
     })
 }
 
-function processTest(questions){
+function processTest(questions){  // 刪掉
     for (let q of questions){ // q為{content:... ,choices:[y,n]}的物件
         theUI.showQuestion(q.content, q.choice, q.type);
 
@@ -1090,7 +1187,7 @@ var chatUI = function(){
             m = (m < 10) ? ("0" + m) : m;
             s = (s < 10) ? ("0" + s) : s;
 
-            var duration = h + ":" + m+':'+s;
+            var duration = m+':'+s;
             $('.a-clock').text(duration);
             
             (1===localData.status) && (term.timerId_clock = setTimeout(time, 1000));
@@ -1114,7 +1211,7 @@ var chatUI = function(){
     }
 
     function ll(n=null){
-        if (void 0 !== typeof(Storage)){
+        if ('undefined' !== typeof(Storage)){
             var last = $('#writing');
             $('#dialog').empty(), $('#dialog').append(last);
             if(localData.chatLogsNum>=250){
@@ -1152,7 +1249,7 @@ var chatUI = function(){
         localData.chatLogsNum+= n, localStorage.chatLogsNum = localData.chatLogsNum.toString();
     }
 
-    function rp(){
+    function rp(){  // 刪掉
         // old 只有navbar部分
         $('.navbar-text.a-font>.a-matcher').text(localData.anonName);
         $('.navbar-text.a-font>.a-self').text(localData.name);
@@ -1226,19 +1323,20 @@ var chatUI = function(){
         showSelfImg:si,
         showImg:i,
         showClock:c,
-        showQuestion:q,
+        showQuestion:q,  // 刪掉
         scrollToNow:n,
         showWritingNow:wn,
         unreadTitle:ut,
         clearChatLogs:cl,
         loadChatLogs:ll,
         storeChatLogs:sl,
-        refreshProfile:rp,
+        refreshProfile:rp,  // 刪掉
         gotoSchoolAsync:go,
         showMsgsAsync:ms
     }
 }
 
+// cookie相關 移到另一個js檔
 function setCookie(cname, cvalue, exdays) {
     const d = new Date();
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
@@ -1317,14 +1415,16 @@ Date.prototype.Format = function (fmt) {
     return fmt;
 }
 
-var loginStatus, 
+var loginStatus,
+    email,  // 改為loginEmail 
+    gender,  // 改為loginGender 
     TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     unreadMsg = 0,
     school_url = '/static/img/mark/',
     schoolImgSet = new Set([
         'NCCU', 'NTU', 'SCU', 'PCCU', 'FJU', 'TKU', 'NTHU', 'NCTU', 'NCKU'
     ]),
-    typeSet = {
+    typeSet = {  // 刪掉 直接傳字串即可
         greet:'GREET',
         goto:'GOTO',
         profile:'PROFILE',
@@ -1344,7 +1444,7 @@ var loginStatus,
         conn:'CONN',
         error:'ERROR'
     }, 
-    commandSet = {
+    commandSet = {  // 刪掉 不再使用command
         goto:'/go',
         adult:'/a',
         leave:'/le',
@@ -1356,7 +1456,7 @@ var loginStatus,
         reset:'/r',
         image:'/@'
     },
-    st = {
+    st = {  // 刪掉 LARP不使用
         1:'配對遊戲中',2:'等待中',3:'連線中'
     }
     modalTitle={
@@ -1396,9 +1496,8 @@ var loginStatus,
         timerId_writing: null,
         next_modal:!1,
         next_msg:''
-    }
-
-const chatSocket = null,
+    },
+    chatSocket = null,
     theUI = chatUI(),
     theWS = chatWS(),
     theTerminal = chatTerminal(),

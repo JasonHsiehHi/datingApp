@@ -19,12 +19,6 @@ $("#deduce-modal-form").on('submit',function(e){
 
 })
 
-$("#leave-modal-form").on('submit',function(e){
-    e.preventDefault();
-    // 所有角色都相同 但依據玩家狀態而有所不同
-
-})
-
 // refreshPlayerList();  // 需要針對劇本選擇行動鍵與互動鍵 故會在game中進行
 
 // 互動鍵與行動鍵應該要分開來寫 不同劇本才能獨立

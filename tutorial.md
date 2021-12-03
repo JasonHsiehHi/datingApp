@@ -2286,6 +2286,12 @@ $("li").find("ul")回傳所有符合的子元素 等同jquery的$("ul","li")
 
 $("li").find("ul").filter(":nth-child(2n)") 可回傳符合條件的子元素
 亦可用 filter()常配合inArray()一起使用
+
+$("li").find("ul").eq(2) 可以直接指定第幾個子元素
+等同$("li").find("ul:eq(2)") 
+
+$(this).closest('.comment').find('form').eq(0)
+
 $.inArray 若index在index_list中則回傳所在位置 若不在index_list中則回傳-1
  $("li").find("ul").filter(function(index) { 
     return $.inArray(index, index_list) > -1; // 只要function回傳true即符合條件

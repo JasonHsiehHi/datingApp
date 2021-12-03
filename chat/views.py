@@ -25,8 +25,22 @@ import sys
 
 
 def chatroom(request):
-    loginStatus = True if request.user.is_authenticated else False
-    return render(request, 'chat/chatroom.html', {'loginStatus': loginStatus})
+    user = request.user
+    if user.is_authenticated:
+        loginStatus = True
+        email = user.username
+        gender = user.profile.gender
+        user.profile.isOn = True
+
+        if user.profile.status == 1:  # 進入LARP遊戲前的等待階段
+            user.profile.isPrepared = True
+
+        user.profile.save()
+    else:
+        loginStatus = False
+        email = ''
+        gender = ''
+    return render(request, 'chat/chatroom.html', {'loginStatus': loginStatus, 'email': email, 'gender': gender})
 
 
 def upload_image(request):
@@ -46,13 +60,20 @@ def upload_image(request):
 def post_school(request):
     if request.is_ajax and request.method == "POST":
         school_name = request.POST['goto-input'].upper()
-        filter_result = School.objects.filter(name__exact=school_name)
+        filter_result = School.objects.filter(name__exact=school_name)  # 改用get 和 DoesNotExist
         if len(filter_result) == 0:
             return JsonResponse({"result": False, "msg": "抱歉，所在城市還未開放。"})
 
         school = filter_result[0]
-        Player.objects.update_or_create(uuid=request.POST['uuid-input'],
-                                        defaults={'school': school})
+
+        user = request.user
+        if user.is_authenticated and user.is_active:
+            user.profile.uuid = request.POST['uuid-input']
+            user.profile.school = school
+            user.profile.save()
+
+        # Player.objects.update_or_create(uuid=request.POST['uuid-input'], defaults={'school': school})
+
         dialog = []  # todo dialog GOTO 動態資訊
         return JsonResponse({"result": True, "school": school.name, "dialog": dialog})
     else:
@@ -65,9 +86,14 @@ def post_name(request):  # todo 加上修改權限permission 用於替代self.pl
         if len(name) > 20:
             return JsonResponse({"result": False, "msg": "暱稱太長了，不能超過20個字元"})
 
-        player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'],
-                                                          defaults={'name': name})
-        return JsonResponse({"result": True, "name": player.name})
+        user= request.user
+        if user.is_authenticated and user.is_active:
+            user.profile.uuid = request.POST['uuid-input']
+            user.profile.name = name
+            user.profile.save()
+
+        # player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'], defaults={'name': name})
+        return JsonResponse({"result": True, "name": name})
     else:
         print("error: it's not through ajax.", file=sys.stderr)
 
@@ -82,17 +108,22 @@ def signup(request):
         try:
             valid_email(email)
         except ValidationError:
-            return JsonResponse({"result": False, "msg": '不符合電子信箱格式！'})
+            return JsonResponse({"result": False, "msg": '電子信箱不符合格式！'})
 
         error_msg = validate_pwd(password1, password2)  # 密碼不符合條件
         if error_msg is not None:
             return JsonResponse({"result": False, "msg": error_msg})
 
-        filter_result = User.objects.filter(username__exact=email)
-        if len(filter_result) == 1:
-            if filter_result[0].is_active is True:
-                return JsonResponse({"result": False, "msg": '此電子信箱已經註冊過了！如果您的密碼遺失可選擇重設密碼。'})
+        if settings.DEBUG is True:  # todo 測試時開放同信箱註冊 username名稱自動遞增
+            filter_result = User.objects.filter(email=email)
+            username = email + str(len(filter_result))
+        else:
+            username = email
 
+        filter_result = User.objects.filter(username__exact=username)  # 改用get和 User.DoesNotExist
+        if len(filter_result) == 1:
+            if filter_result[0].is_active:
+                return JsonResponse({"result": False, "msg": '此電子信箱已經註冊過了！如果您的密碼遺失可選擇重設密碼。'})
             else:
                 if cache.get('signup_' + email) is True:
                     return JsonResponse({"result": False, "msg": '已經寄到此電子信箱了哦！如果需要再寄一次則需等待10分鐘。'})
@@ -104,9 +135,17 @@ def signup(request):
                     return JsonResponse({"result": True, "msg": "已成功將註冊認證信寄到你的信箱了哦！"})
 
         else:
-            user = signup_create_user(email, password2)
-            Player.objects.update_or_create(uuid=request.POST['uuid-input'],
-                                            defaults={'user': user, 'registered': True, 'gender': gender})
+            user = signup_create_user(username, email, password2)
+            try:
+                school = School.objects.get(name=request.POST['goto-input'])
+            except School.DoesNotExist:
+                school = None
+            Player.objects.create(uuid=request.POST['uuid-input'], user=user, isRegistered=True, gender=gender,
+                                  name=request.POST['name-input'], school=school)
+
+            #  Player.objects.update_or_create(uuid=request.POST['uuid-input'],
+            #                               defaults={'user': user, 'isRegistered': True, 'gender': gender})
+
             isSent = signup_send_mail(email)
             if isSent is False:
                 return JsonResponse({"result": False, "msg": '寄件失敗，請稍候再試。'})
@@ -116,14 +155,7 @@ def signup(request):
         print("error: it's not through ajax.", file=sys.stderr)
 
 
-def signup_create_user(email, password):
-
-    if settings.DEBUG is True:  # todo 測試時開放同信箱註冊 username名稱自動遞增
-        filter_result = User.objects.filter(email=email)
-        username = email+len(filter_result)
-    else:
-        username = email
-
+def signup_create_user(username, email, password):
     user = User.objects.create_user(username=username, password=password, email=email)
     user.is_active = False
     user.save()
@@ -161,9 +193,16 @@ def activate(request, token):
         return render(request, 'chat/chatroom_activate.html', {"title": '啟用失敗',
                                                                "msg": '驗證連結可能已過期或已完成，或所驗證的帳號不存在，請重新註冊。'})
     else:
-        user = User.objects.get(username=email)
-        user.is_active = True
-        user.save()
+        if settings.DEBUG is True:
+            users = User.objects.filter(email=email)
+            for user in users:
+                user.is_active = True
+                user.save()
+            user = list(users)[-1]
+        else:
+            user = User.objects.get(username=email)
+            user.is_active = True
+            user.save()
         login(request, user)
         cache.delete(token)
         return render(request, 'chat/chatroom_activate.html', {"title": '啟用成功',
@@ -180,12 +219,14 @@ def log_in(request):
         except ValidationError:
             return JsonResponse({"result": False, "msg": '不符合電子信箱格式！'})
 
+        print(email, file=sys.stderr)
         user = authenticate(request, username=email, password=password)
         if user is None or user.is_active is False:
             return JsonResponse({"result": False, "msg": '登入失敗，密碼錯誤或信箱還未完成註冊驗證。'})
         else:
             login(request, user)
-            player_dict = model_to_dict(user.profile, fields=['uuid', 'name', 'school'])
+            # 依據用戶的status 給予相對應的資料
+            player_dict = model_to_dict(user.profile, fields=['uuid', 'name', 'school', 'status', 'waiting_time'])
             return JsonResponse({"result": True, 'player': player_dict, "msg": '帳號登入成功！'})
 
     else:
@@ -196,6 +237,9 @@ def log_out(request):
     if request.is_ajax and request.method == 'POST':
         if request.user.is_authenticated:
             logout(request)
+            # 登出後不能再修改後端player資料
+            # 在沒有帳號之前都不能建立player 只能操作前端互動而已
+
             return JsonResponse({"result": True, "msg": '帳號已登出！'})
         else:
             print("error: user isn't authenticated.", file=sys.stderr)
@@ -306,6 +350,7 @@ def start_game(request):
         self_player.game = game
         self_player.isPrepared = True
         self_player.waiting_time = datetime.now(tz=timezone.utc)
+        self_player.status = 1
         self_player.save()
 
         # 判斷遊戲人數是否足夠
@@ -316,14 +361,14 @@ def start_game(request):
         femaleNeeded = game.best_ratio[1]
 
         # 人數足夠 建立房間
-        if len(male_players) >= maleNeeded and len(female_players) > femaleNeeded:
-            room = Room.objects.create(id=user.id, game=game)
+        if len(male_players) >= maleNeeded and len(female_players) >= femaleNeeded:
+            room = Room.objects.create(game=game)
             if self_player.gender == 'm':
-                players = female_players.order_by('waiting_time')[:femaleNeeded] + \
-                          self_player + male_players.order_by('waiting_time')[:maleNeeded-1]
+                players = list(female_players.order_by('waiting_time'))[:femaleNeeded] + \
+                          [self_player] + list(male_players.order_by('waiting_time'))[:maleNeeded-1]
             else:
-                players = self_player + female_players.order_by('waiting_time')[:femaleNeeded-1] + \
-                          male_players.order_by('waiting_time')[:maleNeeded]
+                players = [self_player] + list(female_players.order_by('waiting_time'))[:femaleNeeded-1] + \
+                          list(male_players.order_by('waiting_time'))[:maleNeeded]
 
             roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
 
@@ -334,7 +379,6 @@ def start_game(request):
                 player.save()
                 player_dict[player.user.id] = [player.name, player.gender, role.name]
                 onoff_dict[player.user.id] = True
-
 
             room.player_dict = player_dict
             room.onoff_dict = onoff_dict
@@ -361,7 +405,7 @@ def get_game(isAdult, isHetero):
 
 def get_roles_of_game(game, gender, num=1):
     roles = GameRole.objects.filter(Q(game=game) & Q(gender=gender))
-    return sample(roles, num)
+    return sample(list(roles), num)
 
 
 def in_game(request, game_name):
@@ -371,8 +415,29 @@ def in_game(request, game_name):
     pass
 
 
+def leave(request):
+    if request.is_ajax and request.method == 'POST':
+        if request.user.is_authenticated:
+            player = request.user.profile
+            player.status = 0
+            player.waiting_time = None
+            player.save()
+            return JsonResponse({"result": True})
+        else:
+            print("error: user isn't authenticated.", file=sys.stderr)
+            return JsonResponse({"result": False, "msg": '用戶沒有登入帳號。'})
+    else:
+        print("error: it's not through ajax.", file=sys.stderr)
+
+
 # 放到views_game_name.py
 def leave_game(request):
+    # room.delete() 最後一人要把room刪除
+    pass
+
+
+# 放到views_game_name.py
+def leave_room(request):
     pass
 
 
@@ -381,7 +446,5 @@ def enter_room(request):
     pass
 
 
-# 放到views_game_name.py
-def leave_room(request):
-    pass
+
 
