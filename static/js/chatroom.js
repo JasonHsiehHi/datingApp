@@ -9,14 +9,16 @@ function chatroomWS(){
 
         chatSocket.onopen = function(){
             console.log("WS connected.");
-            chatSocket.send(JSON.stringify({
+
+            /*
+            chatSocket.send(JSON.stringify({  // 刪掉 前端不傳給後端
                 'cmd':'open',
                 'uuid': localData.uuid,
                 'isFirst':toggle.first
             }));
             (!0 === toggle.first) && (toggle.first = !1);
 
-            if('true'===localStorage.isSaved){  // 刪掉 前段不傳給後端
+            if('true'===localStorage.isSaved){  // 刪掉 前端不傳給後端
                 var data = {};
                 var li = ['name', 'matchType', 'school', 'anonName', 'room', 'isBanned', 'status', 'testResult', 'waiting_time'];
                 for (let i of li){
@@ -27,7 +29,9 @@ function chatroomWS(){
                     'cmd':'import',
                     'data': data
                 }));
-            }    
+            }
+            */
+
         };
         // todo 增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
 
@@ -105,6 +109,7 @@ function chatroomWS(){
                         localData.player_dict = data['player_dict'], localStorage.player_dict = JSON.stringify(data['player_dict']);
                         localData.onoff_dict = data['onoff_dict'], localStorage.onoff_dict = JSON.stringify(data['onoff_dict']);
                         localData.status = 2, localStorage.status = '2';
+                        $('#modal').modal('hide'), showNoticeModal('開始遊戲');
                         $('#modal').on('hide.bs.modal', function(e) {
                             window.location.href = "/chat/start_game/"+data['game'];
                         });
@@ -278,12 +283,6 @@ function getLocalData(){
     return data
 }
 
-function loadLocalData(){  // loadLocalData just do theUI work (chatSocket.onopen had sent localData to back-end)
-    refreshProfile(), refreshStatus();
-    theUI.gotoSchoolAsync();  // 加一個'輸入城市名'的選項 即可
-    $('#send-text').focus();
-}
-
 function appearElmtId(elmt_id){
     ($('#'+elmt_id).hasClass('d-none')) && $('#'+elmt_id).removeClass('d-none');
 }
@@ -298,9 +297,15 @@ function enabledElmtId(elmt_id){
     (void 0 !== $('#'+elmt_id).attr('disabled')) && $('#'+elmt_id).removeAttr('disabled');
 }
 
+function loadLocalData(){  // loadLocalData just do theUI work
+    refreshProfile(), refreshStatus();
+    theUI.gotoSchoolAsync();  // 在db加一個'輸入城市名'的選項 即可
+    $('#send-text').focus();
+}
 
 function loadLoginStatus(){ 
     if (!0 === loginStatus){
+        chatroomWS();
         appearElmtId('user-info'), appearElmtId('logout-btn'), appearElmtId('change-pwd-btn');
         disappearElmtId('signup-btn'), disappearElmtId('login-btn'), disappearElmtId('reset-pwd-btn');
         $('#user-info>span:eq(0)').text(email);
@@ -348,17 +353,18 @@ function refreshStatus(){  // deal with all UI work about status
             enabledElmtId('goto-btn'), enabledElmtId('name-btn');
             enabledElmtId('start-btn'),$('#start-btn').text('開始遊戲'), disabledElmtId('leave-btn');
             enabledElmtId('normal-radio'), enabledElmtId('adult-radio'), enabledElmtId('male-radio'), enabledElmtId('female-radio');
+            (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
             break;
-
         case 1:
             disabledElmtId('goto-btn'), disabledElmtId('name-btn');
             disabledElmtId('start-btn'),$('#start-btn').text('等待中...'), enabledElmtId('leave-btn');
             disabledElmtId('normal-radio'), disabledElmtId('adult-radio'), disabledElmtId('male-radio'), disabledElmtId('female-radio');
-
             theUI.clearChatLogs();
             (0!==localData.waiting_time.length)&&(theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock(localData.waiting_time));
+            // theUI.showClock變為NaN:NaN (safari)
+            (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
             break;
-        case 2:  // 移到refreshGameStatus()
+        case 2:  // 固定的部分元件能直接實現 不用到game.js
             theUI.clearChatLogs();
             theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
             theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
@@ -844,9 +850,33 @@ var checkGate = function(){
             dialog = ['是否要進行下一次配對 輸入/m \n或選擇重新測試 輸入/t \n或更改配對用的名稱 輸入/n name \n或移動到其他學校 輸入/go sch_id', !1]
         return dialog
     }
+
+    function grt(){
+        $.ajax({
+            type: 'GET',
+            url: '/chat/greet',
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){
+                    var li = data['dialog'];
+                    if (0 === localData.status)
+                        li.splice(1,0,itr(), tut()); // insert theGate into data['dialog']
+                    else if(1 === localData.status)
+                        li.splice(1,0,itr());
+                    theUI.showMsgsAsync(li);
+                }else{
+                    showNoticeModal(data['msg']);
+                }
+            },
+            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    }
+
     return {
         tutor:tut,
-        intro:itr
+        intro:itr,
+        greet:grt
     }
 }
 
@@ -1190,7 +1220,7 @@ var chatUI = function(){
             var duration = m+':'+s;
             $('.a-clock').text(duration);
             
-            (1===localData.status) && (term.timerId_clock = setTimeout(time, 1000));
+            (1===localData.status) && (term.timerId_clock = setTimeout(time, 1000));  // time-conuting only in status:1
         } 
         var start = (null!==startTime)?(new Date(startTime)):(new Date());
         localData.waiting_time = start.Format('YYYY-MM-DD hh:mm:ss'), localStorage.waiting_time = localData.waiting_time;
@@ -1479,7 +1509,7 @@ var loginStatus,
         text:!0, // todo 當出現bootbox時 離線後上線是否還要停留在bootbox
         discon:!1,  // 表示對方斷線 重連時直接從後端抓取資料
         problem:!1, // todo 表示自己網路出現問題 會跟開頭畫面一起使用
-        first:!0 // 為避免每次chatSocket重連就GREET一次
+        first:!0
     },
     term = {
         name:'',
@@ -1505,7 +1535,6 @@ var loginStatus,
     localData = getLocalData()
 
 $(document).ready(function() {
-    chatroomWS();
     bindMsgSend(), bindFileUpload(), bindModalPopup(), bindFormSubmit(), loadDatalist(), installToolTip();    
     loadLocalData(),loadLoginStatus();
 });

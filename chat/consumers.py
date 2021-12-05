@@ -3,60 +3,86 @@ from . import utils
 from django.core.cache import cache
 from datetime import datetime
 import time
-import sys
 from datingApp import settings
+
+import sys
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
-        self.player_data = None  # todo self.player_data自動變為None的問題
-        # todo 是否把self.player_data刪掉 改用每次都做refresh_player
+        # todo 每次使用consumer時都要做refresh_player 因為views.py也會update資料
+        if self.scope['user'].is_authenticated:  # 帳號登入後再開webSocket
+            self.player_data = await utils.get_player(self.scope['user'])
+            self.uuid = str(self.player_data.uuid)  # todo 前端不再做uuid 改由後端傳到前端 uuid綁定player永遠不變
 
-        self.uuid = None  # todo 只在成功註冊後才給定player資料
-
-        self.robot_id = 3  # randint(1, 3)  # 之後刪掉
-
-        self.count = 0
-
-        await self.accept()
-
-        # await self.close() to reject connection
-    async def disconnect(self, close_code):
-        self.player_data = await utils.refresh_player(self.player_data)  # 沒有self.player_data 改用uuid來找就好
-
-        if self.player_data is None:
-            group_id = str(self.uuid)
-        else:
-            group_id = str(self.player_data.uuid)
-            await utils.set_player_isOn(self.player_data, False)
-
+            self.player_data = await utils.set_player_fields(self.player_data, {'isOn': True})
             if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
-                await utils.set_player_isPrepared(self.player_data, False)
+                self.player_data = await utils.set_player_fields(self.player_data, {'isPrepared': True})
 
-            elif self.player_data.status == 2 or self.player_data.status == 3:  # 進入LARP遊戲後
-                await utils.player_onoff(self.player_data, False)
+            await self.channel_layer.group_add(
+                self.uuid,
+                self.channel_name
+            )
 
-            """  # 舊版 需要修改 進房間後斷線
-            if self.player_data.status == 3:  
+            '''
+            if self.player_data.status == 3:
                 room_id = str(self.player_data.room_id)
-    
-                self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), True)
-    
-                await self.channel_layer.group_send(room_id, {
-                    'type': 'is_disconnected',
-                    'boolean': True,
-                    'from': str(self.player_data.name)
-                })
-    
-                await self.channel_layer.group_discard(
+                await self.channel_layer.group_add(
                     room_id,
                     self.channel_name
                 )
-            """
+
+                self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), False)
+                print(self.room_userNum, file=sys.stderr)  # tt
+
+                m = 'CONN' if self.room_userNum == 2 else 'DISCON'
+                await self.send_json({
+                    'type': m
+                })
+
+                await self.channel_layer.group_send(room_id, {
+                    'type': 'is_disconnected',
+                    'boolean': False,
+                    'from': str(self.player_data.name)
+                })
+            '''
+
+            # self.robot_id = 3  # 之後刪掉
+            self.count = 0
+            await self.accept()
+
+        else:
+            await self.close()
+
+    async def disconnect(self, close_code):
+        self.player_data = await utils.refresh_player(self.player_data)
+        self.player_data = await utils.set_player_fields(self.player_data, {'isOn': False, 'isPrepared': False})
+
         await self.channel_layer.group_discard(
-            group_id,
+            self.uuid,
             self.channel_name
         )
+
+        if self.player_data.status == 2 or self.player_data.status == 3:  # 進入LARP遊戲後
+            await utils.player_onoff(self.player_data, False)
+
+        """  # 舊版 需要修改 進房間後斷線
+        if self.player_data.status == 3:  
+            room_id = str(self.player_data.room_id)
+
+            self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), True)
+
+            await self.channel_layer.group_send(room_id, {
+                'type': 'is_disconnected',
+                'boolean': True,
+                'from': str(self.player_data.name)
+            })
+
+            await self.channel_layer.group_discard(
+                room_id,
+                self.channel_name
+            )
+        """
 
     # receive from client side first
     async def receive_json(self, content):
@@ -115,7 +141,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     't': self.start
                 })
 
-        elif command is not None:  # 之後整合到'call'
+        elif command is not None:  # 全部刪掉
             print(command, file=sys.stderr)
             if command == 'open':
                 await self.cmd_open(content['uuid'], content['isFirst'])
@@ -147,14 +173,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'  是否需要堤防用戶console操作
         self.player_data = await utils.refresh_player(self.player_data)
-        self.player_data.status = 2
-        self.player_data.save()
-        room = self.player_data.room
-        for player in room.player_set:
+        self.player_data = await utils.set_player_fields(self.player_data, {'status': 2})
+        room, game, room_players = await utils.get_room_players(self.player_data)
+        self.room = room
+        self.game_id = str(game.game_id)
+        for player in room_players:
             if player.uuid != self.player_data.uuid:
                 await self.channel_layer.group_send(str(player.uuid), {
                     'type': 'start_game',
-                    'game': str(room.game.game_id),
+                    'game': self.game_id,
                     'player_dict': room.player_dict,
                     'onoff_dict': room.onoff_dict,
                     'from': str(self.player_data.uuid)
@@ -162,8 +189,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def call_start_game_down(self, room_creator):  # 其他人告訴創房者'已加載完成'
         self.player_data = await utils.refresh_player(self.player_data)
-        self.player_data.status = 2
-        self.player_data.save()
+        self.player_data = await utils.set_player_fields(self.player_data, {'status': 2})
 
         await self.channel_layer.group_send(room_creator, {
             'type': 'start_game_down'
@@ -180,29 +206,21 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.call_start_game_down(event['from'])
 
     async def start_game_down(self, event):  # 建房者接收'已加載完成'訊息
-        self.count = self.conut+1
-        room = self.player_data.room
-        if self.conut == room.playerNum-1:
+        self.count = self.count+1
+        if self.count == self.room.playerNum-1:
             await self.send_json({
                 "type": 'START',
                 "msg": '遊戲開始！',
-                "game": str(room.game.game_id),
-                "player_dict": room.player_dict,
-                "onoff_dict": room.onoff_dict})
+                "game": self.game_id,
+                "player_dict": self.room.player_dict,
+                "onoff_dict": self.room.onoff_dict})
 
             self.count = 0
 
     # called by receive_json to response client side
-    async def cmd_open(self, uuid, isFirst):  # 幾乎只有open和import需要更新 其餘直接刪除
-
-        # 在login的地方傳入辨識碼 增加call_login() 並將group_add移到call_login()
-        await self.channel_layer.group_add(  # todo uuid是否改為後端傳給前端
-            uuid,
-            self.channel_name
-        )
-
-        self.player_data = await utils.get_player(uuid)
-
+    async def cmd_open(self, uuid, isFirst):
+        pass
+        '''  # 已經移植到view
         # greet dialog LARP遊戲開始前 status要改
         if isFirst is True and (self.player_data is None or self.player_data.status == 0 or self.player_data.status == 2):
             dialog, sub = [], []
@@ -226,34 +244,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'sub': sub,
                 'anonName': robot
             })
+        '''
 
     async def cmd_import(self, data):
-
-        # 根本不應該做import 除非POST 不然永遠只有後端可以傳給前端 反之不行
-        # self.player_data = await utils.set_player_data(self.player_data, data)
-
-        '''
-        if self.player_data.status == 3:
-            room_id = str(self.player_data.room_id)
-            await self.channel_layer.group_add(
-                room_id,
-                self.channel_name
-            )
-
-            self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), False)
-            print(self.room_userNum, file=sys.stderr)  # tt
-
-            m = 'CONN' if self.room_userNum == 2 else 'DISCON'
-            await self.send_json({
-                'type': m
-            })
-
-            await self.channel_layer.group_send(room_id, {
-                'type': 'is_disconnected',
-                'boolean': False,
-                'from': str(self.player_data.name)
-            })
-        '''
+        pass
 
     async def cmd_goto(self, school_id):
         if self.player_data.status == 0:  # todo school_id檢測 把schoolImgSet存入cache中

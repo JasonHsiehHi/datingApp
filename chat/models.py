@@ -105,7 +105,7 @@ class GameEvent(models.Model):
         return self.name
 
 
-class School(models.Model):
+class School(models.Model):  # 換成City
     name = models.CharField(max_length=10, primary_key=True)
 
     roomNum = models.IntegerField(default=0)
@@ -118,7 +118,7 @@ class School(models.Model):
         return self.name
 
 
-class Question(models.Model):
+class Question(models.Model):  # 刪掉
     id = models.CharField(max_length=5, primary_key=True)  # 換成q_id 不要蓋過預設的id
     type = models.CharField(max_length=1)
     content = models.CharField(max_length=200)
@@ -128,18 +128,18 @@ class Question(models.Model):
         return self.id
 
 
-class Dialogue(models.Model):
-    dialog = models.JSONField(null=True)  # list: sentences could be more than one
+class Dialogue(models.Model):  # 加上game ForeignKey 用來處理劇情
+    dialog = models.JSONField(null=True)  # list: sentences
     action = models.CharField(max_length=10)
     sub = models.CharField(max_length=20, null=True)
     number = models.IntegerField()
-    speaker = models.ForeignKey('Robot', null=True, on_delete=models.SET_NULL)
+    speaker = models.ForeignKey('Robot', null=True, on_delete=models.SET_NULL)  # 刪掉
 
     def __str__(self):
         return '{0}-{1}'.format(self.action, self.number)
 
 
-class Robot(models.Model):
+class Robot(models.Model):  # 刪掉
     name = models.CharField(max_length=30)
 
     def __str__(self):

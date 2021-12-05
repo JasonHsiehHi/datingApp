@@ -7,7 +7,7 @@ from datingApp import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
-from .models import Photo, Player, School, Room, Game, GameRole
+from .models import Photo, Player, School, Room, Game, GameRole, Dialogue
 from django.forms.models import model_to_dict
 from django.db.models import Q
 from random import randint, sample
@@ -30,17 +30,68 @@ def chatroom(request):
         loginStatus = True
         email = user.username
         gender = user.profile.gender
-        user.profile.isOn = True
 
-        if user.profile.status == 1:  # 進入LARP遊戲前的等待階段
-            user.profile.isPrepared = True
-
-        user.profile.save()
     else:
         loginStatus = False
         email = ''
         gender = ''
     return render(request, 'chat/chatroom.html', {'loginStatus': loginStatus, 'email': email, 'gender': gender})
+
+
+def greet(request):
+    if request.is_ajax and request.method == "GET":
+        dialog, sub = [], []
+        t = int(datetime.now().strftime('%H'))
+        sub_t = get_dialogue_greet_sub(t)
+        dialog_t = get_dialogue_dialog('GREET', sub_t)  # 是否可合併 不需要問兩次Dialogue 而且之後不用speaker
+        dialog.append(dialog_t)
+        sub.append(sub_t)
+
+        school_id, roomNum = get_school_roomNum_max()  # 把學校school改成城市city
+        if roomNum > settings.PLENTY_ROOM_NUM:
+            dialog_sch = get_dialogue_dialog('GREET', 'sch')
+            dialog_sch = dialog_sch.format(school_id)
+            dialog.append(dialog_sch)
+            sub.append('sch')
+
+        return JsonResponse({"result": True, "dialog": dialog})
+    else:
+        print("error: it's not through ajax.", file=sys.stderr)
+
+
+def get_dialogue_greet_sub(time, speaker=3):  # 之後把robot model刪掉 不用特別找speaker
+    time_ranges = cache.get('GREET_TIME_RANGE-{}'.format(speaker))
+    if time_ranges is None:
+        dialogues = Dialogue.objects.filter(Q(speaker=speaker) & Q(action='GREET') & Q(sub__startswith='t') & Q(number=1))
+        time_ranges = [[dialogue.sub[1:3], dialogue.sub[4:6]] for dialogue in dialogues]
+        cache.set('GREET_TIME_RANGE-{}'.format(speaker), time_ranges, None)
+
+    true_list = []
+    for r in time_ranges:
+        start, end = int(r[0]), int(r[1])
+        if start <= end:
+            if start <= time < end:
+                true_list.append(r)
+        else:
+            if start <= time or time < end:
+                true_list.append(r)
+    time_range = true_list[randint(0, len(true_list) - 1)]
+    sub = 't' + time_range[0] + '-' + time_range[1]
+    return sub
+
+
+def get_dialogue_dialog(action, sub, speaker=3, n=None):  # 之後把robot model刪掉 不用特別找speaker
+    if n is None:
+        dialogues = Dialogue.objects.filter(Q(speaker=speaker) & Q(action=action) & Q(sub=sub))
+        dialogue = dialogues[randint(0, len(dialogues)-1)]
+    else:
+        dialogue = Dialogue.objects.get(speaker=speaker, action=action, sub=sub, number=n)
+    return dialogue.dialog
+
+
+def get_school_roomNum_max():  # LARP school改為city 表示city正在進行的遊戲數量
+    school = School.objects.order_by('-roomNum').first()
+    return str(school.name), int(school.roomNum)
 
 
 def upload_image(request):
@@ -209,7 +260,7 @@ def activate(request, token):
                                                                "msg": '信箱註冊成功，現在可以開始遊戲了哦！'})
 
 
-def log_in(request):
+def log_in(request):  # 帳號重複登入
     if request.is_ajax and request.method == 'POST':
         email = request.POST['login-input-email']
         password = request.POST['login-input-password']

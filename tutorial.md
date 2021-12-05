@@ -1278,6 +1278,11 @@ def index(request,room_id):  # 從model中取其變數
 Book.objects.all() 所有的Model類別(繼承models.Model) 都能使用.objects的方法
 books = Book.objects.all() 表示此model類別的所有紀錄 為最大的查詢集(QuerySet)
 books[0],books[1]...可找依照目前排序的每筆record
+books[-1] 會發生問題 因為querySet並不完全充許所有內建的list方法
+
+其中：Book 為 Model類別
+Book.objects 為Book model中的Manager類別 可以客製化一些方法
+Book.objects.all() 則為用此manager 生成的querySet
 
 常用的QuerySet的方法：
 Book.objects.all().aggregate(Avg('price'))  aggregate用於找特定屬性的總和值(Avg,Max,Min,Sum...等)
@@ -1313,6 +1318,13 @@ Book.objects.filter(pk=4).values('pk','name',lower_name=Lower('name')) 如同ann
 Book.objects.filter(pk=4).values_list('pk','name')
 output: (4, 'Beatles Blog') tuple取代dict
 Book.objects.filter(genre='math').values_list('id', flat=True) 會將多組tuple壓成list
+
+使用字串動態存取field的方式:
+通常這種方法用於object的內置屬性 因為object不像dict可以直接取用
+getattr(player, field) 能解決 value = player[feild] 如此就能用string指定field
+getattr(player, field) 等同 player.__dict__[feild]
+setattr(player, field, value) 同理能取代 player[feild] = value
+
 
 values()和values_list()不能用在單一個instance上 例如：Book.objects.get(pk=4)
 只能由Book.objects.filter(pk=4) 或 Book.objects.all()等querySet使用

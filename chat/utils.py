@@ -8,30 +8,70 @@ from random import randint, sample
 import sys
 from datingApp import settings
 
-
+"""
 @database_sync_to_async
-def get_player(uuid):
+def get_player(uuid):  # 刪掉
     try:
         player = Player.objects.get(uuid=uuid)
+    except Player.DoesNotExist:
+        player = None
+    return player
+    
+@database_sync_to_async
+def delete_player(uuid):  # 刪掉
+    player = Player.objects.get(uuid=uuid)
+    player.delete()
+"""
+
+
+@database_sync_to_async
+def get_player(user):
+    try:
+        player = Player.objects.get(user=user)
     except Player.DoesNotExist:
         player = None
     return player
 
 
 @database_sync_to_async
-def delete_player(uuid):
-    player = Player.objects.get(uuid=uuid)
-    player.delete()
+def refresh_player(player):
+    pk = player.uuid
+    new_player = Player.objects.get(uuid=pk)
+    return new_player
 
 
 @database_sync_to_async
-def refresh_player(player):
-    if player is None:
-        new_player = None
+def set_player_fields(player, fields: dict):  # LARP
+    for field, value in fields.items():
+        setattr(player, field, value)
+    player.save()
+    return player
+
+
+@database_sync_to_async
+def get_room_players(player):
+    room = player.room
+    game = room.game
+    return room, game, list(room.player_set.all())
+
+
+@database_sync_to_async
+def set_player_room(player, room_id, matcherName=None):  # LARP room改為match  且改到views.py執行
+    if room_id is None:
+        player.status = 0
+        player.room = None
+        Room.objects.filter(room_id=room_id).delete()  # delete room by the user who leave first
+        School.objext.filter(name=str(player.school)).update(roomNum=F('roomNum') - 1)
     else:
-        uuid = player.uuid
-        new_player = Player.objects.get(uuid=uuid)
-    return new_player
+        player.status = 3
+        room = Room.objects.get(room_id=room_id)
+        room.userNum = 2
+        room.save()
+        player.room = room
+        player.anonName = matcherName
+        player.waiting_time = None
+    player.save()
+    return player
 
 
 @database_sync_to_async
@@ -72,25 +112,6 @@ def set_player_profile(player, name, matchType=None):  # 刪掉
 
 
 @database_sync_to_async
-def set_player_room(player, room_id, matcherName=None):  # LARP room改為match  且改到views.py執行
-    if room_id is None:
-        player.status = 0
-        player.room = None
-        Room.objects.filter(room_id=room_id).delete()  # delete room by the user who leave first
-        School.objext.filter(name=str(player.school)).update(roomNum=F('roomNum') - 1)
-    else:
-        player.status = 3
-        room = Room.objects.get(room_id=room_id)
-        room.userNum = 2
-        room.save()
-        player.room = room
-        player.anonName = matcherName
-        player.waiting_time = None
-    player.save()
-    return player
-
-
-@database_sync_to_async
 def set_player_status(player, next_status):  # 刪掉 合併到views.py
     if player.status != next_status:
         player.status = next_status
@@ -99,15 +120,22 @@ def set_player_status(player, next_status):  # 刪掉 合併到views.py
 
 
 @database_sync_to_async
-def set_player_isPrepared(player, isPrepared):  # LARP
+def set_player_isPrepared(player, isPrepared):  # LARP 刪掉 合併到set_player_fields 且isPrepared和isOn功能重複
     player.isPrepared = isPrepared
     player.save()
     return player
 
 
 @database_sync_to_async
-def set_player_isOn(player, isOn):  # LARP isPrepared, isOnOff都用於處理disconnect() 之後要做合併
-    player.isPrepared = isOn
+def set_player_isOn(player, isOn):  # LARP 刪掉 合併到set_player_fields
+    player.isOn = isOn
+    player.save()
+    return player
+
+
+@database_sync_to_async
+def set_player_imgUrl(player, imgUrl):  # 刪掉
+    player.imgUrl_adult = imgUrl
     player.save()
     return player
 
@@ -116,13 +144,6 @@ def set_player_isOn(player, isOn):  # LARP isPrepared, isOnOff都用於處理dis
 def player_onoff(player, isOn):  # LARP 用於處理disconnect() 之後要做合併
     player.room.onoff_dict[int(player.user.id)] = isOn
     player.room.save()
-
-
-@database_sync_to_async
-def set_player_imgUrl(player, imgUrl):
-    player.imgUrl_adult = imgUrl
-    player.save()
-    return player
 
 
 @database_sync_to_async
@@ -222,7 +243,7 @@ def get_school_roomNum_max():  # LARP school改為city 表示city正在進行的
 
 
 @database_sync_to_async
-def get_dialogue_greet_sub(speaker, time):
+def get_dialogue_greet_sub(speaker, time):  # 刪掉
     time_ranges = cache.get('GREET_TIME_RANGE-{}'.format(speaker))
     if time_ranges is None:
         dialogues = Dialogue.objects.filter(speaker=speaker).filter(action='GREET').filter(sub__startswith='t').filter(number=1)
@@ -244,7 +265,7 @@ def get_dialogue_greet_sub(speaker, time):
 
 
 @database_sync_to_async
-def get_dialogue_dialog(speaker, action, sub, n=None):
+def get_dialogue_dialog(speaker, action, sub, n=None):  # 刪掉
     if n is None:
         dialogues = Dialogue.objects.filter(speaker=speaker).filter(action=action).filter(sub=sub)
         dialogue = dialogues[randint(0, len(dialogues)-1)]
