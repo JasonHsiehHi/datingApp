@@ -159,6 +159,9 @@
     border-color: #2690bf;
 }
 
+/* .a-circle.a-male.a-off和.a-circle.a-female.a-off 加上離線的頭貼 且中間換成'離線' */
+
+
 .list-group-item.a-div{
     font-size: small;
     background: #31353c;

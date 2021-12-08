@@ -9,21 +9,31 @@ class Room(models.Model):
         ('mm', 'male->male'),
         ('ff', 'female->female')
     )
-    room_id = models.CharField(max_length=20, null=True)  # 換成rood_id 不要蓋過預設的id
-    userNum = models.IntegerField(default=0)  # 原本的Room改到新的Match 表示兩個人開始通話
+    room_id = models.CharField(max_length=20, null=True)  # 刪掉 用預設id即可
 
-    matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)
-    school = models.CharField(max_length=10)
+    userNum = models.IntegerField(default=0)  # 刪掉
+    matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)  # 刪掉
 
     create_date = models.DateTimeField(default=timezone.now)
+    school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
     game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
     playerNum = models.IntegerField(default=0)
     player_dict = models.JSONField(max_length=200, null=True, default=dict)
     onoff_dict = models.JSONField(max_length=25, null=True, default=dict)
+    answer = models.JSONField(max_length=30, null=True, default=dict)
 
     def __str__(self):
         return "room-%s" % self.room_id
+
+
+class Match(models.Model):
+    match_id = models.CharField(max_length=20, null=True)  # 刪掉 用預設id即可
+    player_list = models.JSONField(max_length=200, null=True, default=list)
+    room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
+
+    def __str__(self):
+        return "match-%s" % self.match_id
 
 
 class Player(models.Model):
@@ -47,6 +57,7 @@ class Player(models.Model):
     isBanned = models.BooleanField(default=False)
     status = models.IntegerField(default=0)
 
+    match = models.ForeignKey('Match', null=True, on_delete=models.SET_NULL, default=None)
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
 
@@ -130,6 +141,7 @@ class Question(models.Model):  # 刪掉
 
 class Dialogue(models.Model):  # 加上game ForeignKey 用來處理劇情
     dialog = models.JSONField(null=True)  # list: sentences
+    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
     action = models.CharField(max_length=10)
     sub = models.CharField(max_length=20, null=True)
     number = models.IntegerField()

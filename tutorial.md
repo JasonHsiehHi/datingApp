@@ -1937,8 +1937,8 @@ function getPerson(GoodOrNot) {  //再用function方法來做創建
 Person()只用於宣告物件的屬性 getPerson()才做屬性的賦值 如此易讀性更高
 此外可充許有多個創建方法來創建同一種物件:getPersonFemale(), getPersonMale()...
 
-- - - ---------------------------------------
-# js_truthy 真值表:
+
+## js_truthy 真值表 if判斷:
 
 if({}), if([])  // 空物件, 空陣列也是true
 if("foo"), if(42), if(-42), if(Infinity), if(-Infinity) //負數或infinity都為true
@@ -1947,8 +1947,6 @@ if("foo"), if(42), if(-42), if(Infinity), if(-Infinity) //負數或infinity都�
 if("") // 但空字串為false
 if(0), if(null), if(undefined) 和 if(NaN) 
 等同if(false)
-
-- - - ---------------------------------------
 
 因為'hi' === 'hi '  //false  而'hi'.trim() === 'hi '.trim()  //true
 trim用於將前後的空白去除 以避免字串判別受空白格有影響
@@ -1960,6 +1958,21 @@ trim用於將前後的空白去除 以避免字串判別受空白格有影響
 空物件則須先將keys轉為array在做length屬性判別
 if(Object.keys(obj).length == 0)  //判斷空物件
 
+## js的object和array:
+
+Object.keys(obj)能將object的keys轉成array 
+同理也有Object.values()和Object.entries() 都是將object的相對資料轉成陣列
+
+Object.assign({}, obj) 和 Object.assign([], arr) 用於做複合資料的複製(composite): object和array
+由於object或array的賦值為傳址(pass by reference) 會導致變動其中一個變數而影響到另一個 
+等同：{...obj} 和 [...arr]
+
+但有一點列外 這種方法不能複製多層次的object (deepcopy)
+必須借用JSON才能實現 JSON.parse(JSON.stringify(obj))
+
+刪除整個object變數,或刪除object中的屬性
+使用 delete object 和 delete object['key']
+
 slice(start [, end]) 和 substr(start [, length])
 兩者都用於切割字串 差別在於第二參數為擷取到該位置之前 與 擷取總長度
 
@@ -1968,6 +1981,11 @@ theArray.join(char) 則用chat字元將已被分開的字串合併
 
 array.splice(start [, deleteCount[, item1]])
 則用於在原字串或陣列中間位置刪除元素或插入元素 
+
+array.remove(value)
+則用於刪除array中的特定值 而非刪除特定index
+
+
 
 **"===" 嚴格比較 "==" 寬鬆比較**
 寬鬆比較下將0, '', '0' == false 為true / 將1, 'a' ,'1' == true 為true
@@ -3599,8 +3617,20 @@ django template variable {{...}}:
 
 
 {{ my_dict.key }}, {{ my_list.0 }} python的dict和list都能用此方法
-{{ my_object.attribute }} 同理物件的屬性也行 同理物件的可調用方法可返回其結果
+{{ my_object.attribute }} 同理物件的屬性也行 物件的可調用方法可返回其結果
 
+<ul> 
+{% for key, value in choices.items %}  同理可用python的方法做for-loop
+  <li>{{key}} - {{value}}</li>
+{% endfor %} 
+</ul>
+
+{% for i in range(1,10) %}  有些python的常用方法不能在dtl中使用 像是range()
+    <h2>{{i}}</h2>
+{% endfor %}
+
+故需要改為 {% for i in range %} 先將ragne(10)做成list 再傳入
+並用render_response('template.html', {'range': range(10)}) 將range傳入template中
 
 django template tags {%...%} 和 filter "|":
 
@@ -4655,6 +4685,8 @@ git config --global user.email "<name@gmail.com>"
 git config --local user.name "<Name>" 也可以在專案目錄上執行來連接到其他使用者 此時不用--global
 git config --local user.email "<email@gmail.com>"
 git config --list 可檢查設定值
+
+github的password：如果用command line來執行要使用token
 
 以下兩者是唯二在本地端建立專案的方法: 會在專案中建立.git檔 故只要此檔刪除就可解除git控制
 git init 第一次在本地端建立專案還未上傳時 

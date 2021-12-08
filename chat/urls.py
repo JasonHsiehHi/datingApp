@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_game_graduate_girl
 
 urlpatterns = [
     path('', views.chatroom, name='chatroom'),
@@ -16,6 +16,14 @@ urlpatterns = [
     path('start_game', views.start_game, name='start_game'),
     path('start_game/<str:game_name>', views.in_game, name='in_game'),
     path('leave', views.leave, name='leave'),
-    path('start_game/<str:game_name>/leave_game', views.leave_game, name='leave_game'),
-    path('start_game/<str:game_name>/leave_room', views.leave_room, name='leave_room')
+    path('leave_game', views.leave_game, name='leave_game'),
+    path('leave_match', views.leave_match, name='leave_match')
+]
+
+# game_graduate_girl
+urlpatterns += [
+    path('start_game/test_graduate_girl/deduce', views_game_graduate_girl.deduce, name='test_deduce'),
+    path('start_game/test_graduate_girl/<str:uuid>', views_game_graduate_girl.examine, name='test_examine'),
+    path('start_game/graduate_girl/deduce', views_game_graduate_girl.deduce, name='deduce'),
+    path('start_game/graduate_girl/<str:uuid>', views_game_graduate_girl.examine, name='examine')
 ]

@@ -9,38 +9,21 @@ function chatroomWS(){
 
         chatSocket.onopen = function(){
             console.log("WS connected.");
+        };
 
-            /*
-            chatSocket.send(JSON.stringify({  // 刪掉 前端不傳給後端
-                'cmd':'open',
-                'uuid': localData.uuid,
-                'isFirst':toggle.first
-            }));
-            (!0 === toggle.first) && (toggle.first = !1);
-
-            if('true'===localStorage.isSaved){  // 刪掉 前端不傳給後端
-                var data = {};
-                var li = ['name', 'matchType', 'school', 'anonName', 'room', 'isBanned', 'status', 'testResult', 'waiting_time'];
-                for (let i of li){
-                    if(localData[i])
-                        data[i] = localData[i];
-                }
-                chatSocket.send(JSON.stringify({
-                    'cmd':'import',
-                    'data': data
-                }));
-            }
-            */
-
+        chatSocket.onclose = function(e) {
+            console.log('WS disconnected. code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
+            (!1===loginData.isBanned) && setTimeout(chatroomWS, 15000);
+            // todo 最後用theUI.showSys來表示已經斷線且目前連不上
         };
         // todo 增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
             console.log('receive: '+ data.type);
-            if (3 === localData.status){
+            if (3 === localData.status){  // 移到gameroomWS
                 switch (data.type){
-                    case typeSet.wn:
+                    case typeSet.wn:  // 已經沒有typeSet了 直接用'WN'即可
                         if (localData.name!==data.sender){
                             theUI.showWritingNow(data.wn);
                         }
@@ -84,7 +67,6 @@ function chatroomWS(){
                         break;
                     case typeSet.leave:
                         localData.status = 0, localStorage.status = '0';
-                        localData.room = '', localStorage.room ='';
                         // todo 返回房間外或等待房都加上dialog 故會訪問資料庫 anonName變更回管理員 refreshProfile()
                         theUI.clearChatLogs();
                         if (localData.name===data.sender){
@@ -109,168 +91,162 @@ function chatroomWS(){
                         localData.player_dict = data['player_dict'], localStorage.player_dict = JSON.stringify(data['player_dict']);
                         localData.onoff_dict = data['onoff_dict'], localStorage.onoff_dict = JSON.stringify(data['onoff_dict']);
                         localData.status = 2, localStorage.status = '2';
-                        $('#modal').modal('hide'), showNoticeModal('開始遊戲');
-                        $('#modal').on('hide.bs.modal', function(e) {
-                            window.location.href = "/chat/start_game/"+data['game'];
-                        });
+                        $('#modal').modal('hide'), showNoticeModal(data['msg']);
+                        $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat/start_game/"+data['game']; });
                         break;
 
-                    // 不要使用typeSet了 難改又不好用
-                    case typeSet.greet:  
-                        localData.anonName=data.anonName, localStorage.anonName=data.anonName, theUI.refreshProfile();
-                        var li = data.dialog;
-                        if (0 === localData.status)
-                            li.splice(1,0,theGate.intro(), theGate.tutor()); // insert theGate into data.dialog
-                        else // 2 === localData.status
-                            li.splice(1,0,theGate.intro());
-                        theUI.showMsgsAsync(li);
+                    case 'ENTER':
+                        localData.status = 3, localStorage.status = '3', refreshStatus(), refreshGameStatus();
+                        $('#modal').modal('hide'), showNoticeModal(data['msg']);
+                        break;
+                
+                    case 'LEAVE':
+                        localData.status = 2, localStorage.status = '2', refreshStatus(), refreshGameStatus();
+                        data['from']
+                        $('#modal').modal('hide'), showNoticeModal(data['from']+data['msg']);
                         break;
 
-                    case typeSet.goto:
-                        localData.school = term.schoolId, localStorage.school = term.schoolId;
-                        var school =  localData.school;
-                        theUI.clearChatLogs();
-                        theUI.gotoSchoolAsync(function(){
-                            var li = data.dialog;
-                            li.splice(0,0,['已抵達<span class="a-point">'+school + schoolSet[school] +'</span>了😎',!1]); // insert msg into data.dialog
-                            theUI.showMsgsAsync(li);
-                        });
-                        break;
-
-                    case typeSet.profile:
-                        localData.name = term.name, localStorage.name = term.name, localData.matchType = term.matchType, localStorage.matchType = term.matchType, theUI.refreshProfile();
-                        var m = [];
-                        for (x of localData.matchType){
-                            'm'==x?m.push('(男)'):m.push('(女)')
-                        }
-                        theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 配對：<span class="a-point">'+localData.matchType[0]+m[0] +'找'+ localData.matchType[1]+m[1]+'</span> 基本資料已確認完畢');
-                        break;
-
-                    case typeSet.rename:
-                        localData.name = term.name, localStorage.name = term.name, theUI.refreshProfile();
-                        theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 已修改完畢');
-                        break;
-
-                    case typeSet.test:
-                        if (data.questions.length>0){
-                            localData.status = 1, localStorage.status = '1';
-                            localData.testQuestions = data.questions, localStorage.testQuestions=JSON.stringify(localData.testQuestions);
-                            theUI.clearChatLogs();
-                            theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
-                            theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
-                            processTest(data.questions);
-                        }
-                        break;
-                    case typeSet.wait:
-                        localData.status = 2, localStorage.status = '2';
-                        localData.room = '', localStorage.room ='';
-                        // todo 可能是/change而返回等待房 故anonName要做變更 需做theUI.refreshProfile()
-                        theUI.clearChatLogs();
-                        ('' !== localData.imgUrl_adult) && theUI.showSys('照片已儲存！ 將以成人模式進行配對👌');
-                        theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock();
-                        break;
-                    case typeSet.enter:
-                        localData.status = 3, localStorage.status = '3';
-                        localData.room = data.room, localStorage.room = data.room, localData.waiting_time = '', localStorage.waiting_time = '';
-                        localData.anonName = data.matcherName, localStorage.anonName = localData.anonName, theUI.refreshProfile();
-                        theUI.clearChatLogs();
-                        theUI.showSys('與<span class="a-point">'+localData.anonName+'</span>在<span class="a-point">'+localData.school+'</span>相遇');
-                        break;
-                    case typeSet.back:
-                        var prev = localData.status;
-                        localData.status = 0, localStorage.status = '0';
-                        theUI.clearChatLogs();
-                        theUI.showSys('已離開 <span class="a-point">'+ st[prev]+'</span>');
-                        break;
-                    case typeSet.reset:
-                        localStorage.isSaved = 'false', localData = getLocalData(), loadLocalData();
-                        chatSocket = null;
-                        (!1===localData.isBanned) && chatroomWS();
-
-                        theUI.clearChatLogs(), theUI.showSys('重置完成!');
-                        break;
-                    case typeSet.error:
-                        console.log(data.error);
+                    case 'OUT':
+                        localData.status = 1, localStorage.status = '1'
+                        $('#modal').modal('hide'), showNoticeModal(data['from']+data['msg']);
+                        $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat"; });
                         break;
                 }
             }
         };
-        chatSocket.onclose = function(e) {
-            console.log('WS disconnected. code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
-            (!1===localData.isBanned) && setTimeout(chatroomWS, 15000);
-            // todo 最後用theUI.showSys來表示已經斷線且目前連不上
-        };
     }
 }
 
-function LocalData(){
-    this.uuid = $.uuid(),  // 改為後端創建 並用於channel_group傳資料
-    this.name = '取個暱稱吧',
-    this.matchType = '',  // 刪掉 沒用
-    this.isBanned = !1,  // 刪掉 改成loginStatus的isBanned 前端不用留資料
-    this.status = 0,
-    this.lastSaid = 'sys',
-    this.anonName = '',
-    this.room = '',  // 改掉 此資料可能在後端處理 不傳到前端
-    this.school = '',  // 改掉 school改成city
-    this.testQuestions = [],  // 刪掉
-    this.testResult = [],  // 刪掉
-    this.waiting_time = '',
-    this.text_in_discon = [],
-    this.imgUrl_adult = '',
-    this.player_dict = {},
-    this.onoff_dict = {},
-    this.gender = '',  // 刪掉 用loginStatus的gender就好 用於註冊後就不會改變的資料
-    this.chatLogsNum = 0,
-    this.chatLogsMaxNum = 250  // 改掉 不需要那摸複雜
-    for (let i = 0;i<5;i++)
-        this['chatLogs'+i.toString()] = ''
+
+var WSManager = function(){
+    function ms(msg, isImg=false){
+        if(!1===toggle.discon){
+            chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror 而webSocket突然自動關閉
+                'msg':msg,
+                'isImg':isImg
+            }))
+        }else{
+            localData.text_in_discon.push([msg,isImg]), localStorage.text_in_discon = JSON.stringify(localData.text_in_discon);
+        }
+        var elmt;
+        (isImg) ? (elmt = theUI.showSelfImg(msg), theUI.storeChatLogs(term.showSelfImg_text)):(elmt = theUI.showSelfMsg(msg), theUI.storeChatLogs(term.showSelfMsg_text));
+        theUI.showStatus(elmt,1);
+        term.emlt_for_status.push(elmt);
+    }
+    function mss(msg_list){ //  the matcher is disconnected, so send mag_list instead of msg in next connection.
+        if(!1===toggle.discon){
+            chatSocket.send(JSON.stringify({
+                'msgs':msg_list
+            }))
+        }
+    }
+    function st(sender,num=2){
+        if(!1===toggle.discon){
+            chatSocket.send(JSON.stringify({
+                'st':num,
+                'from':sender
+            }))
+        }
+    }
+    function wn(isWriting){
+        if(!1===toggle.discon){
+            isWriting = isWriting?!0:!1;
+            chatSocket.send(JSON.stringify({
+                'wn':isWriting
+            }))
+        }
+    }
+
+    function csg(){
+        chatSocket.send(JSON.stringify({
+            'call':'start_game'
+        }))
+    }
+
+    function clg(uuid_list=null){  // uuid_list表示令對方離開 而empty表示自己離開
+        // 在後端仍需檢驗資料的正確性
+        (uuid_list===null) && (uuid_list = []);
+        chatSocket.send(JSON.stringify({
+            'call':'leave_game',
+            'players': uuid_list
+        }))
+    }
+    function cem(uuid_list){  // uuid_list不可為空 一定要有對象
+        chatSocket.send(JSON.stringify({
+            'call':'enter_match',
+            'players': uuid_list
+        }))
+    }
+    function clm(uuid_list=null){
+        (uuid_list===null) && (uuid_list = []);
+        chatSocket.send(JSON.stringify({
+            'call':'leave_match',
+            'players': uuid_list
+        }))
+    }
+
+    return{
+        msgSendWs:ms,
+        msgsSendWs:mss,
+        statusRespWs:st,
+        writingNowWs:wn,
+        callStartGame:csg,
+        callLeaveGame:clg,
+        callEnterMatch:cem,
+        callLeaveMatch:clm,
+    }
 }
 
 function getLocalData(){
-    var data = new LocalData();
+    var data = {
+        name: '取個暱稱吧',
+        school: '',  // 改掉 school改成city
+        status: 0,
+        lastSaid: 'sys',
+        anonName: '',
+        waiting_time: '',
+        text_in_discon: [],
+        imgUrl_adult: '',
+        player_dict: {},
+        onoff_dict: {},
+        self: [],
+        chatLogsNum: 0,  // 改掉 不需要那摸複雜
+        chatLogsMaxNum: 250  // 改掉 不需要那摸複雜
+    };
+
+    for (let i = 0;i<5;i++)
+        data['chatLogs'+i.toString()] = '';  // 改掉 不需要那摸複雜
+
     if ('undefined' !== typeof(Storage)){
         if ('true'===localStorage.isSaved){ 
-            data.uuid = localStorage.uuid,
             data.name = localStorage.name,
-            data.matchType = localStorage.matchType,
-            data.isBanned = ('true'===localStorage.isBanned)?!0:!1,
+            data.school = localStorage.school,
             data.status = +localStorage.status,
             data.lastSaid = localStorage.lastSaid,
             data.anonName = localStorage.anonName,
-            data.room = localStorage.room,
-            data.school = localStorage.school,
-            data.testQuestions = JSON.parse(localStorage.testQuestions),
-            data.testResult = JSON.parse(localStorage.testResult),
             data.waiting_time = localStorage.waiting_time,
             data.text_in_discon =  JSON.parse(localStorage.text_in_discon),
             data.imgUrl_adult = localStorage.imgUrl_adult,
             data.player_dict = JSON.parse(localStorage.player_dict),
             data.onoff_dict = JSON.parse(localStorage.onoff_dict),
-            data.gender = localStorage.gender,  
+            data.self = JSON.parse(localStorage.self),
             data.chatLogsNum = +localStorage.chatLogsNum,
             data.chatLogsMaxNum = +localStorage.chatLogsMaxNum 
             for (let i = 0;i<5;i++)
                 data['chatLogs'+i.toString()] = localStorage['chatLogs'+i.toString()]
         }else{
             localStorage.isSaved = 'true',
-            localStorage.uuid = data.uuid,
             localStorage.name = '取個暱稱吧',
-            localStorage.matchType = '',
-            localStorage.isBanned = 'false',
+            localStorage.school = '',
             localStorage.status = '0',
             localStorage.lastSaid = 'sys',
             localStorage.anonName = '',
-            localStorage.room = '',
-            localStorage.school = '',
-            localStorage.testQuestions = '[]',
-            localStorage.testResult ='[]',
             localStorage.waiting_time = '',
             localStorage.text_in_discon = '[]',
             localStorage.imgUrl_adult = '',
             localStorage.player_dict = '{}',
             localStorage.onoff_dict = '{}',
-            localStorage.gender = '',
+            localStorage.self = '[]',
             localStorage.chatLogsNum = '0',
             localStorage.chatLogsMaxNum = '250'
             for (let i = 0;i<5;i++)
@@ -281,6 +257,39 @@ function getLocalData(){
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
     }
     return data
+}
+
+function getTermData(){
+    var term = {
+        name:'',
+        schoolId:'',
+        showSelfMsg_text:'',
+        showMsg_text:'',
+        showSelfImg_text:'',
+        showImg_text:'',
+        showSys_text:'',
+        showMsgs_text:'',
+        emlt_for_status:[],
+        timerId_clock: null,
+        timerId_writing: null,
+        next_modal:!1,
+        next_msg:''
+    };
+    return term
+}
+function getToggle(){
+    var toggle = {
+        writing:!1, // 為避免input欄多次重複輸入
+        uploading:!1, // 為避免圖片檔多次重複上傳
+        click:!1, // 為避免多次重複點擊
+        focus:!1, // 表示focus正在input欄
+        scroll:!1, // 表示捲軸正在滾動
+        text:!0, // todo 當出現bootbox時 離線後上線是否還要停留在bootbox
+        discon:!1,  // 表示對方斷線 重連時直接從後端抓取資料
+        problem:!1, // todo 表示自己網路出現問題 會跟開頭畫面一起使用
+        first:!0
+    };
+    return toggle
 }
 
 function appearElmtId(elmt_id){
@@ -304,12 +313,12 @@ function loadLocalData(){  // loadLocalData just do theUI work
 }
 
 function loadLoginStatus(){ 
-    if (!0 === loginStatus){
-        chatroomWS();
+    if (!0 === loginData.isLogin){
+        (localData.status === 0 || localData.status === 1) && chatroomWS(); // 之後修掉 login和local要互相獨立
         appearElmtId('user-info'), appearElmtId('logout-btn'), appearElmtId('change-pwd-btn');
         disappearElmtId('signup-btn'), disappearElmtId('login-btn'), disappearElmtId('reset-pwd-btn');
-        $('#user-info>span:eq(0)').text(email);
-        $('#user-info>span:eq(1)').text('性別:' + ((gender == 'm')?'男':'女'));
+        $('#user-info>span:eq(0)').text(loginData.email);
+        $('#user-info>span:eq(1)').text('性別:' + ((loginData.gender == 'm')?'男':'女'));
         unavailableBtn();
     }else{
         appearElmtId('signup-btn'), appearElmtId('login-btn'), appearElmtId('reset-pwd-btn');
@@ -319,7 +328,7 @@ function loadLoginStatus(){
 }
 
 function unavailableBtn(){
-    if (gender==='m'){
+    if (loginData.gender==='m'){
         $('#female-radio').click(),disabledElmtId('male-radio'), disabledElmtId('female-radio');
     }else{
         $('#male-radio').click(),disabledElmtId('male-radio'), disabledElmtId('female-radio');
@@ -332,6 +341,8 @@ function refreshProfile(){
     // old 只有navbar部分
     $('.navbar-text.a-font>.a-matcher').text(localData.anonName);
     $('.navbar-text.a-font>.a-self').text(localData.name);
+
+    /*
     if (''!==localData.matchType){
         var self = ('m'===localData.matchType[0])?'man':'woman';
         var matcher = ('m'===localData.matchType[1])?'man':'woman';
@@ -340,6 +351,8 @@ function refreshProfile(){
         $('.navbar-text.a-type .material-icons:eq(1)').text(inRoom);
         $('.navbar-text.a-type .material-icons:eq(2)').text(matcher);
     }
+    */
+
     // 增加sidebar部分的更新
     var school_name = localData.school+' '+schoolSet[localData.school];
     $('#school').text(school_name), $('#school').attr('data-bs-original-title', school_name);
@@ -348,30 +361,48 @@ function refreshProfile(){
 }
 
 function refreshStatus(){  // deal with all UI work about status
-    switch (localData.status){
+    switch (localData.status){  // 太多冗言 改用if...else...
         case 0:
             enabledElmtId('goto-btn'), enabledElmtId('name-btn');
-            enabledElmtId('start-btn'),$('#start-btn').text('開始遊戲'), disabledElmtId('leave-btn');
             enabledElmtId('normal-radio'), enabledElmtId('adult-radio'), enabledElmtId('male-radio'), enabledElmtId('female-radio');
+            enabledElmtId('start-btn'), $('#start-btn').text('開始遊戲');
+            disabledElmtId('leave-btn');
+            disappearElmtId('player-list'), appearElmtId('player-empty');
+            
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
             break;
         case 1:
             disabledElmtId('goto-btn'), disabledElmtId('name-btn');
-            disabledElmtId('start-btn'),$('#start-btn').text('等待中...'), enabledElmtId('leave-btn');
             disabledElmtId('normal-radio'), disabledElmtId('adult-radio'), disabledElmtId('male-radio'), disabledElmtId('female-radio');
+            disabledElmtId('start-btn'), $('#start-btn').text('等待中...');
+            enabledElmtId('leave-btn');
+            disappearElmtId('player-list'), appearElmtId('player-empty');
             theUI.clearChatLogs();
             (0!==localData.waiting_time.length)&&(theUI.showSys('等待時間: <span class="a-clock a-point"></span>'),theUI.showClock(localData.waiting_time));
             // theUI.showClock變為NaN:NaN (safari)
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
             break;
-        case 2:  // 固定的部分元件能直接實現 不用到game.js
+        case 2:
+            disabledElmtId('goto-btn'), disabledElmtId('name-btn');
+            disabledElmtId('normal-radio'), disabledElmtId('adult-radio'), disabledElmtId('male-radio'), disabledElmtId('female-radio');
+            enabledElmtId('start-btn'), $('#start-btn').text('行 動');
+            enabledElmtId('leave-btn');
+            disappearElmtId('player-empty'), appearElmtId('player-list');
+            
+            // 改掉
             theUI.clearChatLogs();
             theUI.showSys('==========<span class="a-point">配對遊戲：共5題</span>==========');
             theUI.showMsg('以下測試題目都沒有標準答案，僅為測量個人的人格特質與價值觀，並對<span class="a-point">測試結果相近者進行配對</span>。');
-            (localData.testQuestions.length>0)&&processTest(localData.testQuestions);
+
             break;
 
         case 3:
+            disabledElmtId('goto-btn'), disabledElmtId('name-btn');
+            disabledElmtId('normal-radio'), disabledElmtId('adult-radio'), disabledElmtId('male-radio'), disabledElmtId('female-radio');
+            disabledElmtId('start-btn'), $('#start-btn').text('行 動');  // game_{gamename}.js會再將行動鍵改為符合遊戲內容的名稱
+            enabledElmtId('leave-btn');
+            disappearElmtId('player-empty'), appearElmtId('player-list');
+            
             theUI.loadChatLogs(30);  //todo '顯示更多'功能
             theUI.showSys('你與<span class="a-point">'+localData.anonName+'</span>待在一起');
             // todo 重開只會顯示最後十行 其餘要點擊顯示更多 (必須要能夠辨識chatLog之中的元素個數)
@@ -379,6 +410,9 @@ function refreshStatus(){  // deal with all UI work about status
     }
 }
 
+function refreshGameStatus(){  // will be overloaded by game_{gamename}.js
+    console.log("you haven't been in game.")
+}
 
 function bindMsgSend() {
     $("#send-text").on('keypress',function(a){
@@ -415,15 +449,14 @@ function bindMsgSend() {
     })
 }
 
-function bindModalPopup(){  // onclick to trigger modal
-    for (let prop in modalTitle){
-        $("#"+prop+"-btn").on('click',function(a){
-            $("#"+prop+"-modal-form").removeClass('d-none');
-            $('#modal .modal-title').text(modalTitle[prop])
-            $('#modal').modal('show');
-        })
-    }
+function showNoticeModal(msg){
+    $("#notice-modal-form").removeClass('d-none');
+    $('#modal .modal-title').text('通知');
+    $('#notice-modal-form .modal-body p').text(msg);
+    $('#modal').modal('show');
+}
 
+function bindModalHide(){
     $('#modal').on('hidden.bs.modal', function(e) {
         $('#modal').find('form').each(function(a){
             (!$(this).hasClass('d-none')) && $(this).addClass('d-none');
@@ -431,59 +464,85 @@ function bindModalPopup(){  // onclick to trigger modal
         $('#modal .a-error').text('');
         (!0 === term.next_modal) && (showNoticeModal(term.next_msg), term.next_modal=!1);
     });
-
 }
 
-function showNoticeModal(msg){
-    $("#notice-modal-form").removeClass('d-none');
-    $('#modal .modal-title').text(modalTitle['notice']);
-    $('#notice-modal-form .modal-body p').text(msg);
-    $('#modal').modal('show');
-}
+function loginMethodSet(){
+    var modalName = {
+        'signup':'註冊信箱',
+        'login':'登入',
+        'logout':'登出',
+        'change-pwd':'變更密碼',
+        'reset-pwd':'重置密碼'
+    }
+    for (let prop in modalName){
+        $("#"+prop+"-btn").on('click',function(a){
+            $("#"+prop+"-modal-form").removeClass('d-none');
+            $('#modal .modal-title').text(modalName[prop])
+            $('#modal').modal('show');
+        })
+    }
 
-function bindFormSubmit(){
-    $("#leave-modal-form").on('submit',function(e){  
+    $('#signup-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // 每次都讓status退一格 room->game->自動重新等待->取消等待
-        if (1 !== localData.status){  // 現在只處理status === 1
-            return false
-        }
+        // todo 驗證資料:email不符合標準, pwd不符合標準
+
+        var formArray = $(this).serializeArray();
+        formArray.push({name:"uuid-input",value: localData.uuid});
+        formArray.push({name:"goto-input",value: localData.school});
+        formArray.push({name:"name-input",value: localData.name});
+
+        $(this).find('.modal-footer button[type="submit"]').text('等待中...').attr('disabled', true);
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: formArray,
+            dataType: "json",
+            success: function(data) {  
+                if (!0 === data['result']){
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                }else{
+                    $('#signup-modal-form p.a-error').text(data['msg']);
+                }
+            },
+            error: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            complete: function(data, code) {  
+                $('#signup-modal-form button[type="submit"]').text('確定').removeAttr('disabled');
+            }
+        })
+    })
+
+    $('#login-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        // todo 驗證資料
         $.ajax({
             type: 'POST',
             url: $(this).data('url'),
             data: $(this).serializeArray(),
             dataType: "json",
-            success:function(data) {
+            success: function(data) {
+                console.log(data['result']);
                 if (!0 === data['result']){
-                    localData.waiting_time= '', localStorage.waiting_time = '';
-                    localData.status = 0, localStorage.status = '0', refreshStatus();
-                    theUI.showSys('停止等待')
-                    $('#modal').modal('hide');
+                    for (let prep in data['player']){
+                        localData[prep] = data['player'][prep], localStorage[prep] = data['player'][prep];
+                    }
+                    refreshProfile(), loginData.isLogin = !0, loadLoginStatus();
+
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    $('#modal').on('hide.bs.modal', function(e) {
+                        (!1 === term.next_modal) && (window.location.href = "/chat");
+                    });
                 }else{
-                    $('#leave-modal-form p.a-error').text(data['msg']);
+                    $('#login-modal-form p.a-error').text(data['msg']);
                 }
             },
-            error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
-            
+            error: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 
-    $("#settings-form").on('submit',function(e){   
+    $('#logout-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // 改採關閉後檢驗資料是否改變 若改變則傳送 不變則不做反應
-        // 並在chatlog上顯示 像是改學校或改暱稱
-    })
-
-    $("#start-form").on('submit',function(e){  // no modal form, only use notice-modal
-        e.preventDefault();
-        if (localData.name.length===0){
-            showNoticeModal('尚未取新的遊戲暱稱。');
-            return false
-        }else if (localData.school.length===0){
-            showNoticeModal('尚未選擇所在城市。');
-            return false
-        }
         $.ajax({
             type: 'POST',
             url: $(this).data('url'),
@@ -491,22 +550,79 @@ function bindFormSubmit(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    localData.status = 1, localStorage.status = '1', refreshStatus();
-                    if (!0 === data['start']){
-                        theWS.callStartGame();
-                    }else{
-                        theUI.clearChatLogs();
-                        theUI.showSys('等待時間: <span class="a-clock a-point"></span>'), theUI.showClock();
-                        $('#sidebar').offcanvas('hide');
-                    }
+                    loginData.isLogin = !1,loadLoginStatus();
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    $('#modal').on('hide.bs.modal', function(e) {
+                        (!1 === term.next_modal) && (window.location.href = "/chat");
+                    });
                 }else{
-                    showNoticeModal(data['msg']);
+                    $('#logout-modal-form p.a-error').text(data['msg']);
                 }
             },
-            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
+
+    $('#change-pwd-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        // 資料驗證
+
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: $(this).serializeArray(),
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    $('#modal').on('hide.bs.modal', function(e) {
+                        (!1 === term.next_modal) && (window.location.href = "/chat");
+                    });
+                }else{
+                    $('#change-pwd-modal-form p.a-error').text(data['msg'])
+                }
+            },
+            error: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+
+    $('#reset-pwd-modal-form').on('submit', function(e) {
+        e.preventDefault();
+        // 資料驗證
+
+        $.ajax({
+            type: 'POST',
+            url: $(this).data('url'),
+            data: $(this).serializeArray(),
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){  // todo 寄信需要提醒用戶等一下
+                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                }else{
+                    $('#reset-pwd-modal-form p.a-error').text(data['msg'])
+                }
+            },
+            error: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+        
+    })
+}
+
+function profileMethodSet(){
+    var modalName = {
+        'goto':'前往學校',
+        'name':'遊戲暱稱'
+    }
+    for (let prop in modalName){
+        $("#"+prop+"-btn").on('click',function(a){
+            $("#"+prop+"-modal-form").removeClass('d-none');
+            $('#modal .modal-title').text(modalName[prop])
+            $('#modal').modal('show');
+        })
+    }
 
     $('#name-modal-form').on('submit', function(e) {
         e.preventDefault();
@@ -570,142 +686,143 @@ function bindFormSubmit(){
             timeout: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
+    for (let school of schoolImgSet){
+        $('#school-options').append("<option value="+school+">");
+    }
 
-    $('#signup-modal-form').on('submit', function(e) {
+}
+
+
+function settingsMethod(){
+    $("#settings-form").on('submit',function(e){   
         e.preventDefault();
-        // todo 驗證資料:email不符合標準, pwd不符合標準
-
-        var formArray = $(this).serializeArray();
-        formArray.push({name:"uuid-input",value: localData.uuid});
-        formArray.push({name:"goto-input",value: localData.school});
-        formArray.push({name:"name-input",value: localData.name});
-
-        $(this).find('.modal-footer button[type="submit"]').text('等待中...').attr('disabled', true);
-        $.ajax({
-            type: 'POST',
-            url: $(this).data('url'),
-            data: formArray,
-            dataType: "json",
-            success: function(data) {  
-                if (!0 === data['result']){
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
-                }else{
-                    $('#signup-modal-form p.a-error').text(data['msg']);
-                }
-            },
-            error: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            complete: function(data, code) {  
-                $('#signup-modal-form button[type="submit"]').text('確定').removeAttr('disabled');
-            }
-        })
-    })
-
-    $('#login-modal-form').on('submit', function(e) {
-        e.preventDefault();
-        // todo 驗證資料
-        $.ajax({
-            type: 'POST',
-            url: $(this).data('url'),
-            data: $(this).serializeArray(),
-            dataType: "json",
-            success: function(data) {
-                console.log(data['result']);
-                if (!0 === data['result']){
-                    for (let prep in data['player']){
-                        localData[prep] = data['player'][prep], localStorage[prep] = data['player'][prep];
-                    }
-                    refreshProfile(), loginStatus = !0, loadLoginStatus();
-
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
-                    $('#modal').on('hide.bs.modal', function(e) {
-                        (!1 === term.next_modal) && (window.location.href = "/chat");
-                    });
-                }else{
-                    $('#login-modal-form p.a-error').text(data['msg']);
-                }
-            },
-            error: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
-        })
-    })
-
-    $('#logout-modal-form').on('submit', function(e) {
-        e.preventDefault();
-        $.ajax({
-            type: 'POST',
-            url: $(this).data('url'),
-            data: $(this).serializeArray(),
-            dataType: "json",
-            success: function(data) {
-                if (!0 === data['result']){
-                    loginStatus = !1,loadLoginStatus();
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
-                    $('#modal').on('hide.bs.modal', function(e) {
-                        (!1 === term.next_modal) && (window.location.href = "/chat");
-                    });
-                }else{
-                    $('#logout-modal-form p.a-error').text(data['msg']);
-                }
-            },
-            error: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
-        })
-    })
-
-    $('#change-pwd-modal-form').on('submit', function(e) {
-        e.preventDefault();
-        // 資料驗證
-
-        $.ajax({
-            type: 'POST',
-            url: $(this).data('url'),
-            data: $(this).serializeArray(),
-            dataType: "json",
-            success: function(data) {
-                if (!0 === data['result']){
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
-                    $('#modal').on('hide.bs.modal', function(e) {
-                        (!1 === term.next_modal) && (window.location.href = "/chat");
-                    });
-                }else{
-                    $('#change-pwd-modal-form p.a-error').text(data['msg'])
-                }
-            },
-            error: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
-        })
-    })
-
-    $('#reset-pwd-modal-form').on('submit', function(e) {
-        e.preventDefault();
-        // 資料驗證
-
-        $.ajax({
-            type: 'POST',
-            url: $(this).data('url'),
-            data: $(this).serializeArray(),
-            dataType: "json",
-            success: function(data) {
-                if (!0 === data['result']){  // todo 寄信需要提醒用戶等一下
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
-                }else{
-                    $('#reset-pwd-modal-form p.a-error').text(data['msg'])
-                }
-            },
-            error: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
-        })
-        
+        // 改採關閉後檢驗資料是否改變 若改變則傳送 不變則不做反應
+        // 在<form>中仍有submit的<input>
+        // 並在chatlog上顯示 像是改學校或改暱稱
     })
 
 }
 
-function cmdBySidebar(elmt){  // LARP用不到 刪掉 
-    var text = $(elmt).find('.a-cmd').text();
-    text = text.split(' ')[0]
-    $("#send-text").val(text);
-    $("#sidebar .btn-close").click();
+function leaveMethod(){
+    $("#leave-btn").on('click',function(a){
+        $("#leave-modal-form").removeClass('d-none');
+        $('#modal .modal-title').text('離開')
+        $('#modal').modal('show');
+    })
+
+    $("#leave-btn").on('click',function(a){
+        if (localData.status === 1)
+            $('#leave-modal-form modal-body p').text('確定停止等待嗎？');
+        else if (localData.status === 2)
+            $('#leave-modal-form modal-body p').text('確定要離開遊戲嗎？');
+        else if (localData.status === 3)
+            $('#leave-modal-form modal-body p').text('確定要離開房間嗎？');
+    })
+
+    $("#leave-modal-form").on('submit',function(e){  
+        e.preventDefault();
+        if (localData.status === 0)
+            return false
+
+        else if (localData.status === 1){
+            $.ajax({
+                type: 'GET',
+                url: '/chat/leave',
+                dataType: "json",
+                success:function(data) {
+                    if (!0 === data['result']){
+                        localData.waiting_time= '', localStorage.waiting_time = '';
+                        localData.status = 0, localStorage.status = '0', refreshStatus();
+                        theUI.showSys('已停止等待')
+                        $('#modal').modal('hide');
+                    }else{
+                        $('#leave-modal-form p.a-error').text(data['msg']);
+                    }
+                },
+                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+                
+            })
+        }else if (localData.status === 2){
+            $.ajax({
+                type: 'GET',
+                url: '/chat/leave_game',
+                dataType: "json",
+                success:function(data) {
+                    if (!0 === data['result']){
+                        localData.status = 0, localStorage.status = '0', refreshStatus();
+                        localData.player_dict = {}, localStorage.player_dict = '{}', localData.onoff_dict = {}, localStorage.onoff_dict = '{}';
+                        theWS.callLeaveGame();  // 自行離開
+                        theUI.showSys('已離開遊戲')
+                        $('#modal').modal('hide');
+                    }else{
+                        $('#leave-modal-form p.a-error').text(data['msg']);
+                    }
+                },
+                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+                
+            })
+        }else if (localData.status === 3){
+            $.ajax({
+                type: 'GET',
+                url: '/chat/leave_match',
+                dataType: "json",
+                success:function(data) {
+                    if (!0 === data['result']){
+                        localData.status = 2, localStorage.status = '2', refreshStatus();
+                        theWS.callLeaveMatch();
+                        theUI.showSys('已離開房間')
+                        $('#modal').modal('hide');
+                    }else{
+                        $('#leave-modal-form p.a-error').text(data['msg']);
+                    }
+                },
+                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+                
+            })
+        } 
+        // 不同的status 所傳的ajax會不一樣 而且在modal上顯示也會不同
+    })
+
+
+}
+
+function startMethod(){
+    $("#start-btn").on('click',function(e){  // no modal form, only use notice-modal
+        if (localData.status !== 0)
+            return false
+        else if (localData.name.length===0){
+            showNoticeModal('尚未取新的遊戲暱稱。');
+            return false
+        }else if (localData.school.length===0){
+            showNoticeModal('尚未選擇所在城市。');
+            return false
+        }
+
+        $.ajax({
+            type: 'GET',
+            url: '/chat/start_game',
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){
+                    localData.status = 1, localStorage.status = '1', refreshStatus();
+                    if (!0 === data['start']){
+                        theWS.callStartGame();
+                    }else{
+                        theUI.clearChatLogs();
+                        theUI.showSys('等待時間: <span class="a-clock a-point"></span>'), theUI.showClock();
+                        $('#sidebar').offcanvas('hide');
+                    }
+                }else{
+                    showNoticeModal(data['msg']);
+                }
+            },
+            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
 }
 
 function bindFileUpload(){  // LARP用不到 刪掉
@@ -732,60 +849,6 @@ function bindFileUpload(){  // LARP用不到 刪掉
     });
 }
 
-var chatWS = function(){
-    function ms(msg, isImg=false){
-        if(!1===toggle.discon){
-            chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror 而webSocket突然自動關閉
-                'msg':msg,
-                'isImg':isImg
-            }))
-        }else{
-            localData.text_in_discon.push([msg,isImg]), localStorage.text_in_discon = JSON.stringify(localData.text_in_discon);
-        }
-        var elmt;
-        (isImg) ? (elmt = theUI.showSelfImg(msg), theUI.storeChatLogs(term.showSelfImg_text)):(elmt = theUI.showSelfMsg(msg), theUI.storeChatLogs(term.showSelfMsg_text));
-        theUI.showStatus(elmt,1);
-        term.emlt_for_status.push(elmt);
-    }
-    function mss(msg_list){ //  the matcher is disconnected, so send mag_list instead of msg in next connection.
-        if(!1===toggle.discon){
-            chatSocket.send(JSON.stringify({
-                'msgs':msg_list
-            }))
-        }
-    }
-    function st(sender,num=2){
-        if(!1===toggle.discon){
-            chatSocket.send(JSON.stringify({
-                'st':num,
-                'from':sender
-            }))
-        }
-    }
-    function wn(isWriting){
-        if(!1===toggle.discon){
-            isWriting = isWriting?!0:!1;
-            chatSocket.send(JSON.stringify({
-                'wn':isWriting
-            }))
-        }
-    }
-
-    function csg(){
-        chatSocket.send(JSON.stringify({
-            'call':'start'
-        }))
-    }
-
-    return{
-        msgSendWs:ms,
-        msgsSendWs:mss,
-        statusRespWs:st,
-        writingNowWs:wn,
-        callStartGame:csg
-    }
-}
-
 function processAdult(img_url){  // 刪掉
     theUI.showQuestion('是否確定使用此圖片?<p class="text-center"><img class="img-fluid a-img" src=' +img_url+'alt="refresh again"></img></p>', ['更改','確定'], 2);
     $('.a-q .a-0').on('click',function(e) {
@@ -798,56 +861,24 @@ function processAdult(img_url){  // 刪掉
     })
 }
 
-function processTest(questions){  // 刪掉
-    for (let q of questions){ // q為{content:... ,choices:[y,n]}的物件
-        theUI.showQuestion(q.content, q.choice, q.type);
-
-    }
-    theUI.showQuestion('是否提交答案?', ['提交'], 1).find('.a-0').removeClass('a-0').addClass('a-submit')
-    localData.testResult = []
-    localStorage.testResult='[]';
-
-    for (let s = 0;s<4;s++){
-        var classStr = '.a-' + s.toString();
-        $(classStr).on('click',function(e) {
-            e.preventDefault;
-            var parent = $(this).closest('.a-q');
-            var index = $('#dialog>.a-q').index(parent);
-            var next = parent.next('.a-q');
-            localData.testResult[index] = s.toString();
-            localStorage.testResult=JSON.stringify(localData.testResult);
-
-            if (next.length>0 && next.hasClass('d-none'))
-                next.removeClass('d-none'),theUI.scrollToNow(),theUI.unreadTitle(!0);
-        })
-    }
-    $('.a-submit').on('click', function(e){
-        theTerminal.wait();
-    })
-    $('#dialog>.a-q:eq(0)').removeClass('d-none');
-}
 
 var checkGate = function(){
-    function itr(){
+    function itr(){  // 不能用 需要改版
         var dialog;
-        if (localData.name.length===0 && localData.matchType.length===0)
+        if (localData.name.length===0 && loginData.isLogin === !1)
             dialog = ['歡迎來到Acard！😂 這是一個由學生新創團隊開發的校園交友平台，這裡的<span class="a-point">所有動作都以指令執行</span>', !1]
         else
             dialog = ['歡迎回來！',!1]
         return dialog
     }
-    function tut(){
+    function tut(){  // 改成 是否登入
         var dialog;
         if (localData.school.length===0)
             dialog = ['請先前往你想交友的<span class="a-point">學校</span>吧！ 輸入/go sch_id (學校縮寫例如:NTU, NCCU等)', !1]
         else if(localData.name.length===0)
             dialog = ['接著請輸入你的<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>。 輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)', !1]
-        else if(localData.matchType.length===0)
-            dialog = ['請重新輸入你的<span class="a-point">配對類型</span>以及<span class="a-point">名稱</span>。 輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)', !1]
-        else if(localData.testResult.length===0)
-            dialog = ['已確認你所選擇的<span class="a-point">學校('+localData.school+')</span>與<span class="a-point">基本資料('+localData.name+', '+localData.matchType +')</span>  開始進行配對吧～朋友！ 輸入/m ', !1]
-        else if(localData.room.length===0)
-            dialog = ['是否要進行下一次配對 輸入/m \n或選擇重新測試 輸入/t \n或更改配對用的名稱 輸入/n name \n或移動到其他學校 輸入/go sch_id', !1]
+        else if(loginData.isLogin === !1)
+            dialog = ['朋友你還沒登入帳號哦', !1]
         return dialog
     }
 
@@ -860,9 +891,9 @@ var checkGate = function(){
                 if (!0 === data['result']){
                     var li = data['dialog'];
                     if (0 === localData.status)
-                        li.splice(1,0,itr(), tut()); // insert theGate into data['dialog']
+                        li.splice(1,0, itr(), tut()); // insert theGate into data['dialog']
                     else if(1 === localData.status)
-                        li.splice(1,0,itr());
+                        li.splice(1,0, itr());
                     theUI.showMsgsAsync(li);
                 }else{
                     showNoticeModal(data['msg']);
@@ -877,218 +908,6 @@ var checkGate = function(){
         tutor:tut,
         intro:itr,
         greet:grt
-    }
-}
-
-var chatTerminal = function(){  // 用戶發送不合規定資料而斷線時是否會影響其他用戶
-    function cmd(totalStr){  // 若由'#send-text'發出 則必須透過cmd()作分流 ; 若由介面或其他元件發出 則直接調用方法
-        var listStr = totalStr.split(' ');
-        var cmdStr = listStr[0];
-        var wrongMsg = '指令為：<span class="a-point">'+totalStr+'</span> 未符合 '+cmdStr+ ' 指令格式';
-
-        console.log('type in: ' + totalStr);
-        
-        if (commandSet.goto === cmdStr.toLowerCase())
-            (listStr.length===2 && listStr[1].length>0) ? go(listStr[1]) : theUI.showSys(wrongMsg+'：空格後加上前往的學校縮寫哦 <span class="a-point">/go xxx</span>');
-
-        else if (commandSet.image === cmdStr.toLowerCase())
-            _a();
-        else if (commandSet.change === cmdStr.toLowerCase())
-            cg();
-        else if (commandSet.leave === cmdStr.toLowerCase())
-            le();
-        else if (commandSet.profile === cmdStr.toLowerCase())
-            (listStr.length===3 &&listStr[1].length>0 && listStr[2].length>0) ? p(listStr[1], listStr[2]) : theUI.showSys(wrongMsg+'：必須依序填入配對用的名稱與配對類型 <span class="a-point">/p 我的名字 fm</span>');
-        else if (commandSet.rename === cmdStr.toLowerCase())
-            (listStr.length==2 &&listStr[1].length>0) ? n(listStr[1]) : theUI.showSys(wrongMsg+'：空格後填入欲修改的名稱 <span class="a-point">/n 我的名字</span>');
-        else if (commandSet.match === cmdStr.toLowerCase())
-            m(),localData.imgUrl_adult = '', localStorage.imgUrl_adult = '';  // to distinguish normal mode from adult mode
-        else if (commandSet.adult === cmdStr.toLowerCase())
-            a();
-        else if (commandSet.retest === cmdStr.toLowerCase())
-            t();
-        else if (commandSet.reset === cmdStr.toLowerCase())
-            r();
-        else
-            theUI.showMsg('目前沒有 <span class="a-point">'+cmdStr+'</span> 這項指令😭');
-    }
-
-    function go(schoolId){
-        if (0!==localData.status){
-            theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>移動到其他學校，必須先輸入/le (/leave)。');
-        }else{   // 0 === localData.status
-            schoolId = schoolId.toUpperCase();
-            if (!(schoolImgSet.has(schoolId))){
-                theUI.showSys('目前尚未開放此學校: <span class="a-point">'+schoolId+'</span>');
-                theUI.showSys('目前開放的學校為:<span class="a-point">'+[...schoolImgSet].join(', ')+'</span>');
-                return false
-            }
-            if (schoolId === localData.school){
-                theUI.showMsg('你目前已經在 <span class="a-point">'+schoolId +schoolSet[schoolId] +'</span> 了哦');
-                return false
-            }
-            chatSocket.send(JSON.stringify({
-                'cmd':'goto',
-                'school':schoolId
-            }));
-            term.schoolId = schoolId;
-        }
-
-    }
-    function p(name, matchType){
-        if (0!==localData.status){
-            theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>設定暱稱或配對類型，必須先輸入/leave(/le)。');
-        }else{  // 0 === localData.status
-            if (name.length>20){
-                theUI.showSys('暱稱的字數長度不能超過: <span class="a-point">20</span>字元。');
-                return false
-            }
-            if (!(['mf','mm','fm','ff'].includes(matchType.toLowerCase()))){
-                theUI.showSys('配對類型只能選擇: <span class="a-point">fm, mf, mm, ff </span> 四種(分別為女找男, 男找女, 男找男, 女找女)');
-                return false
-            }
-            chatSocket.send(JSON.stringify({
-                'cmd':'profile',
-                'name':name,
-                'matchType':matchType.toLowerCase()
-            }));
-            term.name = name, term.matchType = matchType;
-
-        }
-    }
-    function n(name){
-        if (0!==localData.status){
-            theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>跟改暱稱哦，必須先輸入/leave(/le)。');
-        }else{  // 0 === localData.status
-            if (name.length>20){
-                theUI.showSys('暱稱的字數長度不能超過: <span class="a-point">20</span>字元。');
-                return false
-            }
-            chatSocket.send(JSON.stringify({
-                'cmd':'rename',
-                'name':name,
-            }));
-            term.name = name;
-        }
-    }
-    function m(){  // is called by /match only in status 0
-        if (1 === localData.status || 2 === localData.status){
-            theUI.showSys('你已經在進行<span class="a-point">配對</span>了哦。');
-        }else if (3 === localData.status){
-            theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>進行配對哦，必須先輸入/le (/leave)。');
-        }else{  // 0 === localData.status
-            if (localData.name.length===0 || localData.matchType.length===0){
-                theUI.showSys('必須先設定<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>才能進行配對，請輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
-                return false
-            }else if (localData.school.length===0){
-                theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行配對哦，請輸入/go school_id');
-                return false
-            }
-            ( 0!==localData.testResult.length && localData.testQuestions.length===localData.testResult.length)?w():t();
-        }
-        
-    }
-    function t(){  // is called by /match or /retest only in status 0
-        if (1 === localData.status){
-            theUI.showSys('你已經在<span class="a-point">重新作答</span>了哦。');
-        }else if (2 ===localData.status || 3 === localData.status){
-            theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>重新作答哦，必須先輸入/le (/leave)。');
-        }else{  // 0 === localData.status
-            if (localData.name.length===0 || localData.matchType.length===0){
-                theUI.showSys('必須先設定<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>才能進行配對，請輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
-                return false
-            }else if (localData.school.length===0){
-                theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行配對哦，請輸入/go school_id');
-                return false
-            }
-
-            chatSocket.send(JSON.stringify({
-                'cmd':'test'
-            }));
-        }
-    }
-
-    function w(){  // is called by /match in status 0 and processTest() in status 1
-        if(0 === localData.status || 1 === localData.status){
-            chatSocket.send(JSON.stringify({
-                'cmd':'wait',
-                'testResult':localData.testResult
-            }));
-        }
-    }
-    function le(){
-        if (0===localData.status){
-            theUI.showSys('你目前不在等待中也沒有與任何人連線哦😎');
-        }else{  // 0 !== localData.status
-            chatSocket.send(JSON.stringify({
-                'cmd':'leave'
-            }));
-        }
-    }
-    function cg(){
-        if (0===localData.status){
-            theUI.showSys('你目前不在等待中也沒有與任何人連線哦😎');
-        }else{  // 0 !== localData.status
-            chatSocket.send(JSON.stringify({
-                'cmd':'change'
-            }));
-        }
-    }
-    function a(imgUrl=null){
-        if (1 === localData.status || 2 === localData.status){
-            theUI.showSys('你已經在進行<span class="a-point">成人模式配對</span>了哦。');
-        }else if (3 === localData.status){
-            theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>使用成人模式進行配對哦，必須先輸入/le (/leave)。');
-        }else{
-            if (localData.name.length===0 || localData.matchType.length===0){
-                theUI.showSys('必須先設定<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>才能進行成人模式配對，請輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)')
-                return false
-            }else if (localData.school.length===0){
-                theUI.showSys('必須先<span class="a-point">前往學校</span>才能進行成人模式配對哦，請輸入/go school_id');
-                return false
-            }
-            if (null === imgUrl){
-                theUI.showSys('確定開啟成人模式嗎？😂 使用成人模式需要先上傳任意照片。 提醒：為保護使用者安全，請不要上傳任何容易透露個人真實訊息的照片。');
-                setTimeout($('#send-img').click(), 2000);
-            }else{
-                chatSocket.send(JSON.stringify({
-                    'cmd':'adult',
-                    'imgUrl':imgUrl
-                }));
-            }
-        }
-    }
-    function r(){
-        if (0!==localData.status){
-            theUI.showSys('不能在<span class="a-point">'+st[localData.status]+'</span>重置身份，必須先輸入/le (/leave)。');
-        }else{  // 0 === localData.status
-            chatSocket.send(JSON.stringify({
-                'cmd':'reset'
-            }));
-        }
-    }
-    function _a(){
-        if (3 !== localData.status){
-            theUI.showSys('必須與人連線後你才能用將圖傳對方哦');
-        }else{  // 3 === localData.status
-            setTimeout($('#send-img').click(), 500);
-        }
-        
-    }
-
-    return{
-        command:cmd,
-        goto:go,
-        profile:p,
-        rename:n,
-        match:m,
-        test:t,
-        wait:w,
-        leave:le,
-        change:cg,
-        adult:a,
-        reset:r,
-        image:_a
     }
 }
 
@@ -1279,25 +1098,6 @@ var chatUI = function(){
         localData.chatLogsNum+= n, localStorage.chatLogsNum = localData.chatLogsNum.toString();
     }
 
-    function rp(){  // 刪掉
-        // old 只有navbar部分
-        $('.navbar-text.a-font>.a-matcher').text(localData.anonName);
-        $('.navbar-text.a-font>.a-self').text(localData.name);
-        if (''!==localData.matchType){
-            var self = ('m'===localData.matchType[0])?'man':'woman';
-            var matcher = ('m'===localData.matchType[1])?'man':'woman';
-            var inRoom = (localData.status === 3)?'graphic_eq':'keyboard_arrow_right';
-            $('.navbar-text.a-type .material-icons:eq(0)').text(self);
-            $('.navbar-text.a-type .material-icons:eq(1)').text(inRoom);
-            $('.navbar-text.a-type .material-icons:eq(2)').text(matcher);
-        }
-        // 增加sidebar部分的更新
-        var school_name = localData.school+' '+schoolSet[localData.school];
-        $('#school').text(school_name), $('#school').attr('data-bs-original-title', school_name);
-        $('#user-tag').text(localData.name[0]);
-        $('#user-name').text(localData.name), $('#user-name').attr('data-bs-original-title', localData.name);   
-    }
-
     function go(callback=null){  // async function: callback after function has completed
         if (''!==localData.school){
             var extn = '.png';
@@ -1360,49 +1160,9 @@ var chatUI = function(){
         clearChatLogs:cl,
         loadChatLogs:ll,
         storeChatLogs:sl,
-        refreshProfile:rp,  // 刪掉
         gotoSchoolAsync:go,
         showMsgsAsync:ms
     }
-}
-
-// cookie相關 移到另一個js檔
-function setCookie(cname, cvalue, exdays) {
-    const d = new Date();
-    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    let expires = "expires="+d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-}
-  
-function getCookie(cname) {
-    let name = cname + "=";
-    let ca = document.cookie.split(';');
-    for(let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
-}
-  
-function checkCookie() {
-    let user = getCookie("username");
-    if (user != "") {
-        alert("Welcome again " + user);
-    } else {
-        user = prompt("Please enter your name:", "");
-        if (user != "" && user != null) {
-            setCookie("username", user, 365);
-        }
-    }
-}
-
-function eraseCookie(cname) {   
-    document.cookie = cname +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
 function installToolTip() {
@@ -1411,22 +1171,6 @@ function installToolTip() {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
 }
-
-function loadDatalist() {
-    for (let school of schoolImgSet){
-        $('#school-options').append("<option value="+school+">");
-    }
-}
-
-!function(a){
-    a.uuid = function() {
-        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(a) {
-            var t = 16 * Math.random() | 0;
-            return ("x" == a ? t : t &0x3|0x8).toString(16)
-        })
-    }
-}(jQuery);
-
 
 Date.prototype.Format = function (fmt) {
     var o = {
@@ -1445,96 +1189,26 @@ Date.prototype.Format = function (fmt) {
     return fmt;
 }
 
-var loginStatus,
-    email,  // 改為loginEmail 
-    gender,  // 改為loginGender 
+var loginData,
     TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     unreadMsg = 0,
     school_url = '/static/img/mark/',
     schoolImgSet = new Set([
         'NCCU', 'NTU', 'SCU', 'PCCU', 'FJU', 'TKU', 'NTHU', 'NCTU', 'NCKU'
-    ]),
-    typeSet = {  // 刪掉 直接傳字串即可
-        greet:'GREET',
-        goto:'GOTO',
-        profile:'PROFILE',
-        rename:'RENAME',
-        test:'TEST',
-        wait:'WAIT',
-        enter:'ENTER',
-        leave:'LEAVE',
-        back:'BACK',
-        msg: 'MSG',
-        msgs:'MSGS',
-        img:'IMG',
-        wn:'WN',
-        st:'ST',
-        reset:'RESET',
-        discon:'DISCON',
-        conn:'CONN',
-        error:'ERROR'
-    }, 
-    commandSet = {  // 刪掉 不再使用command
-        goto:'/go',
-        adult:'/a',
-        leave:'/le',
-        change:'/cg',
-        profile:'/p',
-        match:'/m',
-        rename:'/n',
-        retest:'/t',
-        reset:'/r',
-        image:'/@'
-    },
-    st = {  // 刪掉 LARP不使用
-        1:'配對遊戲中',2:'等待中',3:'連線中'
-    }
-    modalTitle={
-        'goto':'前往學校',
-        'name':'遊戲暱稱',
-        'signup':'註冊信箱',
-        'login':'登入',
-        'logout':'登出',
-        'notice':'通知',
-        'change-pwd':'變更密碼',
-        'reset-pwd':'重置密碼',
-        'leave':'離開'
-    }
-    toggle ={
-        writing:!1, // 為避免input欄多次重複輸入
-        uploading:!1, // 為避免圖片檔多次重複上傳
-        click:!1, // 為避免多次重複點擊
-        focus:!1, // 表示focus正在input欄
-        scroll:!1, // 表示捲軸正在滾動
-        text:!0, // todo 當出現bootbox時 離線後上線是否還要停留在bootbox
-        discon:!1,  // 表示對方斷線 重連時直接從後端抓取資料
-        problem:!1, // todo 表示自己網路出現問題 會跟開頭畫面一起使用
-        first:!0
-    },
-    term = {
-        name:'',
-        matchType:'',
-        schoolId:'',
-        showSelfMsg_text:'',
-        showMsg_text:'',
-        showSelfImg_text:'',
-        showImg_text:'',
-        showSys_text:'',
-        showMsgs_text:'',
-        emlt_for_status:[],
-        timerId_clock: null,
-        timerId_writing: null,
-        next_modal:!1,
-        next_msg:''
-    },
+    ]), 
     chatSocket = null,
-    theUI = chatUI(),
-    theWS = chatWS(),
-    theTerminal = chatTerminal(),
+    theWS = WSManager(),
+    theUI = chatUI(), 
     theGate = checkGate(),
-    localData = getLocalData()
-
+    localData = getLocalData(),
+    term = getTermData(),
+    toggle = getToggle()
+    
 $(document).ready(function() {
-    bindMsgSend(), bindFileUpload(), bindModalPopup(), bindFormSubmit(), loadDatalist(), installToolTip();    
+    bindMsgSend(), bindFileUpload(), installToolTip(), bindModalHide();   
+    loginMethodSet(), profileMethodSet(), leaveMethod(), startMethod(), settingsMethod();
+    // bindModalPopup(), bindBtnClick(), bindFormSubmit(), loadDataWidget() 易讀性較差 
+    // 改為依據用戶的功能分組 login相關, profile相關, game相關 如此就不會有chatroom和game重名問題 改名為methodSet
+
     loadLocalData(),loadLoginStatus();
 });

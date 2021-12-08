@@ -19,14 +19,19 @@
     
     <script src="{% static 'js/test_db.js'%}"></script>
     <script src="{% static 'js/db.js'%}"></script>
-    <script src="{% static 'js/chatroom.js'%}"></script>
-
-    {% block script_file %}{% endblock %}
 
     <script>
-    loginStatus = ('{{loginStatus}}' === 'True'), email = '{{email}}', gender = '{{gender}}';
+    loginData = {
+        isLogin: ('{{login_dict.isLogin}}' === 'True'),
+        email: '{{login_dict.email}}',
+        gender: '{{login_dict.gender}}',
+        uuid: '{{login_dict.uuid}}',
+        isBanned: ('{{login_dict.isLogin}}' === 'True')
+    }
     </script>
 
+    <script src="{% static 'js/chatroom.js'%}"></script>
+    {% block script_file %}{% endblock %}
 </head>
 <body>
     <div class="a-background" id = "background">
@@ -185,6 +190,7 @@
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
+
                 <form class='d-none' id="name-modal-form" data-url="post_name">
                     {% csrf_token %}
                     <div class="modal-body">
@@ -214,8 +220,7 @@
                     </div>
                 </form>
 
-                <form class='d-none' id="leave-modal-form" data-url="leave">
-                    {% csrf_token %}
+                <form class='d-none' id="leave-modal-form">
                     <div class="modal-body">
                         <div class="mb-3"><p>確定要離開嗎？</p></div>
                         <p class='text-danger p-1 a-error'></p>
@@ -325,52 +330,23 @@
                             <div class='a-sub a-sidebar' id='user-role'>(偵探)</div>
                         </div>
                     </div>
-                    
+
                     <div class='a-div a-sidebar'>
                         <p class="h5">其他玩家：</p>
-                        <div class='list-group list-group-flush w-100'>
-                            <div class='list-group-item list-group-item-action a-div d-flex'>
-                                <div class='a-circle a-sidebar a-male'>大</div>
-                                <div class='ps-1 pt-1 flex-grow-1'>
-                                    <div class='d-flex justify-content-between'>
-                                        <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="大大人類大大人類大大人類大大人類大大人類">大大人類大大人類大大人類大大人類大大人類大大人類大大人類</span>
-                                        <button class="btn btn-warning a-sidebar btn-sm" id="player-btn-1" type="button">互動</button>
-                                    </div>
-                                    <div class='a-sub a-sidebar'>(同系學長)</div>
-                                </div>
-                            </div>
-                            <div class='list-group-item list-group-item-action a-div d-flex'>
-                                <div class='a-circle a-sidebar a-male'>超</div>
-                                <div class='ps-1 pt-1 flex-grow-1'>
-                                    <div class='d-flex justify-content-between'>
-                                        <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="超大人類">超大人類</span>
-                                        <button class="btn btn-warning a-sidebar btn-sm" id="player-btn-2" type="button">審問</button>
-                                    </div>
-                                    <div class='a-sub a-sidebar'>(通識課同學)</div>
-                                </div>
-                            </div>
-                            <div class='list-group-item list-group-item-action a-div d-flex'>
-                                <div class='a-circle a-sidebar a-male'>巨</div>
-                                <div class='ps-1 pt-1 flex-grow-1'>
-                                    <div class='d-flex justify-content-between'>
-                                        <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="巨大人類">巨大人類</span>
-                                        <button class="btn btn-warning a-sidebar btn-sm" id="player-btn-3" type="button">審問</button>
-                                    </div>
-                                    <div class='a-sub a-sidebar'>(酒吧老闆)</div>
-                                </div>
-                            </div>
+                        <div class='list-group list-group-flush w-100' id='player-list'>
+                            {% block players %}{% endblock %}
                         </div>
                     </div>
 
-                    <div class='a-div a-sidebar' id='user-empty'>沒有其他玩家，你還沒進入遊戲哦。</div>
+                    <div class='a-div a-sidebar' id='player-empty'>沒有其他玩家，你還沒進入遊戲哦。</div>
+
+                    {% block sidebar %}{% endblock %}
+
                 </div>
             </div>
         </div>
         <div class='offcanvas-footer a-sidebar text-center my-3'>
-            <form data-url="start_game" id="start-form">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-warning" id="start-btn">開始遊戲</button>
-            </form>
+            <button type="button" class="btn btn-warning" id="start-btn">開始遊戲</button>
         </div>
         
     </div>

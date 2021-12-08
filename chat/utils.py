@@ -1,6 +1,6 @@
 from channels.db import database_sync_to_async
 from django.db.models import Q, F
-from .models import Room, Player, School, Question, Dialogue, Robot
+from .models import Match, Room, Player, School, Question, Dialogue, Robot
 import json
 from datetime import datetime, timezone
 from django.core.cache import cache
@@ -25,9 +25,27 @@ def delete_player(uuid):  # 刪掉
 
 
 @database_sync_to_async
+def get_match(player):
+    try:
+        match = player.match
+    except Match.DoesNotExist:
+        match = None
+    return match
+
+
+@database_sync_to_async
 def get_player(user):
     try:
         player = Player.objects.get(user=user)
+    except Player.DoesNotExist:
+        player = None
+    return player
+
+
+@database_sync_to_async
+def get_player_by_uuid(uuid):
+    try:
+        player = Player.objects.get(uuid=uuid)
     except Player.DoesNotExist:
         player = None
     return player
@@ -41,11 +59,35 @@ def refresh_player(player):
 
 
 @database_sync_to_async
+def refresh_room(room):
+    pk = room.id
+    new_room = Room.objects.get(id=pk)
+    return new_room
+
+
+@database_sync_to_async
 def set_player_fields(player, fields: dict):  # LARP
     for field, value in fields.items():
         setattr(player, field, value)
     player.save()
     return player
+
+
+@database_sync_to_async
+def set_room_fields(room, fields: dict):  # LARP
+    for field, value in fields.items():
+        setattr(room, field, value)
+    room.save()
+    return room
+
+
+@database_sync_to_async
+def set_match_fields(match, fields: dict):  # LARP
+    for field, value in fields.items():
+        setattr(match, field, value)
+    match.save()
+    return match
+
 
 
 @database_sync_to_async

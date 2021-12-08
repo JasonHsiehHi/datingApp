@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Room, Player, Question, School, Dialogue
 
-
+'''
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
     list_display = ('id', 'school', 'matchType', 'userNum')
@@ -39,4 +39,4 @@ class DialogueAdmin(admin.ModelAdmin):
     list_display = ('action', 'sub', 'number', 'dialog')
     ordering = ('action', 'sub', 'number')
     search_fields = ('action', )
-
+'''

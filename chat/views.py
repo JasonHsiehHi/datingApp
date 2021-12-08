@@ -26,16 +26,21 @@ import sys
 
 def chatroom(request):
     user = request.user
+    login_dict = {}
     if user.is_authenticated:
-        loginStatus = True
-        email = user.username
-        gender = user.profile.gender
+        login_dict['isLogin'] = True
+        login_dict['email'] = user.username
+        login_dict['gender'] = user.profile.gender
+        login_dict['uuid'] = user.profile.uuid  # reverse_foreignkey 是否會取用2次
+        login_dict['isBanned'] = user.profile.isBanned
 
     else:
-        loginStatus = False
-        email = ''
-        gender = ''
-    return render(request, 'chat/chatroom.html', {'loginStatus': loginStatus, 'email': email, 'gender': gender})
+        login_dict['isLogin'] = False
+        login_dict['email'] = ''
+        login_dict['gender'] = ''
+        login_dict['uuid'] = ''
+        login_dict['isBanned'] = False
+    return render(request, 'chat/chatroom.html', {'login_dict': login_dict})
 
 
 def greet(request):
@@ -119,7 +124,7 @@ def post_school(request):
 
         user = request.user
         if user.is_authenticated and user.is_active:
-            user.profile.uuid = request.POST['uuid-input']
+            # user.profile.uuid = request.POST['uuid-input']  # uuid由後端生產而且固定 故只有創建先要建立
             user.profile.school = school
             user.profile.save()
 
@@ -137,9 +142,9 @@ def post_name(request):  # todo 加上修改權限permission 用於替代self.pl
         if len(name) > 20:
             return JsonResponse({"result": False, "msg": "暱稱太長了，不能超過20個字元"})
 
-        user= request.user
+        user = request.user
         if user.is_authenticated and user.is_active:
-            user.profile.uuid = request.POST['uuid-input']
+            # user.profile.uuid = request.POST['uuid-input']  # uuid由後端生產而且固定 故只有創建先要建立
             user.profile.name = name
             user.profile.save()
 
@@ -191,7 +196,7 @@ def signup(request):
                 school = School.objects.get(name=request.POST['goto-input'])
             except School.DoesNotExist:
                 school = None
-            Player.objects.create(uuid=request.POST['uuid-input'], user=user, isRegistered=True, gender=gender,
+            Player.objects.create(uuid=str(uuid4()), user=user, isRegistered=True, gender=gender,
                                   name=request.POST['name-input'], school=school)
 
             #  Player.objects.update_or_create(uuid=request.POST['uuid-input'],
@@ -382,7 +387,7 @@ def reset_pwd_send_mail(email, temp_pwd):
 
 
 def start_game(request):
-    if request.is_ajax and request.method == 'POST':
+    if request.is_ajax and request.method == 'GET':
         if not request.user.is_authenticated:
             print("error: user isn't authenticated.", file=sys.stderr)
             return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
@@ -427,16 +432,17 @@ def start_game(request):
             onoff_dict = {}
             for player, role in zip(players, roles):
                 player.room = room  # todo 等待期間的玩家都不能存取資料庫以避免建房者發生錯誤 用player.status禁止上傳
+                player.status = 2
                 player.save()
-                player_dict[player.user.id] = [player.name, player.gender, role.name]
-                onoff_dict[player.user.id] = True
+                player_dict[player.uuid] = [player.name, player.gender, role.name, role.group]
+                onoff_dict[player.uuid] = True
 
             room.player_dict = player_dict
             room.onoff_dict = onoff_dict
             room.playerNum = femaleNeeded + maleNeeded
             room.save()
 
-            return JsonResponse({"result": True, "msg": '遊戲人數齊全，請等待加載...', "start": True})
+            return JsonResponse({"result": True, "msg": '遊戲人數齊全，等待加載...', "start": True})
         # 人數不足 等待
         else:
             return JsonResponse({"result": True, "msg": '請等待其他玩家進入遊戲', "start": False})
@@ -463,11 +469,14 @@ def in_game(request, game_name):
     # 先查看request.user 是否資料完全符合 遊戲房間必須正確 是否真的在遊戲進行中permission
     # 被保持獨立 遊戲中的ajax則要傳送到 views_game_name.py
     # consumers.py中也不會有個別遊戲專屬的method 而是所有遊戲都使用consumers.py的標配功能
+    game = Game.objects.get(game_id=game_name)
+    playerNum = game.best_ratio[0] + game.best_ratio[1]
+    # 'range': range(1,playerNum+1) 用dtl傳入template
     pass
 
 
 def leave(request):
-    if request.is_ajax and request.method == 'POST':
+    if request.is_ajax and request.method == 'GET':
         if request.user.is_authenticated:
             player = request.user.profile
             player.status = 0
@@ -481,21 +490,56 @@ def leave(request):
         print("error: it's not through ajax.", file=sys.stderr)
 
 
-# 放到views_game_name.py
 def leave_game(request):
-    # room.delete() 最後一人要把room刪除
+    if request.is_ajax and request.method == 'GET':
+        if request.user.is_authenticated:
+            player = request.user.profile
+            room = player.room
+            room.player_dict.pop(player.uuid)
+            room.onoff_dict.pop(player.uuid)
+            room.playerNum -= 1
+
+            player.status = 0
+            player.room = None
+            player.save()
+
+            if len(room.onoff_dict) == 0:
+                room.delete()
+            else:
+                room.save()
+
+            return JsonResponse({"result": True})
+        else:
+            print("error: user isn't authenticated.", file=sys.stderr)
+            return JsonResponse({"result": False, "msg": '用戶還未登入帳號。'})
+    else:
+        print("error: it's not through ajax.", file=sys.stderr)
+
+
+def enter_match(request):
+    # in view_game_{gamename}.py
     pass
 
 
-# 放到views_game_name.py
-def leave_room(request):
-    pass
+def leave_match(request):
+    if request.is_ajax and request.method == 'GET':
+        if request.user.is_authenticated:
+            player = request.user.profile
+            match = player.match
+            match.player_list.remove(player.uuid)
 
+            player.status = 2
+            player.match = None
+            player.save()
 
-# 放到views_game_name.py
-def enter_room(request):
-    pass
+            if len(match.player_list) == 0:
+                match.delete()
+            else:
+                match.save()
 
-
-
-
+            return JsonResponse({"result": True})
+        else:
+            print("error: user isn't authenticated.", file=sys.stderr)
+            return JsonResponse({"result": False, "msg": '用戶還未登入帳號。'})
+    else:
+        print("error: it's not through ajax.", file=sys.stderr)
