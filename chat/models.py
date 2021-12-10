@@ -69,7 +69,7 @@ class Player(models.Model):
     gender = models.CharField(max_length=1, choices=GENDER_TYPE, null=True)
     isAdult = models.BooleanField(null=True, default=True)
     isHetero = models.BooleanField(null=True, default=True)
-    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
     waiting_time = models.DateTimeField(null=True)
     isPrepared = models.BooleanField(default=False)
@@ -84,20 +84,20 @@ class Player(models.Model):
 
 class Game(models.Model):
     name = models.CharField(max_length=20)
-    gameId = models.CharField(primary_key=True, max_length=20)
+    game_id = models.CharField(max_length=20, unique=True)
     isAdult = models.BooleanField()
     isHetero = models.BooleanField()
     best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要 異性為[5,1] 同性為[5:0]
     threshold_ratio = models.JSONField(max_length=10)  # 有分最合適比例與及格配對比例兩種 差別在於等待時間
 
     def __str__(self):
-        return self.gameId
+        return self.game_id
 
 
 class GameRole(models.Model):  # 角色數量一定要多過遊戲人數 才不會抽不到人
     name = models.CharField(max_length=10)
     gender = models.CharField(max_length=1, null=True)
-    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)
 
     def __str__(self):
@@ -107,7 +107,7 @@ class GameRole(models.Model):  # 角色數量一定要多過遊戲人數 才不�
 class GameEvent(models.Model):
     name = models.CharField(max_length=20)
     content = models.TextField(null=True)
-    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)
 
     def __str__(self):
@@ -116,11 +116,10 @@ class GameEvent(models.Model):
 
 class Dialogue(models.Model):
     dialog = models.JSONField(null=True)  # list: sentences
-    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
     action = models.CharField(max_length=10)
     sub = models.CharField(max_length=20, null=True)
     number = models.IntegerField()
-    speaker = models.ForeignKey('Robot', null=True, on_delete=models.SET_NULL)  # 刪掉
 
     def __str__(self):
         return '{0}-{1}'.format(self.action, self.number)
@@ -139,18 +138,14 @@ class School(models.Model):  # 換成City
         return self.name
 
 
-class Question(models.Model):  # 刪掉
-    id = models.CharField(max_length=5, primary_key=True)  # 換成q_id 不要蓋過預設的id
-    type = models.CharField(max_length=1)
-    content = models.CharField(max_length=200)
-    choice = models.JSONField(max_length=200)
+class City(models.Model):
+    name = models.CharField(max_length=10, unique=True)
 
-    def __str__(self):
-        return self.id
-
-
-class Robot(models.Model):  # 刪掉
-    name = models.CharField(max_length=30)
+    roomNum = models.IntegerField(default=0)
+    femaleNumForMale = models.IntegerField(default=0)
+    maleNumForFemale = models.IntegerField(default=0)
+    femaleNumForFemale = models.IntegerField(default=0)
+    maleNumForMale = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name

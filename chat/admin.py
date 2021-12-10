@@ -1,10 +1,10 @@
 from django.contrib import admin
-from .models import Game, Room, Player, Question, School, Dialogue
+from .models import Game, Room, Player, School, Dialogue
 
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ('name', 'gameId', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio')
+    list_display = ('name', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio')
 
 
 '''
