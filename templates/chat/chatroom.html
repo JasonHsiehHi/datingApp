@@ -54,7 +54,7 @@
                     <h5 class="modal-title"></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="close"></button>
                 </div>
-                <form class='d-none' id="signup-modal-form" data-url="signup">
+                <form class='d-none' id="signup-modal-form">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3">
@@ -94,7 +94,7 @@
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-                <form class='d-none' id="login-modal-form" data-url="login">
+                <form class='d-none' id="login-modal-form">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3">
@@ -112,7 +112,7 @@
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-                <form class='d-none' id="logout-modal-form" data-url="logout">
+                <form class='d-none' id="logout-modal-form">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3"><p>確定要登出嗎？</p></div>
@@ -124,7 +124,7 @@
                     </div>
                 </form>
 
-                <form class='d-none' id="change-pwd-modal-form" data-url="change_pwd">
+                <form class='d-none' id="change-pwd-modal-form">
                     {% csrf_token %}
                     <div class="modal-body">
 
@@ -150,7 +150,7 @@
                     </div>
                 </form>
 
-                <form class='d-none' id="reset-pwd-modal-form" data-url="reset_pwd">
+                <form class='d-none' id="reset-pwd-modal-form">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3">
@@ -168,7 +168,7 @@
                     </div>
                 </form>
 
-                <form class='d-none' id="goto-modal-form" data-url="post_school">
+                <form class='d-none' id="goto-modal-form">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3 row g-3 align-items-center">
@@ -191,7 +191,7 @@
                     </div>
                 </form>
 
-                <form class='d-none' id="name-modal-form" data-url="post_name">
+                <form class='d-none' id="name-modal-form">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3 row g-3 align-items-center">
@@ -242,27 +242,18 @@
                 <i class="material-icons-outlined md-28">ads_click</i>
             </button>
             <span class="navbar-text a-font d-inline-flex align-items-center">
-
                 <span class='a-matcher'>ACARD台北男</span>
-                <i class="material-icons">sync_alt</i>
-                <span class='a-self'>ACARD剛吃飽飯</span>
-
             </span>
             <span class="navbar-text">
-                <i class="material-icons"></i>
-                <i class="material-icons"></i>
-                <i class="material-icons"></i>
-                
                 <button class="navbar-toggler btn a-div a-clr" id='leave-btn' type="button" disabled>
                     <i class="material-icons-outlined md-28">meeting_room</i>
                 </button>
-
                 <div class="btn-group">
                     <button class="navbar-toggler dropdown-toggle btn a-div a-clr" id='settings-btn' type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                         <i class="material-icons-outlined md-28">settings</i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settings-btn">
-                        <form id="settings-form" data-url="settings">
+                        <form id="settings-form">
                             {% csrf_token %}
                             <li><span class="dropdown-item-text">
                                 <span>尋找對象：</span>
@@ -321,7 +312,7 @@
                         
                     </div>
                     <div class='a-div a-sidebar d-flex'>
-                        <div class='a-circle a-sidebar a-female' id="user-tag">取</div>
+                        <div class='a-circle a-sidebar a-off' id="user-tag">取</div>
                         <div class='ps-1 flex-grow-1'>
                             <div class='d-flex justify-content-between'>
                                 <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='取個暱稱吧' id="user-name">取個暱稱吧</span>

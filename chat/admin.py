@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Room, Player, Question, School, Dialogue
+from .models import Game, Room, Player, Question, School, Dialogue
+
+
+@admin.register(Game)
+class GameAdmin(admin.ModelAdmin):
+    list_display = ('name', 'gameId', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio')
+
 
 '''
 @admin.register(Room)

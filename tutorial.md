@@ -1039,7 +1039,7 @@ Float-32 bit (7 digits) Double-64 bit (15-16 digits)
 Decimal-128 bit (28-29 significant digits) 
 
 
-uuid = models.UUIDField(primary_key=True,default=uuid.uuid4)
+uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
 uuid常做為主鍵使用 具有唯一性(unique=True)且不可為空(null=False) 故可作為外鍵的連結
 所有的資料欄類別都會有主鍵 若未指定則model會額外自行生成主見以供外鍵取用
 default作為預設值 故用戶不需要自行填寫此欄
@@ -1048,6 +1048,9 @@ default作為預設值 故用戶不需要自行填寫此欄
 若沒有指定主鍵(primary_key=True) 則自行生成id作為主鍵
 等同：id = models.BigAutoField(primary_key=True) 
 id本來就會遞增 故也可直接查id知道目前所創建的房間數(不是房間總數)
+
+除了primary_key之外 並沒有資料是一定要輸入的(required=True) 比較接近的方法為(null=False) 此為預設
+因此有些資料為符合辨識功能 可用(unique=True)確保唯一性
 
 null=False和blank=False:
 null=False表示資料庫內的該欄不能用null儲存(預設) blank=False表示在admin或view輸入時會經過驗證不能填空
@@ -1201,31 +1204,38 @@ class BookAdmin(admin.ModelAdmin):
   並在models.py中的Book類別加上：
   def display_genre(self):
     return ', '.join(genre.name for genre in self.genre.all()[:3]) # 只讀取前三項
+
   display_genre.short_description = 'Genre'  # 在select頁面 用'genre'取代'display_genre'名稱
+
+list_display的第一項用來取代model的__str__ 如果沒有額外定義ModelAdmin 則用__str__代表record
+admin上的ForignKey顯示方式並不一定是pk(與資料庫不同) 而是以__str__為主 
 
   list_filter = ('genre',)  # 可加上過濾功能 通常只用於choice的資料欄
   search_fields = ('name',)  # 同樣放在select頁面 加上搜尋功能以避免資料量過多的時候
   ordering = ('-genre',)  # 針對字串開頭來做排序 '-'可用於反序
 
-  inlines = [BooksInstanceInline]  # update頁面的內聯list 在Book類別的頁面可以編輯BooksInstance類別 常用於fk的field
-  fields = ['name','id']  # 不同於list_display在select頁面 而fields在update(add或change)頁面用於改變排版順位
+  fields = ['name','id']  # 不同於list_display在select頁面 fields則在update頁面(add或change)用於改變排版順位
   
-  fieldsets = (  # 用於取代fields 除了欄位排序外還有大標題可以選 也可以為空('None')
-    (None, {
+  fieldsets = (  # 同樣只是改變排版順位 用於取代fields
+    (None, {  # 除了欄位排序外還有大標題可以選 也可以為空(None)
         'fields': ('book', 'imprint', 'id')
     }),
-    ('Availability', {
+    ('Availability', {  # 大標題為'Availability'
         'fields': ('status', 'due_back')
     }),
   )
   exclude = ('create_date', )  ＃ 則為不要顯示的屬性 常用於系統預設的資訊 不充許修改
 
+  inlines = [BooksInstanceInline]  # update頁面的內聯list 在Book類別的頁面可以編輯BooksInstance類別 常用於fk的field
 
-class BooksInstanceInline(admin.TabularInline):
+class BooksInstanceInline(admin.TabularInline):  # 也可用admin.StackedInline(垂直) 但排版不好看 故一般用admin.TabularInline(水平)
   model = BookInstance
+  extra = 1  # 預設是3個空白關聯表 可改為1個
 
+admin.site.register(Book)  # 不額外指定Admin則使用預設
 admin.site.register(Book, BookAdmin)  # 引入model並完成register註冊 並可加入BookAdmin類別參數來做admin頁面客製化
 也可直接在BookAdmin類別上 添加:@admin.register(Book)
+
 
 - - - ---------------------------------------------------
 # views.py
@@ -4501,7 +4511,7 @@ conda list
 conda install thepackage (或 pip install thepackage) # 兩者都可以在myenv虛擬環境中安裝
 conda search thepackage
 conda update thepackage
-conda remove thepackage
+conda remove thepackage (或 pip uninstall thepackage) 用pip下載就要用pip卸載
 source deactivate
 
 vi test.txt / vim test.txt  # 開啟文件檔

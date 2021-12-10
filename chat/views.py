@@ -21,26 +21,69 @@ from hashlib import md5
 
 import re
 import os
-import sys
+
+from django.db import connection
+
+
+def get_loginData(user, player):
+    user_dict = model_to_dict(user, fields=['username'])
+    player_dict = model_to_dict(player, fields=[
+        'gender', 'uuid', 'isBanned', 'name', 'school', 'status', 'waiting_time', 'game'])
+
+    player_dict['school'] = str(player_dict['school'])
+    player_dict['status'] = str(player_dict['status'])  # 之後改成字元 不需要str()
+    player_dict['game'] = player_dict['game'].name
+
+    login_dict = {
+        'isLogin': True,
+        'email': user_dict['username'],
+        **player_dict
+    }
+    return login_dict
 
 
 def chatroom(request):
     user = request.user
-    login_dict = {}
     if user.is_authenticated:
-        login_dict['isLogin'] = True
-        login_dict['email'] = user.username
-        login_dict['gender'] = user.profile.gender
-        login_dict['uuid'] = user.profile.uuid  # reverse_foreignkey 是否會取用2次
-        login_dict['isBanned'] = user.profile.isBanned
+        login_dict = get_loginData(user, user.profile)
+        # reverse_foreignkey 是否會多次存取
+        print('db_query: {}'.format(connection.queries))
 
     else:
-        login_dict['isLogin'] = False
-        login_dict['email'] = ''
-        login_dict['gender'] = ''
-        login_dict['uuid'] = ''
-        login_dict['isBanned'] = False
+        login_dict = {
+            'isLogin': False,
+            'email': '',
+            'gender': '',
+            'uuid': '',
+            'isBanned': False,
+            'name': '取個暱稱吧',
+            'school': '',
+            'status': '0',
+            'waiting_time': '',
+            'game': ''
+        }
     return render(request, 'chat/chatroom.html', {'login_dict': login_dict})
+
+
+def in_game(request, game_name):
+    user = request.user
+    if user.is_authenticated:
+        # 先查看request.user 是否資料完全符合 遊戲房間必須正確 是否真的在遊戲進行中permission
+        # 被保持獨立 遊戲中的ajax則要傳送到 views_game_name.py
+        # consumers.py中也不會有個別遊戲專屬的method 而是所有遊戲都使用consumers.py的標配功能
+        game = Game.objects.get(game_id=game_name)
+        playerNum = game.best_ratio[0] + game.best_ratio[1]
+        # 'range': range(1,playerNum+1) 用dtl傳入template
+
+        login_dict = get_loginData(user, user.profile)
+        game_dict = {}  # 除了chatroom的loginData還要包含gameData
+        url = 'chat/start_game/chatroom_game_' + game_name + '.html'
+        return render(request, url, {'login_dict': login_dict, 'game_data': game_dict})
+    else:
+        # 提醒玩家 沒登入帳號不能直接用in_game
+        print("error: user isn't authenticated.")
+
+
 
 
 def greet(request):
@@ -61,7 +104,7 @@ def greet(request):
 
         return JsonResponse({"result": True, "dialog": dialog})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")  # log查看系統
 
 
 def get_dialogue_greet_sub(time, speaker=3):  # 之後把robot model刪掉 不用特別找speaker
@@ -101,7 +144,7 @@ def get_school_roomNum_max():  # LARP school改為city 表示city正在進行的
 
 def upload_image(request):
     if request.is_ajax and request.method == "POST":
-        photo = Photo.objects.create(image=request.FILES['send-img'], uploader=request.POST['send-hidden'],
+        photo = Photo.objects.create(image=request.FILES['send-img'], uploader=str(request.user.id),
                                      isForAdult=request.POST['send-tag'])
         old_path = photo.image.path
         extension_name = photo.image.name.split('.')[-1]
@@ -110,7 +153,7 @@ def upload_image(request):
         photo.save()
         return JsonResponse({'img_url': photo.image.url})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def post_school(request):
@@ -133,7 +176,7 @@ def post_school(request):
         dialog = []  # todo dialog GOTO 動態資訊
         return JsonResponse({"result": True, "school": school.name, "dialog": dialog})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def post_name(request):  # todo 加上修改權限permission 用於替代self.player_data.status
@@ -141,6 +184,8 @@ def post_name(request):  # todo 加上修改權限permission 用於替代self.pl
         name = request.POST['name-input']
         if len(name) > 20:
             return JsonResponse({"result": False, "msg": "暱稱太長了，不能超過20個字元"})
+        elif len(name) == 0:
+            return JsonResponse({"result": False, "msg": "暱稱不能空白"})
 
         user = request.user
         if user.is_authenticated and user.is_active:
@@ -151,7 +196,7 @@ def post_name(request):  # todo 加上修改權限permission 用於替代self.pl
         # player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'], defaults={'name': name})
         return JsonResponse({"result": True, "name": name})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def signup(request):
@@ -208,7 +253,7 @@ def signup(request):
             else:
                 return JsonResponse({"result": True, "msg": "已成功將註冊認證信寄到你的信箱了哦！"})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def signup_create_user(username, email, password):
@@ -275,18 +320,17 @@ def log_in(request):  # 帳號重複登入
         except ValidationError:
             return JsonResponse({"result": False, "msg": '不符合電子信箱格式！'})
 
-        print(email, file=sys.stderr)
         user = authenticate(request, username=email, password=password)
         if user is None or user.is_active is False:
             return JsonResponse({"result": False, "msg": '登入失敗，密碼錯誤或信箱還未完成註冊驗證。'})
         else:
             login(request, user)
             # 依據用戶的status 給予相對應的資料
-            player_dict = model_to_dict(user.profile, fields=['uuid', 'name', 'school', 'status', 'waiting_time'])
-            return JsonResponse({"result": True, 'player': player_dict, "msg": '帳號登入成功！'})
+            loginData = get_loginData(user, user.profile)
+            return JsonResponse({"result": True, 'loginData': loginData, "msg": '帳號登入成功！'})
 
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def log_out(request):
@@ -298,9 +342,9 @@ def log_out(request):
 
             return JsonResponse({"result": True, "msg": '帳號已登出！'})
         else:
-            print("error: user isn't authenticated.", file=sys.stderr)
+            print("error: user isn't authenticated.")
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def validate_pwd(password1, password2):
@@ -319,7 +363,7 @@ def validate_pwd(password1, password2):
 def change_pwd(request):
     if request.is_ajax and request.method == 'POST':
         if not request.user.is_authenticated:
-            print("error: user isn't authenticated.", file=sys.stderr)
+            print("error: user isn't authenticated.")
             return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
 
         old_password = request.POST['change-pwd-input-old']
@@ -340,7 +384,7 @@ def change_pwd(request):
         return JsonResponse({"result": True, "msg": '變更密碼成功！'})
 
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def reset_pwd(request):
@@ -369,7 +413,7 @@ def reset_pwd(request):
             return JsonResponse({"result": True, "msg": '已成功將重設密碼信寄到你的信箱了哦！'})
 
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def reset_pwd_send_mail(email, temp_pwd):
@@ -389,7 +433,7 @@ def reset_pwd_send_mail(email, temp_pwd):
 def start_game(request):
     if request.is_ajax and request.method == 'GET':
         if not request.user.is_authenticated:
-            print("error: user isn't authenticated.", file=sys.stderr)
+            print("error: user isn't authenticated.")
             return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
 
         user = request.user
@@ -448,7 +492,7 @@ def start_game(request):
             return JsonResponse({"result": True, "msg": '請等待其他玩家進入遊戲', "start": False})
 
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def get_game(isAdult, isHetero):
@@ -465,16 +509,6 @@ def get_roles_of_game(game, gender, num=1):
     return sample(list(roles), num)
 
 
-def in_game(request, game_name):
-    # 先查看request.user 是否資料完全符合 遊戲房間必須正確 是否真的在遊戲進行中permission
-    # 被保持獨立 遊戲中的ajax則要傳送到 views_game_name.py
-    # consumers.py中也不會有個別遊戲專屬的method 而是所有遊戲都使用consumers.py的標配功能
-    game = Game.objects.get(game_id=game_name)
-    playerNum = game.best_ratio[0] + game.best_ratio[1]
-    # 'range': range(1,playerNum+1) 用dtl傳入template
-    pass
-
-
 def leave(request):
     if request.is_ajax and request.method == 'GET':
         if request.user.is_authenticated:
@@ -484,10 +518,10 @@ def leave(request):
             player.save()
             return JsonResponse({"result": True})
         else:
-            print("error: user isn't authenticated.", file=sys.stderr)
+            print("error: user isn't authenticated.")
             return JsonResponse({"result": False, "msg": '用戶沒有登入帳號。'})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def leave_game(request):
@@ -510,10 +544,10 @@ def leave_game(request):
 
             return JsonResponse({"result": True})
         else:
-            print("error: user isn't authenticated.", file=sys.stderr)
+            print("error: user isn't authenticated.")
             return JsonResponse({"result": False, "msg": '用戶還未登入帳號。'})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def enter_match(request):
@@ -539,7 +573,7 @@ def leave_match(request):
 
             return JsonResponse({"result": True})
         else:
-            print("error: user isn't authenticated.", file=sys.stderr)
+            print("error: user isn't authenticated.")
             return JsonResponse({"result": False, "msg": '用戶還未登入帳號。'})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")

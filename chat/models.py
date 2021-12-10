@@ -10,7 +10,6 @@ class Room(models.Model):
         ('ff', 'female->female')
     )
     room_id = models.CharField(max_length=20, null=True)  # 刪掉 用預設id即可
-
     userNum = models.IntegerField(default=0)  # 刪掉
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)  # 刪掉
 
@@ -37,7 +36,7 @@ class Match(models.Model):
 
 
 class Player(models.Model):
-    MATCH_TYPE = (
+    MATCH_TYPE = (  # 刪掉
         ('mf', 'male->female'),
         ('fm', 'female->male'),
         ('mm', 'male->male'),
@@ -50,22 +49,19 @@ class Player(models.Model):
 
     uuid = models.UUIDField(primary_key=True)
     create_date = models.DateTimeField(default=timezone.now)
-    anonName = models.CharField(max_length=25, null=True)
     name = models.CharField(max_length=25, null=True)
+    anonName = models.CharField(max_length=25, null=True)  # 刪掉 可用match.player_list取代
     imgUrl_adult = models.URLField(null=True)
-
+    status = models.IntegerField(default=0)  # 之後修改成CharField
     isBanned = models.BooleanField(default=False)
-    status = models.IntegerField(default=0)
 
-    match = models.ForeignKey('Match', null=True, on_delete=models.SET_NULL, default=None)
-    room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
+    room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
+    match = models.ForeignKey('Match', null=True, on_delete=models.SET_NULL, default=None)
 
     matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True)  # 刪掉
     testResult = models.JSONField(max_length=30, null=True)  # 刪掉
     score = models.FloatField(null=True)  # 刪掉
-
-    waiting_time = models.DateTimeField(null=True)
 
     user = models.OneToOneField(User, null=True, on_delete=models.SET_NULL, default=None, related_name='profile')
     isRegistered = models.BooleanField(default=False)
@@ -73,9 +69,11 @@ class Player(models.Model):
     gender = models.CharField(max_length=1, choices=GENDER_TYPE, null=True)
     isAdult = models.BooleanField(null=True, default=True)
     isHetero = models.BooleanField(null=True, default=True)
+    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+
+    waiting_time = models.DateTimeField(null=True)
     isPrepared = models.BooleanField(default=False)
     isOn = models.BooleanField(default=False)
-    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
     tag_int = models.IntegerField(null=True)  # 針對特定角色才有用 偵探：需要紀錄自己審問的人
     tag_json = models.JSONField(max_length=25, null=True)
@@ -86,20 +84,20 @@ class Player(models.Model):
 
 class Game(models.Model):
     name = models.CharField(max_length=20)
-    game_id = models.CharField(max_length=20, null=True)
+    gameId = models.CharField(primary_key=True, max_length=20)
     isAdult = models.BooleanField()
     isHetero = models.BooleanField()
-    best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要 ex: 異性為[5,1] 同性為[5:0]
+    best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要 異性為[5,1] 同性為[5:0]
     threshold_ratio = models.JSONField(max_length=10)  # 有分最合適比例與及格配對比例兩種 差別在於等待時間
 
     def __str__(self):
-        return self.name
+        return self.gameId
 
 
-class GameRole(models.Model):  # todo 角色數量一定要多過遊戲人數 才不會抽不到人
+class GameRole(models.Model):  # 角色數量一定要多過遊戲人數 才不會抽不到人
     name = models.CharField(max_length=10)
     gender = models.CharField(max_length=1, null=True)
-    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)
 
     def __str__(self):
@@ -109,11 +107,23 @@ class GameRole(models.Model):  # todo 角色數量一定要多過遊戲人數 �
 class GameEvent(models.Model):
     name = models.CharField(max_length=20)
     content = models.TextField(null=True)
-    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
+
+
+class Dialogue(models.Model):
+    dialog = models.JSONField(null=True)  # list: sentences
+    # game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
+    action = models.CharField(max_length=10)
+    sub = models.CharField(max_length=20, null=True)
+    number = models.IntegerField()
+    speaker = models.ForeignKey('Robot', null=True, on_delete=models.SET_NULL)  # 刪掉
+
+    def __str__(self):
+        return '{0}-{1}'.format(self.action, self.number)
 
 
 class School(models.Model):  # 換成City
@@ -137,18 +147,6 @@ class Question(models.Model):  # 刪掉
 
     def __str__(self):
         return self.id
-
-
-class Dialogue(models.Model):  # 加上game ForeignKey 用來處理劇情
-    dialog = models.JSONField(null=True)  # list: sentences
-    game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
-    action = models.CharField(max_length=10)
-    sub = models.CharField(max_length=20, null=True)
-    number = models.IntegerField()
-    speaker = models.ForeignKey('Robot', null=True, on_delete=models.SET_NULL)  # 刪掉
-
-    def __str__(self):
-        return '{0}-{1}'.format(self.action, self.number)
 
 
 class Robot(models.Model):  # 刪掉

@@ -6,24 +6,30 @@
 修改background 與新增劇本名在sidebar
 完成多人數配對
 完成隨機生成內容的方式
-完成theGate.tutor教學
 完成房間計時器 時間到會自動退房
-上線與離線的user-tag 將原圖調灰即可
-將school改為city
+上線與離線的user-tag 將原圖調灰即可(a-off) 
+完成theGate.tutor教學 和與之對應的navbar-text部分
 chatlog上線時會清除之前的內容 但會有'聊天紀錄更多...'的選項
+最後再加上其他人的互動鍵 '提供線索'
+將school改為city
+settings-form 關閉時發出
+
 遊戲進行中變更密碼或登出 (是否直接用urlpatterns導向)
 多久會自動登出 登出後數據是否需要改變
-前端localData, localStorage, term, login- 和 後端ddatabase(資料應該放哪 應該由哪一流程傳入傳出)
+
+前端loginData, localData, localStorage, term 和後端ddatabase (資料應該放哪, 應該由哪一流程傳入傳出...等)
 
 變數轉譯問題 (name和msg都是由用戶填寫且會傳送到其他用戶的數據 要確保不會有xss攻擊)
 RWD調整
 GCE上線部署
-最後再加上其他人的互動鍵 '提供線索'
+
 
 # 架構圖 LARP
-login和logout都會重新導向一次window.location.href="/chat" 此時才會重新做loadLoginStatus()
+login和logout都會重新導向一次window.location.href="/chat" 
+此時才會重新做loadLoginData()
 
-cmd_open只負責GREET而已
+loadLocalData, loadRoleData都只會在ready時執行 其餘狀態都使用refresh進行
+但loadLoginData則在登入登出時仍會再進行
 
 # 手動測試流程 LARP
 

@@ -8,6 +8,7 @@
 node_modules/
 tutorial/
 
+term/
 term-chatroom.js
 term-chatroom.html
 term.py

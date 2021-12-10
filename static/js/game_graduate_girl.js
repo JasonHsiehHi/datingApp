@@ -173,11 +173,12 @@ var chatSocket = null,  // 改用gameWS 刪掉 同樣用chatroomWS就好
     ])
 
 $(document).ready(function(){
-    loadRoleData();  // establish variable: self, others 
+    loadRoleData();  // load the data about game and establish the variable: self, others 
 
     // 除了load之後 也要做故事情節dialog 
     // 加上loginUserid 用以判定身份 加上localData.group 用以表示playerdict的顯示方式
     // 行為鍵與互動鍵都在JS做生成 因為必須配合角色與玩家人數 每人都不同
     // 等劇本生成完成後 再像chatroom 的 GREET一樣來要dailog資料 還有最後的gameevent
     // 全部由game.loadPlayerDict()執行 會執行所有的安裝
+    // a-off 要更換掉a-male或a-female 且text('離線')
 })

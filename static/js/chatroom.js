@@ -92,7 +92,7 @@ function chatroomWS(){
                         localData.onoff_dict = data['onoff_dict'], localStorage.onoff_dict = JSON.stringify(data['onoff_dict']);
                         localData.status = 2, localStorage.status = '2';
                         $('#modal').modal('hide'), showNoticeModal(data['msg']);
-                        $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat/start_game/"+data['game']; });
+                        $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat/start_game/chatroom_game_"+data['game']; });
                         break;
 
                     case 'ENTER':
@@ -199,11 +199,11 @@ var WSManager = function(){
 
 function getLocalData(){
     var data = {
-        name: '取個暱稱吧',
-        school: '',  // 改掉 school改成city
+        name: '取個暱稱吧',  // 不離線也能用 故要用loginData給予localData和localStorage
+        school: '',  // 改掉 school改成city  // 不離線也能用 故要用loginData給予localData和localStorage
         status: 0,
-        lastSaid: 'sys',
-        anonName: '',
+        lastSaid: 'sys',  // 用localStorage存儲 不用存在後端
+        anonName: '',  // 之後刪除
         waiting_time: '',
         text_in_discon: [],
         imgUrl_adult: '',
@@ -306,15 +306,13 @@ function enabledElmtId(elmt_id){
     (void 0 !== $('#'+elmt_id).attr('disabled')) && $('#'+elmt_id).removeAttr('disabled');
 }
 
-function loadLocalData(){  // loadLocalData just do theUI work
-    refreshProfile(), refreshStatus();
-    theUI.gotoSchoolAsync();  // 在db加一個'輸入城市名'的選項 即可
-    $('#send-text').focus();
-}
-
-function loadLoginStatus(){ 
+function loadLoginData(){ 
     if (!0 === loginData.isLogin){
-        (localData.status === 0 || localData.status === 1) && chatroomWS(); // 之後修掉 login和local要互相獨立
+        var url = (loginData.game.length > 0)? ('/chat/start_game/chatroom_game_' + game_name) : '/chat';
+        if (url !== window.location.href)
+            window.location.href = url
+
+        chatroomWS();
         appearElmtId('user-info'), appearElmtId('logout-btn'), appearElmtId('change-pwd-btn');
         disappearElmtId('signup-btn'), disappearElmtId('login-btn'), disappearElmtId('reset-pwd-btn');
         $('#user-info>span:eq(0)').text(loginData.email);
@@ -324,10 +322,9 @@ function loadLoginStatus(){
         appearElmtId('signup-btn'), appearElmtId('login-btn'), appearElmtId('reset-pwd-btn');
         disappearElmtId('user-info'), disappearElmtId('logout-btn'), disappearElmtId('change-pwd-btn');
     }
-    
 }
 
-function unavailableBtn(){
+function unavailableBtn() {
     if (loginData.gender==='m'){
         $('#female-radio').click(),disabledElmtId('male-radio'), disabledElmtId('female-radio');
     }else{
@@ -336,32 +333,23 @@ function unavailableBtn(){
     $('#adult-radio').click(), disabledElmtId('adult-radio'), disabledElmtId('normal-radio');
 }
 
+function loadLocalData(){  // loadLocalData just handle theUI work 會跟loginData合併
+    refreshProfile(), refreshStatus(), theUI.gotoSchoolAsync();
+    $('#send-text').focus();
+}
 
-function refreshProfile(){
-    // old 只有navbar部分
+function refreshProfile(){  // handle text of navbar and sidebar
     $('.navbar-text.a-font>.a-matcher').text(localData.anonName);
-    $('.navbar-text.a-font>.a-self').text(localData.name);
+    // 加上描述狀態或tutor教學
 
-    /*
-    if (''!==localData.matchType){
-        var self = ('m'===localData.matchType[0])?'man':'woman';
-        var matcher = ('m'===localData.matchType[1])?'man':'woman';
-        var inRoom = (localData.status === 3)?'graphic_eq':'keyboard_arrow_right';
-        $('.navbar-text.a-type .material-icons:eq(0)').text(self);
-        $('.navbar-text.a-type .material-icons:eq(1)').text(inRoom);
-        $('.navbar-text.a-type .material-icons:eq(2)').text(matcher);
-    }
-    */
-
-    // 增加sidebar部分的更新
     var school_name = localData.school+' '+schoolSet[localData.school];
     $('#school').text(school_name), $('#school').attr('data-bs-original-title', school_name);
     $('#user-tag').text(localData.name[0]);
     $('#user-name').text(localData.name), $('#user-name').attr('data-bs-original-title', localData.name);   
 }
 
-function refreshStatus(){  // deal with all UI work about status
-    switch (localData.status){  // 太多冗言 改用if...else...
+function refreshStatus(){  // handle all UI work about status
+    switch (localData.status){  // status改用字元取代整數 當需要擴充插入先狀態時比較方便
         case 0:
             enabledElmtId('goto-btn'), enabledElmtId('name-btn');
             enabledElmtId('normal-radio'), enabledElmtId('adult-radio'), enabledElmtId('male-radio'), enabledElmtId('female-radio');
@@ -419,7 +407,7 @@ function bindMsgSend() {
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
             var text = $("#send-text").val();  
-            (void 0 !== text && null !== text &&'' !== text) && (text.match(/(\/[a-zA-Z@1-9]+)/i)? theTerminal.command(text) : (3 === localData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未與其他人配對哦! 目前只能使用指令！'));
+            (void 0 !== text && null !== text &&'' !== text) && (3 === localData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未與任何人連線哦！');
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
         }
@@ -429,7 +417,7 @@ function bindMsgSend() {
             theWS.writingNowWs(!0), toggle.writing = !0;
         }
         (null !== term.timerId_writing) && clearTimeout(term.timerId_writing);  // 當時間超過10秒再發送 theWS.writingNowWs(!1)
-        term.timerId_writing = setTimeout(function(){theWS.writingNowWs(!1)},10000);
+        term.timerId_writing = setTimeout(function(){ theWS.writingNowWs(!1); },10000);
     })
     $("#send-text").on('focus',function(a){
         toggle.focus = !0;
@@ -494,7 +482,7 @@ function loginMethodSet(){
         $(this).find('.modal-footer button[type="submit"]').text('等待中...').attr('disabled', true);
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/signup',
             data: formArray,
             dataType: "json",
             success: function(data) {  
@@ -517,16 +505,18 @@ function loginMethodSet(){
         // todo 驗證資料
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/login',
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
                 console.log(data['result']);
                 if (!0 === data['result']){
-                    for (let prep in data['player']){
-                        localData[prep] = data['player'][prep], localStorage[prep] = data['player'][prep];
+                    for (let prep in data['loginData']){
+                        loginData[prep] = data['loginData'][prep];
+
+                        localStorage[prep] = data['loginData'][prep];  // 不要用localData和ocalStorage 改直接存入loginData
                     }
-                    refreshProfile(), loginData.isLogin = !0, loadLoginStatus();
+                    refreshProfile(), loginData.isLogin = !0, loadLoginData(); // refreshProfile()刪除 因為已合併到loadLoginData
 
                     term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
                     $('#modal').on('hide.bs.modal', function(e) {
@@ -545,12 +535,12 @@ function loginMethodSet(){
         e.preventDefault();
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/logout',
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.isLogin = !1,loadLoginStatus();
+                    loginData.isLogin = !1, loadLoginData();
                     term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
                     $('#modal').on('hide.bs.modal', function(e) {
                         (!1 === term.next_modal) && (window.location.href = "/chat");
@@ -570,7 +560,7 @@ function loginMethodSet(){
 
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/change_pwd',
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
@@ -594,7 +584,7 @@ function loginMethodSet(){
 
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/reset_pwd',
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
@@ -630,12 +620,17 @@ function profileMethodSet(){
         if (name.length>20){
             $('#name-modal-form p.a-error').text('暱稱太長了，不能超過20個字元');
             return false
+        }else if (name.length === 0){
+            $('#name-modal-form p.a-error').text('暱稱不能空白');
+            return false
         }
+        // 不能傳'   ' (全為空) 不能傳html語法(轉譯問題) 
+
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/post_name',
             data: formArray,
             dataType: "json",
             success: function(data) {
@@ -658,13 +653,15 @@ function profileMethodSet(){
         if (schoolId === localData.school){
             $('#goto-modal-form p.a-error').text('你目前已經在'+schoolId +schoolSet[schoolId] +'了哦');
             return false
+        }else if (!schoolImgSet.has(schoolId)){
+            $('#goto-modal-form p.a-error').text('抱歉，所在城市還未開放。');
+            return false
         }
-
         var formArray = $(this).serializeArray();
         formArray.push({name:"uuid-input",value: localData.uuid});
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/post_school',
             data: formArray,
             dataType: "json",
             success: function(data) {
@@ -696,6 +693,7 @@ function profileMethodSet(){
 function settingsMethod(){
     $("#settings-form").on('submit',function(e){   
         e.preventDefault();
+        // url: '/chat/settings'
         // 改採關閉後檢驗資料是否改變 若改變則傳送 不變則不做反應
         // 在<form>中仍有submit的<input>
         // 並在chatlog上顯示 像是改學校或改暱稱
@@ -825,43 +823,6 @@ function startMethod(){
     })
 }
 
-function bindFileUpload(){  // LARP用不到 刪掉
-    $("#send-img").fileupload({
-        dataType: "json",
-        formData: function (form) {
-            $('#send-hidden').attr('value',localData.uuid.substr(0,8));
-            (0 === localData.status) ? $('#send-tag').attr('value', true): $('#send-tag').attr('value', false);
-            return form.serializeArray();
-        },
-        done: function(e, data) {
-            if (3 === localData.status)
-                ('img_url' in data.result) ? theWS.msgSendWs(data.result['img_url'],!0) : console.log(data.result['error']);
-            else if (0 === localData.status)
-                ('img_url' in data.result) ? (theUI.clearChatLogs(), processAdult(data.result['img_url'])) : console.log(data.result['error']);
-        },
-        always:function(e, data) {
-            $('#send-hidden').attr('value','');
-            $('#send-tag').attr('value','');
-        }
-    })
-    $(document).on('drop dragover', function (e) {
-        e.preventDefault();
-    });
-}
-
-function processAdult(img_url){  // 刪掉
-    theUI.showQuestion('是否確定使用此圖片?<p class="text-center"><img class="img-fluid a-img" src=' +img_url+'alt="refresh again"></img></p>', ['更改','確定'], 2);
-    $('.a-q .a-0').on('click',function(e) {
-        setTimeout($('#send-img').click(), 200);
-    })
-    $('.a-q .a-1').on('click',function(e) {
-        localData.imgUrl_adult = img_url, localStorage.imgUrl_adult = img_url;
-        theTerminal.adult(img_url);
-        setTimeout(theTerminal.match(), 1000); // todo adult還未存入會影響後續的match() 故應該在後端執行 cmd_test或cmd_wait
-    })
-}
-
-
 var checkGate = function(){
     function itr(){  // 不能用 需要改版
         var dialog;
@@ -911,19 +872,7 @@ var checkGate = function(){
     }
 }
 
-
-function timeAMPM(date) {
-    var hours = date.getHours(), minutes = date.getMinutes();
-    var ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    minutes = minutes < 10 ? '0'+minutes : minutes;
-    var strTime = hours + ':' + minutes + ' ' + ampm;
-    return strTime;
-}
-
-function msgReplacing(msg){
-    msg = msg.replace(/(\/[a-zA-Z]+ )/g,'<span class=\"a-cmd\">$1 </span>');
+function msgWrapper(msg){
     msg = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, '<a onclick=\"window.open("$1","_blank")\">$1</a>');
     msg = msg.replace(/\n/g, '<br>');
     return msg
@@ -931,7 +880,7 @@ function msgReplacing(msg){
 
 var chatUI = function(){
     function sm(msg){
-        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgReplacing(msg)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgWrapper(msg)+'</span></p></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt); 
         st(newElmt,1);
@@ -942,7 +891,7 @@ var chatUI = function(){
     }
 
     function m(msg){  // todo: 特殊符號', ", <, >等會不會有問題
-        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgReplacing(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgWrapper(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt); 
         localData.lastSaid = 'anon',localStorage.lastSaid = 'anon',ut(!1);
@@ -952,7 +901,7 @@ var chatUI = function(){
     }
 
     function sy(msg){
-        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span class="a-sys a-font">'+msgReplacing(msg)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span class="a-sys a-font">'+msgWrapper(msg)+'</span></p></div>';
         var newElmt = $(newElmt_text);
         (newElmt) && $('#writing').before(newElmt); 
         localData.lastSaid = 'sys',localStorage.lastSaid = 'sys',ut(!1);
@@ -961,16 +910,16 @@ var chatUI = function(){
         return newElmt
     }
 
-    function q(question, choice_list, choice_num=2){  // todo 回答完題目後回饋 像是你與多少人的回答相同
+    function q(question, choice_list, choice_num=2){
         if (2 == choice_num){
             var newElmt_text = 
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
         }else if(4 == choice_num){
             var newElmt_text =  
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
         }else if(1 == choice_num){
             var newElmt_text =
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+msgReplacing(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
         }else{
             console.log('select: 1,2,4 for choice_num(param)');
             return false
@@ -1153,7 +1102,7 @@ var chatUI = function(){
         showSelfImg:si,
         showImg:i,
         showClock:c,
-        showQuestion:q,  // 刪掉
+        showQuestion:q,
         scrollToNow:n,
         showWritingNow:wn,
         unreadTitle:ut,
@@ -1172,7 +1121,18 @@ function installToolTip() {
     })
 }
 
-Date.prototype.Format = function (fmt) {
+
+function timeAMPM(date) {  // time_str = timeAMPM(new Date())  output: '1:01 pm'
+    var hours = date.getHours(), minutes = date.getMinutes();
+    var ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    minutes = minutes < 10 ? '0'+minutes : minutes;
+    var strTime = hours + ':' + minutes + ' ' + ampm;
+    return strTime;
+}
+
+Date.prototype.Format = function (fmt) {  // time_str = (new Date()).Format('YYYY-MM-DD hh:mm:ss')  output: '2020-12-12 01:01:01'
     var o = {
     "M+": this.getMonth()+1,
     "D+": this.getDate(),
@@ -1192,8 +1152,8 @@ Date.prototype.Format = function (fmt) {
 var loginData,
     TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     unreadMsg = 0,
-    school_url = '/static/img/mark/',
-    schoolImgSet = new Set([
+    school_url = '/static/img/mark/',  // 換成city 並移到db.js
+    schoolImgSet = new Set([  // 換成city 移到db.js
         'NCCU', 'NTU', 'SCU', 'PCCU', 'FJU', 'TKU', 'NTHU', 'NCTU', 'NCKU'
     ]), 
     chatSocket = null,
@@ -1205,10 +1165,11 @@ var loginData,
     toggle = getToggle()
     
 $(document).ready(function() {
-    bindMsgSend(), bindFileUpload(), installToolTip(), bindModalHide();   
+    bindMsgSend(), installToolTip(), bindModalHide();   
     loginMethodSet(), profileMethodSet(), leaveMethod(), startMethod(), settingsMethod();
-    // bindModalPopup(), bindBtnClick(), bindFormSubmit(), loadDataWidget() 易讀性較差 
-    // 改為依據用戶的功能分組 login相關, profile相關, game相關 如此就不會有chatroom和game重名問題 改名為methodSet
-
-    loadLocalData(),loadLoginStatus();
+    // 後端比localStorage可靠 但仍同時使用loginData和localData 
+    // 最好一次傳完 而且其實loginData資料不大 如此一來localStorage就只需要處理不是從後端來的資料
+    loadLocalData(), loadLoginData();  // loadLoginData()要快於loadLocalData() 
+    // 登入後可由loadLoginData給loadLocalData資料後執行 未登入則不用
+    // loadLocalData()表示尚未登入也可以存取的資料
 });

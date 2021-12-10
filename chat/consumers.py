@@ -14,7 +14,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.scope['user'].is_authenticated:  # 帳號登入後再開webSocket
             self.player_data = await utils.get_player(self.scope['user'])
             self.uuid = str(self.player_data.uuid)  # todo 前端不再做uuid 改由後端傳到前端 uuid綁定player永遠不變
-
+            # 是否用user.id 取代 player.uuid
             self.player_data = await utils.set_player_fields(self.player_data, {'isOn': True})
             if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
                 self.player_data = await utils.set_player_fields(self.player_data, {'isPrepared': True})
