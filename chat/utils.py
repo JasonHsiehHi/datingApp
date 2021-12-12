@@ -1,11 +1,10 @@
 from channels.db import database_sync_to_async
 from django.db.models import Q, F
-from .models import Match, Room, Player, School, Question, Dialogue, Robot
+from .models import Match, Room, Player, School, Dialogue
 import json
 from datetime import datetime, timezone
 from django.core.cache import cache
 from random import randint, sample
-import sys
 from datingApp import settings
 
 """
@@ -314,29 +313,3 @@ def get_dialogue_dialog(speaker, action, sub, n=None):  # 刪掉
     else:
         dialogue = Dialogue.objects.get(speaker=speaker, action=action, sub=sub, number=n)
     return dialogue.dialog
-
-
-@database_sync_to_async
-def get_robot_name(speaker):  # 刪掉
-    robot = Robot.objects.get(id=speaker)
-    return str(robot.name)
-
-
-@database_sync_to_async
-def get_question_id_list_randomly(n=5, s_l_ratio=None):  # 刪掉
-    if s_l_ratio is None:
-        s_l_ratio = [3, 2]
-    id_list = []
-    for x, i in zip(['s', 'l'], s_l_ratio):
-        questions = Question.objects.filter(type=x)
-        all_id = questions.values_list('id', flat=True)
-        random_id = sample(list(all_id), i)
-        id_list.extend(random_id)
-    return id_list
-
-
-@database_sync_to_async
-def get_question_content_list(id_list):  # 刪掉
-    questions = Question.objects.filter(id__in=id_list).values('content', 'choice')
-    return list(questions)
-

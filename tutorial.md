@@ -3722,6 +3722,24 @@ value為"Joel\nis a slug"
 {{ string_var|title }} |title會將字串變數中的開頭字母變為大寫
 {{ string_var|lower }} |lower會將字串變數全部變為小寫
 
+{{ data_value|date:"D d M Y" }} 可用於將DateTimeField換成字串
+
+{{ value|default:"nothing" }} 如果變數為''則換成default值
+{{ value|default_if_none:"nothing" }} 如果變數為None則換成default值
+
+var dict = {{ py_dict | safe }}; var list = {{ py_list | safe }}; 
+必須放在<script></script>中 以字串的形式建立變數
+
+{{ value_list|dictsort:"name" }} 將list依據其中的dict.name做排序後輸出
+其中輸出的內容會以字串在html中顯示
+
+{{ value_list|first }}, {{ value_list|last }}, {{ value_list|random }}
+ 只會返回list中的第一位, 最後一位 或隨機一位
+{{ value|length }}, {{ value|length_is:"4" }} 返回list長度 或 True/False
+
+{% for book in books|dictsort:"author.age" %}  
+    * {{ book.title }} ({{ book.author.name }})  因此通常會將不同屬性以特定形式顯示
+{% endfor %}
 
 {{ value|json_script:"data" }} 
 通常會放在<script>之上(外部) 此方法只用於Django的template

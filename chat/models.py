@@ -139,7 +139,7 @@ class School(models.Model):  # 換成City
 
 
 class City(models.Model):
-    name = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=10, unique=True)  # 別人的外鍵用to_field連上name
 
     roomNum = models.IntegerField(default=0)
     femaleNumForMale = models.IntegerField(default=0)

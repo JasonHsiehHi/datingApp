@@ -3,15 +3,15 @@
 完成navbar
 完成modal
 完成信箱註冊與登入功能
-修改background 與新增劇本名在sidebar
 完成多人數配對
-完成隨機生成內容的方式
-完成房間計時器 時間到會自動退房
 上線與離線的user-tag 將原圖調灰即可(a-off) 
+完成房間計時器 時間到會自動退房
 完成theGate.tutor教學 和與之對應的navbar-text部分
+完成隨機生成內容的方式gameevent 並用theGameGate.tutor顯示
+進入遊戲後可變更background
 chatlog上線時會清除之前的內容 但會有'聊天紀錄更多...'的選項
 最後再加上其他人的互動鍵 '提供線索'
-將school改為city
+將school改為city 且school不用刪掉
 settings-form 關閉時發出
 
 遊戲進行中變更密碼或登出 (是否直接用urlpatterns導向)

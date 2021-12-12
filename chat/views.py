@@ -26,17 +26,38 @@ from django.db import connection
 
 
 def get_loginData(user, player):
-    user_dict = model_to_dict(user, fields=['username'])
     player_dict = model_to_dict(player, fields=[
-        'gender', 'uuid', 'isBanned', 'name', 'school', 'status', 'waiting_time', 'game'])
+        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name'])
 
-    player_dict['school'] = str(player_dict['school'])
-    player_dict['status'] = str(player_dict['status'])  # 之後改成字元 不需要str()
-    player_dict['game'] = player_dict['game'].name
+    # player_dict['waiting_time']是否需要在變成字串 若為None則轉成''
+
+    if player.school is None:
+        player_dict['school'] = ''
+    else:
+        player_dict['school'] = player.school.name
+    if player.game is None:
+        player_dict['game'] = ''
+    else:
+        player_dict['game'] = player.game.game_id
+    if player.room is None:
+        player_dict['player_dict'] = {}
+        player_dict['onoff_dict'] = {}
+        player_dict['tag_int'] = -1
+        player_dict['tag_json'] = ''
+    else:
+        player_dict['player_dict'] = player.room.player_dict
+        player_dict['onoff_dict'] = player.room.onoff_dict
+        player_dict['tag_int'] = player.tag_int
+        player_dict['tag_json'] = player.tag_json
+
+    if player.match is None:
+        player_dict['player_list'] = []
+    else:
+        player_dict['player_list'] = player.match.player_list
 
     login_dict = {
         'isLogin': True,
-        'email': user_dict['username'],
+        'email': user.username,
         **player_dict
     }
     return login_dict
@@ -50,17 +71,13 @@ def chatroom(request):
         print('db_query: {}'.format(connection.queries))
 
     else:
-        login_dict = {
+        login_dict = {  # 部分參數是登入後才會使用的 故未登入前不設置
             'isLogin': False,
             'email': '',
             'gender': '',
             'uuid': '',
             'isBanned': False,
-            'name': '取個暱稱吧',
-            'school': '',
-            'status': '0',
-            'waiting_time': '',
-            'game': ''
+            'status': 0,
         }
     return render(request, 'chat/chatroom.html', {'login_dict': login_dict})
 
@@ -84,14 +101,12 @@ def in_game(request, game_name):
         print("error: user isn't authenticated.")
 
 
-
-
 def greet(request):
     if request.is_ajax and request.method == "GET":
         dialog, sub = [], []
         t = int(datetime.now().strftime('%H'))
         sub_t = get_dialogue_greet_sub(t)
-        dialog_t = get_dialogue_dialog('GREET', sub_t)  # 是否可合併 不需要問兩次Dialogue 而且之後不用speaker
+        dialog_t = get_dialogue_dialog('GREET', sub_t)  # 是否可合併 不需要問兩次Dialogue
         dialog.append(dialog_t)
         sub.append(sub_t)
 
@@ -107,12 +122,12 @@ def greet(request):
         print("error: it's not through ajax.")  # log查看系統
 
 
-def get_dialogue_greet_sub(time, speaker=3):  # 之後把robot model刪掉 不用特別找speaker
-    time_ranges = cache.get('GREET_TIME_RANGE-{}'.format(speaker))
+def get_dialogue_greet_sub(time):
+    time_ranges = cache.get('GREET_TIME_RANGE')  # 刪除cache GREET_TIME_RANGE-3
     if time_ranges is None:
-        dialogues = Dialogue.objects.filter(Q(speaker=speaker) & Q(action='GREET') & Q(sub__startswith='t') & Q(number=1))
+        dialogues = Dialogue.objects.filter(Q(action='GREET') & Q(sub__startswith='t') & Q(number=1))
         time_ranges = [[dialogue.sub[1:3], dialogue.sub[4:6]] for dialogue in dialogues]
-        cache.set('GREET_TIME_RANGE-{}'.format(speaker), time_ranges, None)
+        cache.set('GREET_TIME_RANGE', time_ranges, None)
 
     true_list = []
     for r in time_ranges:
@@ -128,12 +143,12 @@ def get_dialogue_greet_sub(time, speaker=3):  # 之後把robot model刪掉 不�
     return sub
 
 
-def get_dialogue_dialog(action, sub, speaker=3, n=None):  # 之後把robot model刪掉 不用特別找speaker
+def get_dialogue_dialog(action, sub, n=None):
     if n is None:
-        dialogues = Dialogue.objects.filter(Q(speaker=speaker) & Q(action=action) & Q(sub=sub))
+        dialogues = Dialogue.objects.filter(Q(action=action) & Q(sub=sub))
         dialogue = dialogues[randint(0, len(dialogues)-1)]
     else:
-        dialogue = Dialogue.objects.get(speaker=speaker, action=action, sub=sub, number=n)
+        dialogue = Dialogue.objects.get(action=action, sub=sub, number=n)
     return dialogue.dialog
 
 

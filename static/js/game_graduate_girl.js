@@ -1,5 +1,4 @@
-// game_.js可以自行選擇是否彈出modal或直接執行
-// UI加上 互動鍵 行動鍵 並把遊戲開始鍵隱藏
+// game_{gamename}.js可以自行選擇互動鍵與行動鍵 使用彈出modal或直接執行
 
 function gameroomWS(){  // 遊戲中專用websocket 取代chatroomWS 
     // 可能不需要一個專用的websocket 因為所咬執行的都是固定方法 enter_match, leave_match等等
@@ -15,14 +14,9 @@ function gameroomWS(){  // 遊戲中專用websocket 取代chatroomWS
         }
         chatSocket.onclose = function(e) {
             console.log('WS disconnected. code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
-            (!1===localData.isBanned) && setTimeout(gameroomWS, 15000);
+            (!1===loginData.isBanned) && setTimeout(gameroomWS, 15000);
             // todo 最後用theUI.showSys來表示已經斷線且目前連不上
         };
-
-        chatSocket.onmessage = function(e) {
-
-        };
-        
     }
 }
 
@@ -44,7 +38,7 @@ var gameWSManager = function(){ // 在chatroom執行就好
     }
 }
 
-var gameCheckGate = function(){
+var gameCheckGate = function(){ // 與 checkGate()寫法相同 但針對不同遊戲而有所不同故寫於此
 
     return {
         
@@ -55,7 +49,7 @@ var gameCheckGate = function(){
 
 function deduceMethod(){  // 在$(document).ready中判斷 role 只有group ==1才要
     $("#start-btn").on('click',function(e){
-        if (localData.status !== 2)  // status是否全部交由loadstatus來管理 不需要放在各個click
+        if (loginData.status !== 2)  // status是否全部交由loadstatus來管理 不需要放在各個click
             return false
         $("#deduce-modal-form").removeClass('d-none');
         $('#modal .modal-title').text('推理環節')
@@ -78,8 +72,8 @@ function deduceMethod(){  // 在$(document).ready中判斷 role 只有group ==
                     // data['over'] 猜到渣男 遊戲結束 全員退出但保留畫面 theWS.callLeaveGame(user_id) player_id為全部人員
                     // data['out'] 為一種player_list 如果為空則表示無人出局 用theWS.callLeaveMatch(user_id)  
                     
-                    // 接者就可以用delete localData.player_dict[user_id], 存入localStorage
-                    refreshPlayerDict() // 更新玩家名單 如果是其他玩家單獨離開或上下線 則使用其他refreshOnOff
+                    // 將loginData.onoff_dict更新到最新 之後用refreshPlayers
+                    refreshPlayers();
                     refreshStatus(), refreshGameStatus();
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
@@ -100,7 +94,7 @@ function examineMethod(css_id, player_uuid){
     $(css_id).on('click',function(e){
         e.preventDefault();
 
-        if (localData.status !== 2)
+        if (loginData.status !== 2)
             return false
         $.ajax({
             type: 'GET',
@@ -108,7 +102,7 @@ function examineMethod(css_id, player_uuid){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    localData.status = 3, localStorage.status = '3', refreshStatus(), refreshGameStatus();
+                    loginData.status = 3, refreshStatus(), refreshGameStatus();
                     showNoticeModal(data['msg']);
                     uuid_list = [data['result']], theWS.callEnterMatch(uuid_list);
                     // 針對不同劇本且特定角色才有的標記 例如偵探要全部都訪問完 Player 增加tag_int
@@ -124,7 +118,11 @@ function examineMethod(css_id, player_uuid){
 }
 
 function loadRoleData(){
-    self = localData.player_dict[loginData.uuid], localData.self = self, localStorage.self = JSON.stringify(self);
+    if (localData.self.length > 0)
+        self =  localData.self;
+    else
+        self = loginData.player_dict[loginData.uuid], localData.self = self, localStorage.self = JSON.stringify(self);
+    
     others = JSON.parse(JSON.stringify(localData.player_dict)), delete others[loginData.uuid];
 
     var i = 1, css_id, sub, gender;
@@ -144,23 +142,35 @@ function loadRoleData(){
     }
     if (self[3] === 1){
         $('#start-btn').text('推 理'), deduceMethod();
+        refreshGameStatus(1);
     }else{ // self[3] === 0
         $('#start-btn').attr('disabled', true);
+        refreshGameStatus(0);
+    }
+    refreshPlayers(); // refresh player's onoff status
+}
+
+
+function refreshGameStatus(self_group){
+    // 補助chatroom.js來控制互動鍵 每一輪推理完也要更新
+    // 每次進入match (成功執行examine)後 refresh loginData.tag_json (用來記錄誰被審問過)
+    // 嫌疑人每次傳訊息 (成功執行'提供線索')後 refresh loginData.tag_int (用來紀錄自己是否做過)
+
+    // 此外也使用loginData.status來 enable/disable player-i btn
+    // 只在遊戲中的status2或status3中處理行動鍵與互動鍵 且依據不同角色而有所不同
+    if (self_group === 1){
+        switch (loginData.status){ 
+            case 2:
+                enabledElmtId('start-btn')
+                break;
+            case 3:
+                disabledElmtId('start-btn')
+                break;
+        }
+    }else{
+
 
     }
-}
-
-function refreshPlayerDict(){
-    // 互動鍵與行動鍵都需要綁status才能進行 如此才不會有太多例外
-    // 有人離線或有人離開遊戲都要處理 由chatroom的onmessage通知 直接把離開的元素player-i用離開即可 
-    // 一樣用a-off的顏色 但從'離線'換成'退出'
-}
-function refreshPlayer(){
-    // 單一玩家上下線或離開時更新
-}
-
-function refreshGameStatus(){
-    // 補助chatroom.js來控制互動鍵 每一輪推理完也要更新
 
 }
 
@@ -173,12 +183,13 @@ var chatSocket = null,  // 改用gameWS 刪掉 同樣用chatroomWS就好
     ])
 
 $(document).ready(function(){
-    loadRoleData();  // load the data about game and establish the variable: self, others 
+    // bind method or methodSet according to role
+    loadRoleData();  // load the data about role respectively and establish the variable: self, others 
 
-    // 除了load之後 也要做故事情節dialog 
-    // 加上loginUserid 用以判定身份 加上localData.group 用以表示playerdict的顯示方式
+    
+    // 加上loginUserid 用以判定身份 加上group self[3] 用以表示playerdict的顯示方式
     // 行為鍵與互動鍵都在JS做生成 因為必須配合角色與玩家人數 每人都不同
-    // 等劇本生成完成後 再像chatroom 的 GREET一樣來要dailog資料 還有最後的gameevent
-    // 全部由game.loadPlayerDict()執行 會執行所有的安裝
-    // a-off 要更換掉a-male或a-female 且text('離線')
+
+    // 除了load之後 也要做故事情節dialog 放在loadRoleData中的refreshGameStutus中 
+    // 等劇本生成完成後 再像chatroom的GREET一樣來要dailog資料 還有最後的gameevent
 })

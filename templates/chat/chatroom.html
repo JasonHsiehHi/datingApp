@@ -19,17 +19,7 @@
     
     <script src="{% static 'js/test_db.js'%}"></script>
     <script src="{% static 'js/db.js'%}"></script>
-
-    <script>
-    loginData = {
-        isLogin: ('{{login_dict.isLogin}}' === 'True'),
-        email: '{{login_dict.email}}',
-        gender: '{{login_dict.gender}}',
-        uuid: '{{login_dict.uuid}}',
-        isBanned: ('{{login_dict.isLogin}}' === 'True')
-    }
-    </script>
-
+    {{ login_dict|json_script:"loginData" }}
     <script src="{% static 'js/chatroom.js'%}"></script>
     {% block script_file %}{% endblock %}
 </head>

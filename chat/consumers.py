@@ -5,8 +5,6 @@ from datetime import datetime
 import time
 from datingApp import settings
 
-import sys
-
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
@@ -33,7 +31,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 )
 
                 self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), False)
-                print(self.room_userNum, file=sys.stderr)  # tt
 
                 m = 'CONN' if self.room_userNum == 2 else 'DISCON'
                 await self.send_json({
@@ -103,8 +100,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             room_id = str(self.player_data.room_id)
             if 'wn' in content:
 
-                print('wn', file=sys.stderr)  # tt
-                print("執行時間：%f 秒" % (time.time() - self.start))
+                print("wn - 執行時間：%f 秒" % (time.time() - self.start))
 
                 await self.channel_layer.group_send(room_id, {
                     'type': 'is_writing',
@@ -114,8 +110,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
             elif 'st' in content:
 
-                print('st', file=sys.stderr)  # tt
-                print("執行時間：%f 秒" % (time.time() - self.start))
+                print("st - 執行時間：%f 秒" % (time.time() - self.start))
 
                 await self.channel_layer.group_send(room_id, {
                     'type': 'update_status',
@@ -125,8 +120,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
             elif 'msg' in content:
 
-                print('msg', file=sys.stderr)  # tt
-                print("執行時間：%f 秒" % (time.time() - self.start))
+                print("msg - 執行時間：%f 秒" % (time.time() - self.start))
 
                 await self.channel_layer.group_send(room_id, {
                     'type': 'chat_message',
@@ -137,8 +131,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
             elif 'msgs' in content:
 
-                print('msgs', file=sys.stderr)  # tt
-                print("執行時間：%f 秒" % (time.time() - self.start))
+                print("msgs - 執行時間：%f 秒" % (time.time() - self.start))
 
                 await self.channel_layer.group_send(room_id, {
                     'type': 'chat_messageList',
@@ -148,7 +141,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
 
         elif command is not None:  # 全部刪掉
-            print(command, file=sys.stderr)
+            print(command)
             if command == 'open':
                 await self.cmd_open(content['uuid'], content['isFirst'])
             elif command == 'import':
@@ -172,7 +165,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             elif command == 'reset':
                 await self.cmd_reset()
             else:
-                print(str(self.player_data.uuid) + ' insert a wrong command: ' + command, file=sys.stderr)
+                print(str(self.player_data.uuid) + ' insert a wrong command: ' + command)
 
     # 主要用於調用資料庫 且調用結束後仍須通知對方 self.channel_layer.group_send()
     # 每個command最後都需回傳給client端 提供UI做回應 self.send_json()
@@ -205,7 +198,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'type': 'start_game_down'
         })
 
-    async def call_leave_game(self, players):
+    async def call_leave_game(self, players):  # 可以用players作為參數會導致用戶可以自行趕人出去 改用room.onoff_dict來決定趕人
         if len(players) == 0:  # 自己離開後通知對方
             for uuid in self.room.player_dict.keys():
                 await self.channel_layer.group_send(uuid, {
@@ -253,11 +246,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             await utils.set_match_fields(match, {'player_list': match.player_list})
 
-
-
     async def call_onoff(self, isOn):
         # 用connect和disconnect來呼叫
         pass
+
+    async def timer(self, duration_min, call, **kwargs):
+        time.sleep(duration_min * 60)
+        content = {'call': call, **kwargs}
+        await self.receive_json(content)
 
     # receive from other chatConsumers
     async def start_game(self, event):  # 其他人接收'遊戲開始'訊息
@@ -487,8 +483,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def chat_message(self, event):
         if str(self.player_data.name) != event['from']:
 
-            print('chat_message', file=sys.stderr)  # tt
-            print("執行時間：%f 秒" % (time.time() - event['t']))
+            print("chat_message - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'MSG',
@@ -500,8 +495,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def chat_messageList(self, event):
         if str(self.player_data.name) != event['from']:
 
-            print('chat_messageList', file=sys.stderr)  # tt
-            print("執行時間：%f 秒" % (time.time() - event['t']))
+            print("chat_messageList - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'MSGS',
@@ -512,8 +506,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def is_writing(self, event):
         if str(self.player_data.name) != event['from']:
 
-            print('is_writing', file=sys.stderr)  # tt
-            print("執行時間：%f 秒" % (time.time() - event['t']))
+            print("is_writing - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'WN',
@@ -524,8 +517,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def update_status(self, event):
         if str(self.player_data.name) == event['from']:
 
-            print('update_status', file=sys.stderr)  # tt
-            print("執行時間：%f 秒" % (time.time() - event['t']))
+            print("update_status - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'ST',
