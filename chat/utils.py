@@ -204,7 +204,7 @@ def set_room_userNum(room_id, is_disconnected):
 
 
 @database_sync_to_async
-def get_room_userNum(room_id):
+def get_room_userNum(room_id):  # 刪除
     room = Room.objects.get(room_id=room_id)
     return int(room.userNum)
 

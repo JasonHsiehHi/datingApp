@@ -32,6 +32,13 @@ def deduce(request):  # 最麻煩 放到最後在寫
         # room.answer 會隨劇本而有所不同 當前為{player.uuid:gameevent.name,...}
         # 先依序回傳是否為正確答案 兩變數 一個bool值紀錄是否遊戲結束 一個list值紀錄出局人數
         # 若遊戲結束則全員出局 若未結束 則被猜到的人遊戲結束
+
+        # deduce之後 room.onoff_dict已經被修改 已經把需要被趕走的人設為-1
+        # player = await utils.get_player_by_uuid(uuid)
+        # await utils.set_player_fields(player, {'status': 0, 'room': None})
+        # await utils.set_room_fields(room, {
+        #     'player_dict': room.player_dict, 'onoff_dict': room.onoff_dict, 'playerNum': room.playerNum})
+
         pass
     else:
         print("error: it's not through ajax.", file=sys.stderr)

@@ -4553,13 +4553,14 @@ python3 manage.py sqlmigrate myapp 0001 查看myapp中makemigrations所生成的
 python3 manage.py flush 將還未migrate的數據刪除
 manage.py migrate myapp zero 則用於刪除myapp的所有data
 
-python manage.py runserver
+python manage.py runserver 
 可用本地端查看localhost：http://127.0.0.1:8000/ (為根目錄)
 直接用CTRL+C 關閉terminal程式 即可終止runserver
 port:8000用於查看本地端 每一個port碼都是不同的協定服務 (port,埠)
 FTP:21Port DNS:53Port HTTP:80Port
 一般上網只需要輸入域名就行 因為瀏覽器會自動補足所對應的port碼
 而server端會針對所提供的服務來監聽所對應的port端口 如架網站就是提供80Port
+除了run server之後 也要一並run docker 開啟對應的container接口
 
 print('len(dialogues):'+str(num), file=sys.stderr)
 用於在runserver的情況下做除錯
@@ -5339,6 +5340,10 @@ if(Socket.bufferedAmount==0){
 
 - - -------------------------------------------
 # js_window_object 和 ~js_document_object: 
+
+window.location.host 域名
+window.location.href 絕對位置URL
+window.location.pathname 相對位置URL
 
 window.location.reload() 重整頁面 (window可省略)
 location.replace(url) 將當前頁面替換成url (不可按上一頁回去)

@@ -21,101 +21,117 @@ function chatroomWS(){
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
             console.log('receive: '+ data.type);
-            if (3 === loginData.status){
-                switch (data.type){
-                    case typeSet.wn:  // 已經沒有typeSet了 直接用'WN'即可
-                        if (localData.name!==data.sender){  // 換成uuid 才符合辨識度 之後再換
-                            theUI.showWritingNow(data.wn);
+            switch (data.type){
+                case typeSet.wn:  // 已經沒有typeSet了 直接用'WN'即可
+                    if (localData.name!==data.sender){  // 換成uuid 才符合辨識度 之後再換
+                        theUI.showWritingNow(data.wn);
+                    }
+                    break;
+                case typeSet.st:
+                    if(localData.name===data.receiver){
+                        while(term.emlt_for_status.length>0){
+                            var elmt = term.emlt_for_status.pop();
+                            theUI.showStatus(elmt, data.num);
                         }
-                        break;
-                    case typeSet.st:
-                        if(localData.name===data.receiver){
-                            while(term.emlt_for_status.length>0){
-                                var elmt = term.emlt_for_status.pop();
-                                theUI.showStatus(elmt, data.num);
-                            }
-                        }
-                        break;
-                    case typeSet.msg:
-                        if(localData.name!==data.sender){
-                            (data.isImg)?(theUI.showImg(data.msg), theUI.storeChatLogs(term.showImg_text)):(theUI.showMsg(data.msg), theUI.storeChatLogs(term.showMsg_text));
-                            theWS.statusRespWs(data.sender);  // 接收到訊息後回傳
-                        }
-                        break;
-                    case typeSet.msgs:
-                        if(localData.name!==data.sender){ 
-                            theUI.showMsgsAsync(data.msgs, 0, function(){
-                                theUI.storeChatLogs(term.showMsgs_text, data.msgs.length);  //async方法:必須在執行完後才做storeChatLogs
-                                delete term.showMsgs_text;
-                            });
-                            theWS.statusRespWs(data.sender);  // 接收到訊息後回傳
-                        }   
-                        break;
-                    case typeSet.discon:
-                        if(localData.name!==data.sender){ 
-                            toggle.discon = !0;
-                        }
-                        break;
-                    case typeSet.conn:
-                        if(localData.name!==data.sender){ 
-                            toggle.discon = !1;
-                            if(localData.text_in_discon.length>0){
-                                theWS.msgsSendWs(localData.text_in_discon);
-                                localData.text_in_discon=[],localStorage.text_in_discon='[]';
-                            }
-                        }
-                        break;
-                    case typeSet.leave:
-                        loginData.status = 0;
-                        // todo 返回房間外或等待房都加上dialog 故會訪問資料庫 anonName變更回管理員 refreshProfile()
-                        theUI.clearChatLogs();
-                        if (localData.name===data.sender){
-                            theUI.showSys('你已離開<span class="a-point">'+localData.anonName+'</span>');
-                            setTimeout(function(){
-                                theUI.showSys('/match即可開始下一次的配對，或用/goto前往其他學校。')
-                            },200)
-                        }else{
-                            theUI.showSys('對方已離開你');
-                            setTimeout(function(){
-                                theUI.showSys('/match開始下一次的配對，或用/goto前往其他學校。')
-                            },200)
-                        }
-                        break;
-                    case typeSet.error:
-                        console.log(data.error);
-                        break;
-                }
-            }else{
-                switch (data.type){ 
-                    case 'START':
-                        loginData.player_dict = data['player_dict'], loginData.onoff_dict = data['onoff_dict'], loginData.status = 2;
-                        // 導向新頁面會重新賦值
-                        $('#modal').modal('hide'), showNoticeModal(data['msg']);
-                        $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat/start_game/chatroom_game_"+data['game']; });
-                        break;
+                    }
+                    break;
+                case typeSet.msg:
+                    if(localData.name!==data.sender){
+                        (data.isImg)?(theUI.showImg(data.msg), theUI.storeChatLogs(term.showImg_text)):(theUI.showMsg(data.msg), theUI.storeChatLogs(term.showMsg_text));
+                        theWS.statusRespWs(data.sender);  // 接收到訊息後回傳
+                    }
+                    break;
+                case typeSet.msgs:
+                    if(localData.name!==data.sender){ 
+                        theUI.showMsgsAsync(data.msgs, 0, function(){
+                            theUI.storeChatLogs(term.showMsgs_text, data.msgs.length);  //async方法:必須在執行完後才做storeChatLogs
+                            delete term.showMsgs_text;
+                        });
+                        theWS.statusRespWs(data.sender);  // 接收到訊息後回傳
+                    }   
+                    break;
 
-                    case 'ENTER':
-                        loginData.status = 3, refreshStatus(), refreshGameStatus(localData.self[3]);
-                        $('#modal').modal('hide'), showNoticeModal(data['msg']);
-                        break;
-                
-                    case 'LEAVE':
-                        loginData.status = 2, refreshStatus(), refreshGameStatus(localData.self[3]);
-                        data['from']
-                        $('#modal').modal('hide'), showNoticeModal(data['from']+data['msg']);
-                        break;
+                case 'ERROR':
+                    console.log(data.error);
+                    break;
 
-                    case 'OUT':
-                        loginData.status = 1;  // 導向新頁面會重新賦值
-                        $('#modal').modal('hide'), showNoticeModal(data['from']+data['msg']);
-                        $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat"; });
-                        break;
+                case 'START':
+                    loginData.player_dict = data['player_dict'], loginData.onoff_dict = data['onoff_dict'], loginData.status = 2;
+                    $('#modal').modal('hide'), showNoticeModal(data['msg']);
+                    $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat/start_game/chatroom_game_"+data['game']; });
+                    break;
 
-                    // case 用於通知其他玩家動態：
-                    // 單一玩家上下線需要使用到websocket通知 (每個遊戲機制都相同 故放在chatroomWS())
-                    // 玩家自行離開也用websocket通知
-                    // 由於一次只離開一位 故不使用 refreshPlayers 改用 refreshOnePlayer
-                }
+                /* 都還未被使用過
+                case 'ENTER':  // 通知其他人進入match
+                    loginData.status = 3, refreshStatus(), refreshGameStatus(localData.self[3]);
+                    $('#modal').modal('hide'), showNoticeModal(data['msg']);
+                    // 進房後自動生成localData.anons 等同是進房者的self資料
+                    break;
+            
+                case 'LEAVE': // 通知其他人離開match
+                    loginData.status = 2, refreshStatus(), refreshGameStatus(localData.self[3]);
+                    data['from']
+                    $('#modal').modal('hide'), showNoticeModal(data['from']+data['msg']);
+                    break;
+                */
+
+                case 'OUT':  // 通知其他人離開room
+                    var css_id = localData.position[data.sender];
+                    (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off').text('');
+                    var sender_name = loginData.player_dict[data.sender][0];
+                    loginData.onoff_dict[data.sender] = -1;
+                    theUI.showSys(sender_name + data['msg']);
+                    
+                    break;
+                case 'OUTDOWN':  // 通知其他人離開遊戲後自己才能重新導向到/chat
+                    break;
+
+                case 'LEFT':  // 往上合併到'OUT'和'LEAVE'
+                    // todo 返回房間外或等待房都加上dialog 故會訪問資料庫 anonName變更回管理員 refreshProfile()
+                    theUI.clearChatLogs();
+                    if (localData.name===data.sender){
+                        theUI.showSys('你已離開<span class="a-point">'+localData.anonName+'</span>');
+                        setTimeout(function(){
+                            theUI.showSys('/match即可開始下一次的配對，或用/goto前往其他學校。')
+                        },200)
+                    }else{
+                        theUI.showSys('對方已離開你');
+                        setTimeout(function(){
+                            theUI.showSys('/match開始下一次的配對，或用/goto前往其他學校。')
+                        },200)
+                    }
+                    break;
+            
+
+                case 'DISCON':
+                    var css_id = localData.position[data.sender];
+                    (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
+                    var sender_name = loginData.player_dict[data.sender][0];
+                    loginData.onoff_dict[data.sender] = 0;
+                    theUI.showSys(sender_name+' 已下線...');
+                    if (loginData.status === 3)
+                        toggle.discon = !0;
+ 
+                    break;
+                case 'CONN':
+                    var css_id = localData.position[data.sender];
+                    ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
+                    var sender_name = loginData.player_dict[data.sender][0];
+                    loginData.onoff_dict[data.sender] = 1;
+                    theUI.showSys(sender_name+' 已上線！');
+                    if (loginData.status === 3){
+                        toggle.discon = !1;
+                        if(localData.text_in_discon.length>0){
+                            theWS.msgsSendWs(localData.text_in_discon); // todo need to update for multiplayer match
+                            localData.text_in_discon=[],localStorage.text_in_discon='[]';
+                        }
+                    }
+                    break;
+
+                // case 用於通知其他玩家動態：
+                // 單一玩家上下線需要使用到websocket通知 (每個遊戲機制都相同 故放在chatroomWS())
+                // 玩家自行離開也用websocket通知
+                // 由於一次只離開一位 故不使用 refreshPlayers 改用 refreshOnePlayer
             }
         };
     }
@@ -137,7 +153,7 @@ var WSManager = function(){
         theUI.showStatus(elmt,1);
         term.emlt_for_status.push(elmt);
     }
-    function mss(msg_list){ //  the matcher is disconnected, so send mag_list instead of msg in next connection.
+    function mss(msg_list){  //  the matcher is disconnected, so send mag_list instead of msg in next connection.
         if(!1===toggle.discon){
             chatSocket.send(JSON.stringify({
                 'msgs':msg_list
@@ -167,15 +183,20 @@ var WSManager = function(){
         }))
     }
 
-    function clg(uuid_list=null){  // uuid_list表示令對方離開 而empty表示自己離開
+    function clg(){
         // 在後端仍需檢驗資料的正確性
-        (uuid_list===null) && (uuid_list = []);
         chatSocket.send(JSON.stringify({
             'call':'leave_game',
-            'players': uuid_list
         }))
     }
-    function cem(uuid_list){  // uuid_list不可為空 一定要有對象
+
+    function cmo(){
+        chatSocket.send(JSON.stringify({
+            'call':'make_out',
+        }))
+    }
+
+    function cem(uuid_list){  // uuid_list不可為空 一定要有對象 
         chatSocket.send(JSON.stringify({
             'call':'enter_match',
             'players': uuid_list
@@ -189,6 +210,12 @@ var WSManager = function(){
         }))
     }
 
+    function cml(){
+        chatSocket.send(JSON.stringify({
+            'call':'make_leave',
+        }))
+    }
+
     return{
         msgSendWs:ms,
         msgsSendWs:mss,
@@ -196,8 +223,10 @@ var WSManager = function(){
         writingNowWs:wn,
         callStartGame:csg,
         callLeaveGame:clg,
+        callMakeOut:cmo,
         callEnterMatch:cem,
         callLeaveMatch:clm,
+        callMakeLeave:cml
     }
 }
 
@@ -206,10 +235,11 @@ function getLocalData(){
         name: '取個暱稱吧',
         school: '',  // 改掉 school改成city
         lastSaid: 'sys',  // 用localStorage存儲 不用存在後端
-        anonName: '',  // 之後刪除
+        anonName: '',  // 之後刪除 用player_list帶到plater_dict即可獲得
         text_in_discon: [],
         imgUrl_adult: '',
         self: [],
+        position: {},
         chatLogsNum: 0,  // 改掉 不需要那摸複雜
         chatLogsMaxNum: 250  // 改掉 不需要那摸複雜
     };
@@ -222,9 +252,10 @@ function getLocalData(){
             data.school = localStorage.school,
             data.lastSaid = localStorage.lastSaid,
             data.anonName = localStorage.anonName,
-            data.text_in_discon =  JSON.parse(localStorage.text_in_discon),
+            data.text_in_discon = JSON.parse(localStorage.text_in_discon),
             data.imgUrl_adult = localStorage.imgUrl_adult,
             data.self = JSON.parse(localStorage.self),
+            data.position = JSON.parse(localStorage.position),
             data.chatLogsNum = +localStorage.chatLogsNum,
             data.chatLogsMaxNum = +localStorage.chatLogsMaxNum 
             for (let i = 0;i<5;i++)
@@ -238,11 +269,11 @@ function getLocalData(){
             localStorage.text_in_discon = '[]',
             localStorage.imgUrl_adult = '',
             localStorage.self = '[]',
+            localStorage.position = '{}',
             localStorage.chatLogsNum = '0',
-            localStorage.chatLogsMaxNum = '250'
+            localStorage.chatLogsMaxNum = '250';
             for (let i = 0;i<5;i++)
                 localStorage['chatLogs'+i.toString()] = ''
-            
         }
     }else{
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
@@ -276,8 +307,8 @@ function getToggle(){
         focus:!1, // 表示focus正在input欄
         scroll:!1, // 表示捲軸正在滾動
         text:!0, // todo 當出現bootbox時 離線後上線是否還要停留在bootbox
-        discon:!1,  // 表示對方斷線 重連時直接從後端抓取資料
         problem:!1, // todo 表示自己網路出現問題 會跟開頭畫面一起使用
+        discon:!1,  // at least one player disconnected in match
         first:!0
     };
     return toggle
@@ -299,15 +330,16 @@ function enabledElmtId(elmt_id){
 
 function loadLoginData(){ // login and logout followed by redirect, so loginData will be loaded then.
     if (!0 === loginData.isLogin){
-        var url = (loginData.game.length > 0)? ('/chat/start_game/chatroom_game_' + game_name) : '/chat';
-        if (url !== window.location.href)
-            window.location.href = url
+        var url = (loginData.game.length > 0)? ('/chat/start_game/' + loginData.game) : '/chat';
+        if (url !== window.location.pathname)
+            window.location.href = url;
 
         chatroomWS();
         appearElmtId('user-info'), appearElmtId('logout-btn'), appearElmtId('change-pwd-btn');
         disappearElmtId('signup-btn'), disappearElmtId('login-btn'), disappearElmtId('reset-pwd-btn');
         $('#user-info>span:eq(0)').text(loginData.email);
-        $('#user-info>span:eq(1)').text('性別:' + ((loginData.gender == 'm')?'男':'女'));
+        $('#user-info>span:eq(1)').text( '性別:' + ((loginData.gender === 'm')?'男':'女') );
+        $('#user-tag').addClass( ((loginData.gender === 'm')? 'a-male':'a-female') ).removeClass('a-off');
         localData.name = loginData.name, localStorage.name = loginData.name;
         localData.school = loginData.school, localStorage.school = loginData.school;
         unavailableBtn(),refreshStatus(loginData.status);
@@ -338,9 +370,9 @@ function refreshProfile(){  // handle text of navbar and sidebar
     // 加上描述狀態或tutor教學
 
     var school_name = localData.school+' '+schoolSet[localData.school];
-    $('#school').text(school_name), $('#school').attr('data-bs-original-title', school_name);
+    $('#school').text(school_name).attr('data-bs-original-title', school_name);
     $('#user-tag').text(localData.name[0]);
-    $('#user-name').text(localData.name), $('#user-name').attr('data-bs-original-title', localData.name);   
+    $('#user-name').text(localData.name).attr('data-bs-original-title', localData.name);   
 }
 
 function refreshStatus(status){  // handle all UI work about status
@@ -400,12 +432,7 @@ function refreshPlayers(){
     // refresh loginData.onoff_dict 
     // 互動鍵與行動鍵都需要綁status才能進行 如此才不會有太多例外
     // 有人離線或有人離開遊戲都要處理 由chatroom的onmessage通知 直接把離開的元素player-i用離開表示即可 
-    // 一樣用a-off的顏色 但從'離'換成'退'
-}
-
-function refreshOnePlayer(player_uuid){
-    // 更新其他玩家狀態 使用所有遊戲都需要使用的部分 故放在chatroom
-    // 不同於上者 只更新一位 故不使用loginData.onoff_dict 改用player_uuid就行
+    // 一樣用a-off的顏色 但離開遊戲則tag中間沒有文字
 }
 
 function bindMsgSend() {
@@ -751,9 +778,12 @@ function leaveMethod(){
                     if (!0 === data['result']){
                         loginData.status = 0, loginData.player_dict = {}, loginData.onoff_dict = {};
                         refreshStatus();
-                        theWS.callLeaveGame();  // 自行離開
-                        theUI.showSys('已離開遊戲')
-                        $('#modal').modal('hide');
+                        theWS.callLeaveGame();  // 自行離開通知其他人
+                        theUI.showSys('你已離開遊戲');
+
+                        $('#modal').modal('hide'), showNoticeModal('你已離開遊戲');
+                        $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat"; }); 
+                        // 可能導致還未全部通知 consumer就直接進行disconnect 必須像'START'一樣確保所有人都知道
                     }else{
                         $('#leave-modal-form p.a-error').text(data['msg']);
                     }

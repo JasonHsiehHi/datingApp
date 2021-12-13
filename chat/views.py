@@ -28,7 +28,6 @@ from django.db import connection
 def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
         'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name'])
-
     # player_dict['waiting_time']是否需要在變成字串 若為None則轉成''
 
     if player.school is None:
@@ -68,7 +67,7 @@ def chatroom(request):
     if user.is_authenticated:
         login_dict = get_loginData(user, user.profile)
         # reverse_foreignkey 是否會多次存取
-        print('db_query: {}'.format(connection.queries))
+        # print('db_query: {}'.format(connection.queries))
 
     else:
         login_dict = {  # 部分參數是登入後才會使用的 故未登入前不設置
@@ -85,17 +84,15 @@ def chatroom(request):
 def in_game(request, game_name):
     user = request.user
     if user.is_authenticated:
-        # 先查看request.user 是否資料完全符合 遊戲房間必須正確 是否真的在遊戲進行中permission
-        # 被保持獨立 遊戲中的ajax則要傳送到 views_game_name.py
-        # consumers.py中也不會有個別遊戲專屬的method 而是所有遊戲都使用consumers.py的標配功能
+        # 先查看request.user 是否資料完全符合 遊戲房間必須正確 是否真的在遊戲進行中
+        # 遊戲中的ajax則要傳送到 views_game_{gamename}.py
         game = Game.objects.get(game_id=game_name)
         playerNum = game.best_ratio[0] + game.best_ratio[1]
-        # 'range': range(1,playerNum+1) 用dtl傳入template
-
         login_dict = get_loginData(user, user.profile)
-        game_dict = {}  # 除了chatroom的loginData還要包含gameData
-        url = 'chat/start_game/chatroom_game_' + game_name + '.html'
-        return render(request, url, {'login_dict': login_dict, 'game_data': game_dict})
+        if settings.DEBUG is True:
+            game_name = game_name[5:] if game_name.startswith("test_") else game_name
+        url = 'chat/chatroom_game_' + game_name + '.html'
+        return render(request, url, {'login_dict': login_dict, 'range': range(1, playerNum+1)})
     else:
         # 提醒玩家 沒登入帳號不能直接用in_game
         print("error: user isn't authenticated.")
@@ -494,7 +491,7 @@ def start_game(request):
                 player.status = 2
                 player.save()
                 player_dict[player.uuid] = [player.name, player.gender, role.name, role.group]
-                onoff_dict[player.uuid] = True
+                onoff_dict[player.uuid] = 1
 
             room.player_dict = player_dict
             room.onoff_dict = onoff_dict
@@ -544,8 +541,7 @@ def leave_game(request):
         if request.user.is_authenticated:
             player = request.user.profile
             room = player.room
-            room.player_dict.pop(player.uuid)
-            room.onoff_dict.pop(player.uuid)
+            room.onoff_dict[player.uuid] = -1
             room.playerNum -= 1
 
             player.status = 0

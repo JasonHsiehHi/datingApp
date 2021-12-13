@@ -11,8 +11,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # todo 每次使用consumer時都要做refresh_player 因為views.py也會update資料
         if self.scope['user'].is_authenticated:  # 帳號登入後再開webSocket
             self.player_data = await utils.get_player(self.scope['user'])
-            self.uuid = str(self.player_data.uuid)  # todo 前端不再做uuid 改由後端傳到前端 uuid綁定player永遠不變
-            # 是否用user.id 取代 player.uuid
+            self.uuid = str(self.player_data.uuid)  # 是否用user.id 取代 player.uuid
+
             self.player_data = await utils.set_player_fields(self.player_data, {'isOn': True})
             if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
                 self.player_data = await utils.set_player_fields(self.player_data, {'isPrepared': True})
@@ -21,6 +21,29 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 self.uuid,
                 self.channel_name
             )
+
+            if self.player_data.status in [2, 3]:  # 進入LARP遊戲後
+                room, game, room_players = await utils.get_room_players(self.player_data)
+                self.room = room
+                self.game_id = str(game.game_id)
+
+                await utils.player_onoff(self.player_data, 1)
+
+                await self.channel_layer.group_send(self.room.id, {
+                    'type': 'is_on',
+                    'boolean': True,
+                    'from': self.uuid
+                })
+
+                await self.channel_layer.group_add(
+                    self.room.id,
+                    self.channel_name
+                )
+
+                if self.player_data.status == 3:
+                    # 遊戲中和房間中的處理步驟不相同 必須建立room和match
+                    # 進入match
+                    pass
 
             '''
             if self.player_data.status == 3:
@@ -60,8 +83,29 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.channel_name
         )
 
-        if self.player_data.status == 2 or self.player_data.status == 3:  # 進入LARP遊戲後
-            await utils.player_onoff(self.player_data, False)
+        if self.player_data.status in [2, 3]:  # 進入LARP遊戲後
+            room, game, room_players = await utils.get_room_players(self.player_data)
+            self.room = room
+            self.game_id = str(game.game_id)
+
+            await utils.player_onoff(self.player_data, 0)
+
+            await self.channel_layer.group_send(self.room.id, {
+                'type': 'is_on',
+                'boolean': False,
+                'from': str(self.player_data.name)
+            })
+
+            await self.channel_layer.group_discard(
+                self.room.id,
+                self.channel_name
+            )
+
+            if self.player_data.status == 3:
+                # 遊戲中和房間中的處理步驟不相同 必須建立room和match
+                # 離開match
+                pass
+
 
         """  # 舊版 需要修改 進房間後斷線
         if self.player_data.status == 3:  
@@ -89,11 +133,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if call == 'start_game':
             await self.call_start_game()
         elif call == 'leave_game':
-            await self.call_leave_game(content['players'])
+            await self.call_leave_game()
+        elif call == 'make_out':
+            await self.call_make_out()
         elif call == 'enter_match':
             await self.call_enter_match(content['players'])
         elif call == 'leave_match':
             await self.call_leave_match(content['players'])
+        elif call == 'make_leave':
+            await self.call_make_leave()
 
         command = content.get('cmd', None)
         if command is None and self.player_data.status == 3 and self.room_userNum == 2:
@@ -144,8 +192,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             print(command)
             if command == 'open':
                 await self.cmd_open(content['uuid'], content['isFirst'])
-            elif command == 'import':
-                await self.cmd_import(content['data'])
             elif command == 'goto':
                 await self.cmd_goto(content['school'])
             elif command == 'profile':
@@ -177,14 +223,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         room, game, room_players = await utils.get_room_players(self.player_data)
         self.room = room
         self.game_id = str(game.game_id)
+        await self.channel_layer.group_add(
+            self.room.id,
+            self.channel_name
+        )
         for player in room_players:
-            if player.uuid != self.player_data.uuid:
+            if player.uuid != self.player_data.uuid:  # 換成self.uuid
                 await self.channel_layer.group_send(str(player.uuid), {
                     'type': 'start_game',
                     'game': self.game_id,
                     'player_dict': room.player_dict,
                     'onoff_dict': room.onoff_dict,
-                    'from': str(self.player_data.uuid)
+                    'from': str(self.player_data.uuid)  # 換成self.uuid
                 })
 
     async def call_start_game_down(self, room_creator):  # 其他人告訴創房者'已加載完成'
@@ -193,47 +243,48 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         room, game, room_players = await utils.get_room_players(self.player_data)
         self.room = room  # 每個人都要有 且要放到connect() 因為有些人可以離線後上線
         self.game_id = str(game.game_id)
+        await self.channel_layer.group_add(
+            self.room.id,
+            self.channel_name
+        )
 
         await self.channel_layer.group_send(room_creator, {
             'type': 'start_game_down'
         })
 
-    async def call_leave_game(self, players):  # 可以用players作為參數會導致用戶可以自行趕人出去 改用room.onoff_dict來決定趕人
-        if len(players) == 0:  # 自己離開後通知對方
-            for uuid in self.room.player_dict.keys():
-                await self.channel_layer.group_send(uuid, {
-                    'type': 'leave_game',
-                    'from': str(self.player_data.uuid)
-                })
-        else:  # 其他人被動離開 不能用view
-            self.room = await utils.refresh_room(self.room)
-            room = self.room
-            for uuid in players:
-                room.player_dict.pop(uuid)
-                room.onoff_dict.pop(uuid)
-                room.playerNum -= 1
-                player = await utils.get_player_by_uuid(uuid)
-                await utils.set_player_fields(player, {'status': 0, 'room': None})
-                await self.channel_layer.group_send(uuid, {
-                    'type': 'leave_game'
-                })
+    async def call_leave_game(self):
+        await self.channel_layer.group_send(self.room.id, {
+            'type': 'leave_game',
+            'from': self.uuid
+        })
 
-            await utils.set_room_fields(room, {
-                'player_dict': room.player_dict, 'onoff_dict': room.onoff_dict, 'playerNum': room.playerNum})
+    async def call_leave_game_down(self, players):
+        pass
+
+    async def call_make_out(self):
+        self.room = await utils.refresh_room(self.room)
+        room = self.room
+        for uuid, i in room.onoff_dict.items():
+            if i == -1:  # deduce之後執行 room.onoff_dict已被修改 已把需要趕走的人設為-1
+                await self.call_leave_game()
 
     async def call_enter_match(self, players):
+        # examine之後執行 match.player_list已被修改
+        
         for uuid in players:
             await self.channel_layer.group_send(uuid, {
                 'type': 'enter_match',
             })
 
     async def call_leave_match(self, players):
+        # 離開鍵之後執行 match.player_list已被修改
+
         match = await utils.get_match(self.player_data)
         if len(players) == 0:  # 自己離開後通知對方
             for uuid in match.player_list:
                 await self.channel_layer.group_send(uuid, {
                     'type': 'leave_match',
-                    'from': str(self.player_data.uuid)
+                    'from': self.uuid
                 })
         else:  # 其他人被動離開 不能用view
             for uuid in players:
@@ -246,8 +297,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             await utils.set_match_fields(match, {'player_list': match.player_list})
 
-    async def call_onoff(self, isOn):
-        # 用connect和disconnect來呼叫
+    async def call_make_leave(self):
         pass
 
     async def timer(self, duration_min, call, **kwargs):
@@ -275,18 +325,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "game": self.game_id,
                 "player_dict": self.room.player_dict,
                 "onoff_dict": self.room.onoff_dict})
-
             self.count = 0
 
     async def leave_game(self, event):
-        if event['form'] is None:
-            event['form'] = '你'
+        if self.uuid != event['from']:
+            await self.send_json({
+                "type": 'OUT',
+                "msg": ' 已離開遊戲...',
+                'sender': event['form']
+            })
+            await self.call_leave_game_down(event['from'])
 
-        await self.send_json({
-            "type": 'OUT',
-            "msg": ' 已離開遊戲...',
-            "from": event['form']
-        })
+    async def leave_game_down(self, event):
+        # 類似於start_game_down
+        pass
 
     async def enter_match(self, event):
         await self.send_json({
@@ -303,6 +355,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             "msg": '已離開房間',
             "form": event['form']
         })
+
+    async def is_on(self, event):
+        if self.uuid != event['from']:
+            m = 'CONN' if event['boolean'] else 'DISCON'
+            await self.send_json({
+                'type': m,
+                'sender': event['from']
+            })
 
     # called by receive_json to response client side
     async def cmd_open(self, uuid, isFirst):
@@ -332,9 +392,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'anonName': robot
             })
         '''
-
-    async def cmd_import(self, data):
-        pass
 
     async def cmd_goto(self, school_id):
         if self.player_data.status == 0:  # todo school_id檢測 把schoolImgSet存入cache中
@@ -384,6 +441,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.player_data = await utils.set_player_imgUrl(self.player_data, imgUrl)
 
     async def cmd_wait(self, testResult=None):  # # 合併到views.py Match
+        # 由於建房由view創建 故通知進房時才做group_add
         if self.player_data.status is not None:  # self.player_data.status == 0,1,2,3 皆可
             if testResult is not None and (testResult != self.player_data.testResult):
                 self.player_data = await utils.set_player_score(self.player_data, testResult)
@@ -524,13 +582,3 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'num': event['num'],
                 'receiver': event['from']
             })
-
-    async def is_disconnected(self, event):
-        if str(self.player_data.name) != event['from']:
-            self.room_userNum = await utils.get_room_userNum(str(self.player_data.room_id))
-            m = 'DISCON' if event['boolean'] else 'CONN'
-            await self.send_json({
-                'type': m
-            })
-
-

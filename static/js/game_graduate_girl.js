@@ -73,6 +73,7 @@ function deduceMethod(){  // 在$(document).ready中判斷 role 只有group ==
                     // data['out'] 為一種player_list 如果為空則表示無人出局 用theWS.callLeaveMatch(user_id)  
                     
                     // 將loginData.onoff_dict更新到最新 之後用refreshPlayers
+                    // theWS.callMakeOut() 把人趕走
                     refreshPlayers();
                     refreshStatus(), refreshGameStatus();
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
@@ -118,28 +119,30 @@ function examineMethod(css_id, player_uuid){
 }
 
 function loadRoleData(){
-    if (localData.self.length > 0)
-        self =  localData.self;
-    else
-        self = loginData.player_dict[loginData.uuid], localData.self = self, localStorage.self = JSON.stringify(self);
-    
-    others = JSON.parse(JSON.stringify(localData.player_dict)), delete others[loginData.uuid];
+    self = loginData.player_dict[loginData.uuid], localData.self = self, localStorage.self = JSON.stringify(self);
+    others = JSON.parse(JSON.stringify(loginData.player_dict)), delete others[loginData.uuid];
+    $('#user-role').text( '('+self[2]+')' );
 
-    var i = 1, css_id, sub, gender;
-    for (let uuid of others){
-        css_id = '#player-' + i.toString(), sub = '('+others[uuid][1]+')', gender = (others[uuid][2]==='m')? 'a-male':'a-female';
+    var position = {};
+    var i = 1, css_id, name, sub, gender, group;
+    for (let uuid in others){
+        css_id = '#player-' + i.toString();
+        name = others[uuid][0], gender = (others[uuid][1]==='m')? 'a-male':'a-female', sub = '('+others[uuid][2]+')', group = others[uuid][3];
         $(css_id).removeClass('d-none');
-        $(css_id).find('.a-title').text(others[uuid][0]).attr('data-bs-original-title', others[uuid][0]);
-        $(css_id).find('a.a-sub').text(sub), $(css_id).find('.a-circle').addClass(gender);
+        $(css_id).find('.a-circle').addClass(gender).text(name[0]);
+        $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name);
+        $(css_id).find('.a-sub').text(sub);
+        position[uuid] = css_id;
         if (self[3] === 1){
             $(css_id+'-btn').text('審問'), examineMethod(css_id+'-btn', uuid);
             $(css_id+'-deduce').removeClass('d-none');
-            $(css_id+'-deduce').find('label').text(others[uuid][0]+' '+sub);
+            $(css_id+'-deduce').find('label').text(name+' '+sub);
         }else{  // self[3] === 0
-            (others[uuid][3] === 0) && $(css_id+'-btn').addClass('d-none');
+            (group === 0) && $(css_id+'-btn').addClass('d-none');
         }
         i++;
     }
+    
     if (self[3] === 1){
         $('#start-btn').text('推 理'), deduceMethod();
         refreshGameStatus(1);
@@ -147,6 +150,7 @@ function loadRoleData(){
         $('#start-btn').attr('disabled', true);
         refreshGameStatus(0);
     }
+    localData.position = position, localStorage.position = JSON.stringify(position);
     refreshPlayers(); // refresh player's onoff status
 }
 

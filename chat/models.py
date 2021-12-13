@@ -23,7 +23,7 @@ class Room(models.Model):
     answer = models.JSONField(max_length=30, null=True, default=dict)
 
     def __str__(self):
-        return "room-%s" % self.room_id
+        return "room-%s" % self.id
 
 
 class Match(models.Model):
@@ -32,7 +32,7 @@ class Match(models.Model):
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
 
     def __str__(self):
-        return "match-%s" % self.match_id
+        return "match-%s" % self.id
 
 
 class Player(models.Model):
