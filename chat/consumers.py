@@ -1,7 +1,7 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from . import utils
 from django.core.cache import cache
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 from datingApp import settings
 
@@ -9,121 +9,82 @@ from datingApp import settings
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
         # todo 每次使用consumer時都要做refresh_player 因為views.py也會update資料
-        if self.scope['user'].is_authenticated:  # 帳號登入後再開webSocket
+        if self.scope['user'].is_authenticated:
             self.player_data = await utils.get_player(self.scope['user'])
             self.uuid = str(self.player_data.uuid)  # 是否用user.id 取代 player.uuid
-
-            self.player_data = await utils.set_player_fields(self.player_data, {'isOn': True})
-            if self.player_data.status == 1:  # 進入LARP遊戲前的等待階段
-                self.player_data = await utils.set_player_fields(self.player_data, {'isPrepared': True})
+            if self.player_data.status == 1:  # in waiting
+                self.player_data = await utils.set_player_fields(
+                    self.player_data, {'isPrepared': True, 'waiting_time': datetime.now(tz=timezone.utc), 'isOn': True})
+            else:  # not in waiting
+                self.player_data = await utils.set_player_fields(self.player_data, {'isOn': True})
 
             await self.channel_layer.group_add(
                 self.uuid,
                 self.channel_name
             )
 
-            if self.player_data.status in [2, 3]:  # 進入LARP遊戲後
-                room, game, room_players = await utils.get_room_players(self.player_data)
-                self.room = room
+            self.count = 0
+            if self.player_data.status in [2, 3]:  # in room
+                self.room, game, room_players = await utils.get_room_players(self.player_data)
                 self.game_id = str(game.game_id)
 
-                await utils.player_onoff(self.player_data, 1)
+                await utils.player_onoff_in_room(self.player_data, 1)
 
-                await self.channel_layer.group_send(self.room.id, {
+                await self.channel_layer.group_add(
+                    'room-'+str(self.room.id),
+                    self.channel_name
+                )
+
+                await self.channel_layer.group_send('room-'+str(self.room.id), {
                     'type': 'is_on',
                     'boolean': True,
                     'from': self.uuid
                 })
 
-                await self.channel_layer.group_add(
-                    self.room.id,
-                    self.channel_name
-                )
+                if self.player_data.status == 3:  # in match
+                    self.match, player_list = await utils.get_match_players(self.player_data)
 
-                if self.player_data.status == 3:
-                    # 遊戲中和房間中的處理步驟不相同 必須建立room和match
-                    # 進入match
-                    pass
-
-            '''
-            if self.player_data.status == 3:
-                room_id = str(self.player_data.room_id)
-                await self.channel_layer.group_add(
-                    room_id,
-                    self.channel_name
-                )
-
-                self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), False)
-
-                m = 'CONN' if self.room_userNum == 2 else 'DISCON'
-                await self.send_json({
-                    'type': m
-                })
-
-                await self.channel_layer.group_send(room_id, {
-                    'type': 'is_disconnected',
-                    'boolean': False,
-                    'from': str(self.player_data.name)
-                })
-            '''
-
-            # self.robot_id = 3  # 之後刪掉
-            self.count = 0
+                    await self.channel_layer.group_add(
+                        'match-'+str(self.match.id),
+                        self.channel_name
+                    )
             await self.accept()
-
         else:
             await self.close()
 
     async def disconnect(self, close_code):
         self.player_data = await utils.refresh_player(self.player_data)
-        self.player_data = await utils.set_player_fields(self.player_data, {'isOn': False, 'isPrepared': False})
+        self.player_data = await utils.set_player_fields(
+            self.player_data, {'isPrepared': False, 'waiting_time': None, 'isOn': False})
 
         await self.channel_layer.group_discard(
             self.uuid,
             self.channel_name
         )
 
-        if self.player_data.status in [2, 3]:  # 進入LARP遊戲後
-            room, game, room_players = await utils.get_room_players(self.player_data)
-            self.room = room
-            self.game_id = str(game.game_id)
+        if self.player_data.status in [2, 3]:  # in room
+            self.room, game, room_players = await utils.get_room_players(self.player_data)
 
-            await utils.player_onoff(self.player_data, 0)
+            await utils.player_onoff_in_room(self.player_data, 0)
 
-            await self.channel_layer.group_send(self.room.id, {
+            await self.channel_layer.group_send('room-'+str(self.room.id), {
                 'type': 'is_on',
                 'boolean': False,
-                'from': str(self.player_data.name)
+                'from': self.uuid
             })
 
             await self.channel_layer.group_discard(
-                self.room.id,
+                'room-'+str(self.room.id),
                 self.channel_name
             )
 
-            if self.player_data.status == 3:
-                # 遊戲中和房間中的處理步驟不相同 必須建立room和match
-                # 離開match
-                pass
+            if self.player_data.status == 3:  # in match
+                self.match, player_list = await utils.get_match_players(self.player_data)
 
-
-        """  # 舊版 需要修改 進房間後斷線
-        if self.player_data.status == 3:  
-            room_id = str(self.player_data.room_id)
-
-            self.room_userNum = await utils.set_room_userNum(str(self.player_data.room_id), True)
-
-            await self.channel_layer.group_send(room_id, {
-                'type': 'is_disconnected',
-                'boolean': True,
-                'from': str(self.player_data.name)
-            })
-
-            await self.channel_layer.group_discard(
-                room_id,
-                self.channel_name
-            )
-        """
+                await self.channel_layer.group_discard(
+                    'match-' + str(self.match.id),
+                    self.channel_name
+                )
 
     # receive from client side first
     async def receive_json(self, content):
@@ -137,11 +98,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         elif call == 'make_out':
             await self.call_make_out()
         elif call == 'enter_match':
-            await self.call_enter_match(content['players'])
+            await self.call_enter_match()
         elif call == 'leave_match':
-            await self.call_leave_match(content['players'])
+            await self.call_leave_match()
         elif call == 'make_leave':
             await self.call_make_leave()
+
 
         command = content.get('cmd', None)
         if command is None and self.player_data.status == 3 and self.room_userNum == 2:
@@ -213,91 +175,102 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             else:
                 print(str(self.player_data.uuid) + ' insert a wrong command: ' + command)
 
-    # 主要用於調用資料庫 且調用結束後仍須通知對方 self.channel_layer.group_send()
-    # 每個command最後都需回傳給client端 提供UI做回應 self.send_json()
-
-    # called by receive_json to response client side
-    async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'  # 是否需要堤防用戶console操作
-        # self.player_data = await utils.set_player_fields(self.player_data, {'status': 2})  # 移到start_game()進行
-
-        room, game, room_players = await utils.get_room_players(self.player_data)
-        self.room = room
+    # functions called by receive_json to response client side
+    async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'
+        # 驗證資料來堤防用戶console操作
+        self.player_data = await utils.refresh_player(self.player_data)
+        self.room, game, room_players = await utils.get_room_players(self.player_data)
         self.game_id = str(game.game_id)
+
+        self.room_playerNum = len(self.room.onoff_dict)
+
         await self.channel_layer.group_add(
-            self.room.id,
+            'room-'+str(self.room.id),
             self.channel_name
         )
         for player in room_players:
-            if player.uuid != self.player_data.uuid:  # 換成self.uuid
+            if player.uuid != self.uuid:
                 await self.channel_layer.group_send(str(player.uuid), {
                     'type': 'start_game',
                     'game': self.game_id,
-                    'player_dict': room.player_dict,
-                    'onoff_dict': room.onoff_dict,
-                    'from': str(self.player_data.uuid)  # 換成self.uuid
+                    'room_id': 'room-' + str(self.room.id),
+                    'player_dict': self.room.player_dict,
+                    'onoff_dict': self.room.onoff_dict,
+                    'from': self.uuid
                 })
 
     async def call_start_game_down(self, room_creator):  # 其他人告訴創房者'已加載完成'
-        #  self.player_data = await utils.set_player_fields(self.player_data, {'status': 2}) 移到start_game()進行
-
-        room, game, room_players = await utils.get_room_players(self.player_data)
-        self.room = room  # 每個人都要有 且要放到connect() 因為有些人可以離線後上線
-        self.game_id = str(game.game_id)
-        await self.channel_layer.group_add(
-            self.room.id,
-            self.channel_name
-        )
-
         await self.channel_layer.group_send(room_creator, {
             'type': 'start_game_down'
         })
 
     async def call_leave_game(self):
-        await self.channel_layer.group_send(self.room.id, {
+        self.player_data = await utils.refresh_player(self.player_data)
+        self.room, game, room_players = await utils.get_room_players(self.player_data)
+
+        on_list = [i for i in list(self.room.onoff_dict.values()) if i == 1]
+        self.room_playerNum = len(on_list)
+
+        await self.channel_layer.group_send('room-'+str(self.room.id), {
             'type': 'leave_game',
             'from': self.uuid
         })
 
-    async def call_leave_game_down(self, players):
-        pass
+        await self.channel_layer.group_discard(
+            'room-'+str(self.room.id),
+            self.channel_name
+        )
+
+    async def call_leave_game_down(self, room_leaver):
+        await self.channel_layer.group_send(room_leaver, {
+            'type': 'leave_game_down'
+        })
 
     async def call_make_out(self):
-        self.room = await utils.refresh_room(self.room)
-        room = self.room
-        for uuid, i in room.onoff_dict.items():
+        self.player_data = await utils.refresh_player(self.player_data)
+        self.room, game, room_players = await utils.get_room_players(self.player_data)
+
+        for uuid, i in self.room.onoff_dict.items():
             if i == -1:  # deduce之後執行 room.onoff_dict已被修改 已把需要趕走的人設為-1
-                await self.call_leave_game()
-
-    async def call_enter_match(self, players):
-        # examine之後執行 match.player_list已被修改
-        
-        for uuid in players:
-            await self.channel_layer.group_send(uuid, {
-                'type': 'enter_match',
-            })
-
-    async def call_leave_match(self, players):
-        # 離開鍵之後執行 match.player_list已被修改
-
-        match = await utils.get_match(self.player_data)
-        if len(players) == 0:  # 自己離開後通知對方
-            for uuid in match.player_list:
                 await self.channel_layer.group_send(uuid, {
-                    'type': 'leave_match',
-                    'from': self.uuid
-                })
-        else:  # 其他人被動離開 不能用view
-            for uuid in players:
-                match.player_list.remove(uuid)
-                player = await utils.get_player_by_uuid(uuid)
-                await utils.set_player_fields(player, {'status': 2, 'match': None})
-                await self.channel_layer.group_send(uuid, {
-                    'type': 'leave_match'
+                    'type': 'call_leave_game'
                 })
 
-            await utils.set_match_fields(match, {'player_list': match.player_list})
+    async def call_enter_match(self):
+        # examine後執行 match.player_list已被修改
+        self.match, player_list = await utils.get_match_players(self.player_data)
+        await self.channel_layer.group_add(
+            'match-'+str(self.match.id),
+            self.channel_name
+        )
+        for uuid in player_list:
+            if uuid != self.uuid:
+                await self.channel_layer.group_send(uuid, {
+                    'type': 'enter_match',
+                    'match_id': 'match-'+str(self.match.id),
+                    'from': self.uuid,
+                    'player_list': player_list
+                })
 
-    async def call_make_leave(self):
+    async def call_leave_match(self):
+        # 離開鍵後執行 match.player_list已被修改
+        self.match, player_list = await utils.get_match_players(self.player_data)
+        await self.channel_layer.group_send('match-'+str(self.match.id), {
+            'type': 'leave_match',
+            'match_id': 'match-' + str(self.match.id),
+            'from': self.uuid,
+            'num': len(player_list) - 1,
+            'player_list': player_list
+        })
+
+        await self.channel_layer.group_discard(
+            'match-'+str(self.match.id),
+            self.channel_name
+        )
+
+    async def call_make_leave(self):  # haven't been used
+        self.match = await utils.refresh_match(self.match)
+        # 在Match model中加上leaver_list 標記需要離開的人
         pass
 
     async def timer(self, duration_min, call, **kwargs):
@@ -305,57 +278,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         content = {'call': call, **kwargs}
         await self.receive_json(content)
 
-    # receive from other chatConsumers
-    async def start_game(self, event):  # 其他人接收'遊戲開始'訊息
-        await self.send_json({
-            "type": 'START',
-            "msg": '遊戲開始！',
-            "game": event['game'],
-            "player_dict": event['player_dict'],
-            "onoff_dict": event['onoff_dict']})
 
-        await self.call_start_game_down(event['from'])
 
-    async def start_game_down(self, event):  # 建房者接收'已加載完成'訊息
-        self.count += 1
-        if self.count == self.room.playerNum-1:
-            await self.send_json({
-                "type": 'START',
-                "msg": '遊戲開始！',
-                "game": self.game_id,
-                "player_dict": self.room.player_dict,
-                "onoff_dict": self.room.onoff_dict})
-            self.count = 0
-
-    async def leave_game(self, event):
-        if self.uuid != event['from']:
-            await self.send_json({
-                "type": 'OUT',
-                "msg": ' 已離開遊戲...',
-                'sender': event['form']
-            })
-            await self.call_leave_game_down(event['from'])
-
-    async def leave_game_down(self, event):
-        # 類似於start_game_down
-        pass
-
-    async def enter_match(self, event):
-        await self.send_json({
-            "type": 'ENTER',
-            "msg": '進入房間'
-        })
-
-    async def leave_match(self, event):
-        if event['form'] is None:
-            event['form'] = '你'
-
-        await self.send_json({
-            "type": 'LEAVE',
-            "msg": '已離開房間',
-            "form": event['form']
-        })
-
+    # functions received from other chatConsumers
     async def is_on(self, event):
         if self.uuid != event['from']:
             m = 'CONN' if event['boolean'] else 'DISCON'
@@ -363,6 +288,85 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'type': m,
                 'sender': event['from']
             })
+
+    async def start_game(self, event):  # 其他人接收'遊戲開始'訊息
+        await self.channel_layer.group_add(
+            event['room_id'],
+            self.channel_name
+        )
+        await self.call_start_game_down(event['from'])
+
+        await self.send_json({
+            "type": 'START',
+            "msg": '遊戲開始！',
+            "game": event['game'],
+            "player_dict": event['player_dict'],
+            "onoff_dict": event['onoff_dict']})
+
+    async def start_game_down(self, event):  # 建房者接收'已加載完成'訊息
+        self.count += 1
+        if self.count == self.room_playerNum-1:
+            await self.send_json({
+                "type": 'START',
+                "msg": '遊戲開始！',
+                "game": self.game_id,
+                "player_dict": self.room.player_dict,
+                "onoff_dict": self.room.onoff_dict
+            })
+            self.count = 0
+            del self.room_playerNum
+
+    async def leave_game(self, event):
+        if self.uuid != event['from']:
+            await self.call_leave_game_down(event['from'])
+
+            await self.send_json({
+                "type": 'OUT',
+                "msg": ' 已離開遊戲...',
+                'sender': event['form']
+            })
+
+    async def leave_game_down(self, event):
+        self.count += 1
+        if self.count == self.room_playerNum-1:
+            await self.send_json({
+                "type": 'OUTDOWN'
+            })
+            self.count = 0
+            del self.room_playerNum
+
+    async def enter_match(self, event):
+        await self.channel_layer.group_add(
+            event['match_id'],
+            self.channel_name
+        )
+
+        await self.send_json({
+            "type": 'ENTER',
+            "msg": ' 進入房間',
+            'sender': event['form'],
+            "player_list": event['player_list']
+        })
+
+    async def leave_match(self, event):
+        if self.uuid != event['from']:
+            if event['num'] == 1:
+                await self.channel_layer.group_discard(
+                    event['match_id'],
+                    self.channel_name
+                )
+
+            await self.send_json({
+                "type": 'LEAVE',
+                "msg": ' 已離開房間...',
+                'sender': event['form'],
+                "player_list": event['player_list']
+            })
+
+
+
+
+
 
     # called by receive_json to response client side
     async def cmd_open(self, uuid, isFirst):
@@ -512,31 +516,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             })
 
     # receive from other chatConsumers
-    async def enter_room(self, event):  # LARP 改到views.py
-        name, room_id = event['name'], event['room']
-        await self.channel_layer.group_add(
-            room_id,
-            self.channel_name
-        )
-        self.player_data = await utils.process_player_wait(self.player_data, next_status=3)
-        self.player_data = await utils.set_player_room(self.player_data, room_id, name)
-        self.room_userNum = 2
-        await self.send_json({
-            'type': 'ENTER',
-            'room': room_id,
-            'matcherName': name
-        })
-
-    async def leave_room(self, event):  # LARP 改到views.py
-        await self.channel_layer.group_discard(
-            str(self.player_data.room_id),
-            self.channel_name
-        )
-        self.player_data = await utils.set_player_room(self.player_data, str(self.player_data.room_id), None)
-        await self.send_json({
-            'type': 'LEAVE',
-            'sender': event['from']
-        })
 
     async def chat_message(self, event):
         if str(self.player_data.name) != event['from']:

@@ -1,5 +1,4 @@
-// game_{gamename}.js可以自行選擇互動鍵與行動鍵 使用彈出modal或直接執行
-
+/* 刪掉 用chatroomWS就好
 function gameroomWS(){  // 遊戲中專用websocket 取代chatroomWS 
     // 可能不需要一個專用的websocket 因為所咬執行的都是固定方法 enter_match, leave_match等等
     if (null===chatSocket){
@@ -36,7 +35,8 @@ var gameWSManager = function(){ // 在chatroom執行就好
         callEnterMatch:cem,  // 在chatroom執行就好
         callLeaveMatch:clm,  // 在chatroom執行就好
     }
-}
+}*/
+
 
 var gameCheckGate = function(){ // 與 checkGate()寫法相同 但針對不同遊戲而有所不同故寫於此
 
@@ -47,9 +47,9 @@ var gameCheckGate = function(){ // 與 checkGate()寫法相同 但針對不同�
 
 
 
-function deduceMethod(){  // 在$(document).ready中判斷 role 只有group ==1才要
+function deduceMethod(){
     $("#start-btn").on('click',function(e){
-        if (loginData.status !== 2)  // status是否全部交由loadstatus來管理 不需要放在各個click
+        if (loginData.status !== 2)
             return false
         $("#deduce-modal-form").removeClass('d-none');
         $('#modal .modal-title').text('推理環節')
@@ -62,7 +62,7 @@ function deduceMethod(){  // 在$(document).ready中判斷 role 只有group ==
         var formArray = $(this).serializeArray();
         $.ajax({
             type: 'POST',
-            url: $(this).data('url'),
+            url: '/chat/start_game/graduate_girl/deduce',
             data: formArray,
             dataType: "json",
             success: function(data) {
@@ -75,7 +75,7 @@ function deduceMethod(){  // 在$(document).ready中判斷 role 只有group ==
                     // 將loginData.onoff_dict更新到最新 之後用refreshPlayers
                     // theWS.callMakeOut() 把人趕走
                     refreshPlayers();
-                    refreshStatus(), refreshGameStatus();
+                    refreshStatus(loginData.status), refreshGameStatus(1, loginData.status);
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
                     $('#deduce-modal-form p.a-error').text(data['msg']);
@@ -99,11 +99,11 @@ function examineMethod(css_id, player_uuid){
             return false
         $.ajax({
             type: 'GET',
-            url: '/chat/start_game/graduate_girl/' + player_uuid.toString(),
+            url: '/chat/start_game/graduate_girl/' + player_uuid,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.status = 3, refreshStatus(), refreshGameStatus();
+                    loginData.status = 3, refreshStatus(loginData.status), refreshGameStatus(1, loginData.status);
                     showNoticeModal(data['msg']);
                     uuid_list = [data['result']], theWS.callEnterMatch(uuid_list);
                     // 針對不同劇本且特定角色才有的標記 例如偵探要全部都訪問完 Player 增加tag_int
@@ -123,16 +123,16 @@ function loadRoleData(){
     others = JSON.parse(JSON.stringify(loginData.player_dict)), delete others[loginData.uuid];
     $('#user-role').text( '('+self[2]+')' );
 
-    var position = {};
     var i = 1, css_id, name, sub, gender, group;
     for (let uuid in others){
         css_id = '#player-' + i.toString();
         name = others[uuid][0], gender = (others[uuid][1]==='m')? 'a-male':'a-female', sub = '('+others[uuid][2]+')', group = others[uuid][3];
+
         $(css_id).removeClass('d-none');
+        $(css_id).data('uuid', uuid), position[uuid] = css_id;
         $(css_id).find('.a-circle').addClass(gender).text(name[0]);
         $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name);
         $(css_id).find('.a-sub').text(sub);
-        position[uuid] = css_id;
         if (self[3] === 1){
             $(css_id+'-btn').text('審問'), examineMethod(css_id+'-btn', uuid);
             $(css_id+'-deduce').removeClass('d-none');
@@ -155,44 +155,64 @@ function loadRoleData(){
 }
 
 
-function refreshGameStatus(self_group){
-    // 補助chatroom.js來控制互動鍵 每一輪推理完也要更新
+function refreshGameStatus(self_group, status){
+    // 補助chatroom.js的refreshStatus來控制行動鍵與互動鍵 每一輪推理完也要更新
+    // 只在遊戲中的status2或status3中處理行動鍵與互動鍵 且依據不同角色而有所不同
+
     // 每次進入match (成功執行examine)後 refresh loginData.tag_json (用來記錄誰被審問過)
     // 嫌疑人每次傳訊息 (成功執行'提供線索')後 refresh loginData.tag_int (用來紀錄自己是否做過)
 
-    // 此外也使用loginData.status來 enable/disable player-i btn
-    // 只在遊戲中的status2或status3中處理行動鍵與互動鍵 且依據不同角色而有所不同
     if (self_group === 1){
-        switch (loginData.status){ 
+        switch (status){ 
             case 2:
-                enabledElmtId('start-btn')
+                enabledElmtId('start-btn');
+                for (let uuid in position)
+                    enabledElmtCss(position[uuid]);
                 break;
             case 3:
-                disabledElmtId('start-btn')
+                disabledElmtId('start-btn');
+                for (let uuid in position)
+                    disabledElmtCss(position[uuid]);
                 break;
         }
     }else{
+    }
 
+}
+
+function refreshGamePlayers(self_group){  // to refresh all other players status
+    // not used in this game:graduate_girl
+    console.log("not used in the game.");
+}
+
+function refreshGameSingle(self_group, player_css, player_type){  // to refresh other one player status
+    // only used in websocket.onmessage
+    if (self_group === 1){
+        switch (player_type){
+            case 'CONN':
+                enabledElmtCss(player_css);
+                break;
+            case 'DISCON':
+                disabledElmtCss(player_css);
+                break;
+        }
+    }else{
 
     }
 
 }
 
-var chatSocket = null,  // 改用gameWS 刪掉 同樣用chatroomWS就好
-    gameWS = gameWSManager(),  // 用 WSManager就好
-    gameGate = gameCheckGate(),  // 輸出遊戲相關的dialog
+
+var gameGate = gameCheckGate(),  // 輸出遊戲相關的dialog
     self = [],
     others = {},
+    position = {},
     gameEventSet = new Set([
     ])
 
 $(document).ready(function(){
     // bind method or methodSet according to role
-    loadRoleData();  // load the data about role respectively and establish the variable: self, others 
-
-    
-    // 加上loginUserid 用以判定身份 加上group self[3] 用以表示playerdict的顯示方式
-    // 行為鍵與互動鍵都在JS做生成 因為必須配合角色與玩家人數 每人都不同
+    loadRoleData();  // load the data about role respectively and establish the variable: self, others, position
 
     // 除了load之後 也要做故事情節dialog 放在loadRoleData中的refreshGameStutus中 
     // 等劇本生成完成後 再像chatroom的GREET一樣來要dailog資料 還有最後的gameevent

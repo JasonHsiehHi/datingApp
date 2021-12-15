@@ -5345,7 +5345,7 @@ window.location.host 域名
 window.location.href 絕對位置URL
 window.location.pathname 相對位置URL
 
-window.location.reload() 重整頁面 (window可省略)
+window.location.reload() 重整頁面 (window可省略) 可直接在console使用 可讓safari更新內存的js檔
 location.replace(url) 將當前頁面替換成url (不可按上一頁回去)
 location.assign(url) 跳轉至url (可按上一頁回去)
 

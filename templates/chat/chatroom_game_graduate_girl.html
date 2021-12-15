@@ -5,11 +5,11 @@
 {% endblock %}
 
 {% block modalForm %}
-<form class='d-none' id="deduce-modal-form" data-url="deduce">
+<form class='d-none' id="deduce-modal-form">
     {% csrf_token %}
     <div class="modal-body">
         {% for i in range %}
-        <div class="mb-3 row g-3 align-items-center d-none" id="player-{{i}}-deduce">    
+        <div class="mb-3 row g-3 align-items-center d-none" id="player-{{i}}-deduce">
             <div class="col-auto">
                 <label for="player-{{i}}-deduce-input" class="col-form-label">name (role)：</label>
             </div>

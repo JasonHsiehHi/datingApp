@@ -66,11 +66,12 @@ def chatroom(request):
     user = request.user
     if user.is_authenticated:
         login_dict = get_loginData(user, user.profile)
+
         # reverse_foreignkey 是否會多次存取
         # print('db_query: {}'.format(connection.queries))
 
     else:
-        login_dict = {  # 部分參數是登入後才會使用的 故未登入前不設置
+        login_dict = {  # 部分參數是登入後才會使用的 未登入前不設置
             'isLogin': False,
             'email': '',
             'gender': '',
@@ -179,11 +180,8 @@ def post_school(request):
 
         user = request.user
         if user.is_authenticated and user.is_active:
-            # user.profile.uuid = request.POST['uuid-input']  # uuid由後端生產而且固定 故只有創建先要建立
             user.profile.school = school
             user.profile.save()
-
-        # Player.objects.update_or_create(uuid=request.POST['uuid-input'], defaults={'school': school})
 
         dialog = []  # todo dialog GOTO 動態資訊
         return JsonResponse({"result": True, "school": school.name, "dialog": dialog})
@@ -201,11 +199,9 @@ def post_name(request):  # todo 加上修改權限permission 用於替代self.pl
 
         user = request.user
         if user.is_authenticated and user.is_active:
-            # user.profile.uuid = request.POST['uuid-input']  # uuid由後端生產而且固定 故只有創建先要建立
             user.profile.name = name
             user.profile.save()
 
-        # player, created = Player.objects.update_or_create(uuid=request.POST['uuid-input'], defaults={'name': name})
         return JsonResponse({"result": True, "name": name})
     else:
         print("error: it's not through ajax.")
@@ -227,7 +223,9 @@ def signup(request):
         if error_msg is not None:
             return JsonResponse({"result": False, "msg": error_msg})
 
-        if settings.DEBUG is True:  # todo 測試時開放同信箱註冊 username名稱自動遞增
+        # 用戶已被登入時的檢驗
+
+        if settings.DEBUG is True:
             filter_result = User.objects.filter(email=email)
             username = email + str(len(filter_result))
         else:
@@ -251,13 +249,10 @@ def signup(request):
             user = signup_create_user(username, email, password2)
             try:
                 school = School.objects.get(name=request.POST['goto-input'])
-            except School.DoesNotExist:
+            except School.DoesNotExist:  # localData.school = ''
                 school = None
             Player.objects.create(uuid=str(uuid4()), user=user, isRegistered=True, gender=gender,
                                   name=request.POST['name-input'], school=school)
-
-            #  Player.objects.update_or_create(uuid=request.POST['uuid-input'],
-            #                               defaults={'user': user, 'isRegistered': True, 'gender': gender})
 
             isSent = signup_send_mail(email)
             if isSent is False:
@@ -465,6 +460,8 @@ def start_game(request):
         self_player.status = 1
         self_player.save()
 
+        # todo 更新 school的等待人數 utils.process_player_wait
+
         # 判斷遊戲人數是否足夠
         players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))  # todo 創房者獲取資料後 其他人才離線 問題
         male_players = players.filter(gender='m')
@@ -474,7 +471,7 @@ def start_game(request):
 
         # 人數足夠 建立房間
         if len(male_players) >= maleNeeded and len(female_players) >= femaleNeeded:
-            room = Room.objects.create(game=game)
+            room = Room.objects.create(game=game, school=self_player.school)
             if self_player.gender == 'm':
                 players = list(female_players.order_by('waiting_time'))[:femaleNeeded] + \
                           [self_player] + list(male_players.order_by('waiting_time'))[:maleNeeded-1]
@@ -495,8 +492,15 @@ def start_game(request):
 
             room.player_dict = player_dict
             room.onoff_dict = onoff_dict
-            room.playerNum = femaleNeeded + maleNeeded
+            room.playerNum = femaleNeeded + maleNeeded  # 刪除 之後不使用playerNum
+
+            # room.answer 與 gameevent一同建立 而在view中建立後consumer只能提取room.answer
+            # 多出來的部分取名為noplayer0, noplayer1...
+            # answer包含GameEvent的name和content 這樣consumer才不用多存取一次
+
             room.save()
+
+            # todo 更新school的room數量
 
             return JsonResponse({"result": True, "msg": '遊戲人數齊全，等待加載...', "start": True})
         # 人數不足 等待

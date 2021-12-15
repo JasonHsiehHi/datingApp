@@ -20,6 +20,7 @@ def examine(request, uuid):
         self_user.save()
         # 需要準備計時
         # 被審問的對象要被紀錄在偵探的tag_json 直到deduce後才會全部為0
+        # utils.set_player_room, utils.process_player_wait 來改
         return JsonResponse({"result": True, "msg": '進入房間', "examinee": str(examinee.uuid)})
     else:
         print("error: it's not through ajax.", file=sys.stderr)
@@ -37,10 +38,22 @@ def deduce(request):  # 最麻煩 放到最後在寫
         # player = await utils.get_player_by_uuid(uuid)
         # await utils.set_player_fields(player, {'status': 0, 'room': None})
         # await utils.set_room_fields(room, {
-        #     'player_dict': room.player_dict, 'onoff_dict': room.onoff_dict, 'playerNum': room.playerNum})
-
+        #   'player_dict': room.player_dict, 'onoff_dict': room.onoff_dict, 'playerNum': room.playerNum})
         pass
     else:
         print("error: it's not through ajax.", file=sys.stderr)
 
 
+def report(request):  # 檢舉功能
+    if request.is_ajax and request.method == "POST":
+        # for uuid in players:
+        #    match.player_list.remove(uuid) 趕人離開match
+        #    player = await utils.get_player_by_uuid(uuid)
+        #    await utils.set_player_fields(player, {'status': 2, 'match': None})
+        #    await self.channel_layer.group_send(uuid, {
+        #        'type': 'leave_match'
+        #    })
+        # await utils.set_match_fields(match, {'player_list': match.player_list})
+        pass
+    else:
+        print("error: it's not through ajax.", file=sys.stderr)

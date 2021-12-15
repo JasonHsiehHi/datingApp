@@ -31,8 +31,9 @@ login和logout都會重新導向一次window.location.href="/chat"
 loadLocalData, loadRoleData都只會在ready時執行 其餘狀態都使用refresh進行
 但loadLoginData則在登入登出時仍會再進行
 
-receive from other chatConsumers：只能進行後端到前端的訊息傳遞而已 不做任何資料存取
-called by receive_json：才能做資料存取
+function receive from other consumer：只能進行後端到前端的訊息傳遞而已 不做任何資料存取
+function called by receive_json：大多只為準備傳給其他consumer的資料 一般不存取資料庫(改變資料庫工作交給view)
+
 
 # 手動測試流程 LARP
 

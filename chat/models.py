@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 
 class Room(models.Model):
-    ROOM_MATCH_TYPE = (
+    ROOM_MATCH_TYPE = (  # 刪掉
         ('mf', 'male->female'),
         ('mm', 'male->male'),
         ('ff', 'female->female')
@@ -12,12 +12,12 @@ class Room(models.Model):
     room_id = models.CharField(max_length=20, null=True)  # 刪掉 用預設id即可
     userNum = models.IntegerField(default=0)  # 刪掉
     matchType = models.CharField(max_length=2, choices=ROOM_MATCH_TYPE)  # 刪掉
+    playerNum = models.IntegerField(default=0)  # 可被onoff_dict取代
 
     create_date = models.DateTimeField(default=timezone.now)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
     game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
-    playerNum = models.IntegerField(default=0)
     player_dict = models.JSONField(max_length=200, null=True, default=dict)
     onoff_dict = models.JSONField(max_length=25, null=True, default=dict)
     answer = models.JSONField(max_length=30, null=True, default=dict)
@@ -28,6 +28,7 @@ class Room(models.Model):
 
 class Match(models.Model):
     match_id = models.CharField(max_length=20, null=True)  # 刪掉 用預設id即可
+
     player_list = models.JSONField(max_length=200, null=True, default=list)
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
 
@@ -47,10 +48,14 @@ class Player(models.Model):
         ('f', 'female')
     )
 
+    anonName = models.CharField(max_length=25, null=True)  # 刪掉 可用match.player_list取代
+    matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True)  # 刪掉
+    testResult = models.JSONField(max_length=30, null=True)  # 刪掉
+    score = models.FloatField(null=True)  # 刪掉
+
     uuid = models.UUIDField(primary_key=True)
     create_date = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=25, null=True)
-    anonName = models.CharField(max_length=25, null=True)  # 刪掉 可用match.player_list取代
     imgUrl_adult = models.URLField(null=True)
     status = models.IntegerField(default=0)  # 之後修改成CharField
     isBanned = models.BooleanField(default=False)
@@ -58,10 +63,6 @@ class Player(models.Model):
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     match = models.ForeignKey('Match', null=True, on_delete=models.SET_NULL, default=None)
-
-    matchType = models.CharField(max_length=2, choices=MATCH_TYPE, null=True)  # 刪掉
-    testResult = models.JSONField(max_length=30, null=True)  # 刪掉
-    score = models.FloatField(null=True)  # 刪掉
 
     user = models.OneToOneField(User, null=True, on_delete=models.SET_NULL, default=None, related_name='profile')
     isRegistered = models.BooleanField(default=False)
