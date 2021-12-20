@@ -24,8 +24,10 @@
     {% block script_file %}{% endblock %}
 </head>
 <body>
-    <div class="a-background" id = "background">
+    <div class="a-background" id="background">
+        {% block background %}
         <img src="/static/img/myBg1.jpeg" alt="background">
+        {% endblock %}
         <div class="a-mark" id='mark-before'>
             <img src='/static/img/mark/logo_acard.png' alt='mark'>
         </div>
@@ -231,10 +233,7 @@
             <button class="navbar-toggler btn a-div a-clr" id='sidebar-btn' type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
                 <i class="material-icons-outlined md-28">ads_click</i>
             </button>
-            <span class="navbar-text a-font d-inline-flex align-items-center">
-                <span class='a-matcher'>anonName</span>
-                <span class='a-self'>anonName</span>
-            </span>
+            <span class="navbar-text a-font d-inline-flex align-items-center"></span>
             <span class="navbar-text">
                 <button class="navbar-toggler btn a-div a-clr" id='leave-btn' type="button" disabled>
                     <i class="material-icons-outlined md-28">meeting_room</i>
@@ -274,7 +273,7 @@
                         <i class="material-icons-outlined md-28">account_circle</i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-btn">
-                        <li><span class="dropdown-item-text a-point py-3" id="user-info"><span class='h5'>jasonhsieh@gmail.com</span><span class='h6 d-block mt-1 mb-0'>性別:男</span></span></li>
+                        <li><span class="dropdown-item-text a-point py-3" id="user-info"><span class='h5'>example@gmail.com</span><span class='h6 d-block mt-1 mb-0'>性別:男</span></span></li>
                         <li><button class="dropdown-item py-1" type="button" id="change-pwd-btn"><i class="material-icons-outlined md-18 align-text-top">build</i> 變更密碼</button></li>
                         <li><button class="dropdown-item py-1" type="button" id="logout-btn"><i class="material-icons-outlined md-18 align-text-top">logout</i> 登出Logout</button></li>
                         <li><button class="dropdown-item a-point py-3" type="button" id="signup-btn"><i class="material-icons-outlined md-18 align-text-top">assignment_ind</i> 註冊Sign Up</button></li>
@@ -309,19 +308,16 @@
                                 <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='取個暱稱吧' id="user-name">取個暱稱吧</span>
                                 <button class="btn btn-link a-sidebar" id="name-btn" type="button">更改..</button>
                             </div>
-                            <div class='a-sub a-sidebar' id='user-role'>(偵探)</div>
+                            <div class='a-sub a-sidebar' id='user-role'></div>
                         </div>
                     </div>
 
                     <div class='a-div a-sidebar'>
                         <p class="h5">其他玩家：</p>
-                        <div class='list-group list-group-flush w-100' id='player-list'>
-                            {% block players %}{% endblock %}
-                        </div>
+                        {% block players %}
+                        <div id='player-empty'>*沒有其他玩家，你還沒進入遊戲哦。</div>
+                        {% endblock %}
                     </div>
-
-                    <div class='a-div a-sidebar' id='player-empty'>沒有其他玩家，你還沒進入遊戲哦。</div>
-
                     {% block sidebar %}{% endblock %}
 
                 </div>
@@ -337,10 +333,14 @@
         <div class="a-container a-clr">
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar" id='dialog'>
+                    <div id='show-more' class="a-chat d-none d-flex">
+                        <button id='show-more-btn'>顯示更多...</button>
+                    </div>
                     <div id='writing' class="a-chat d-none d-flex">
                         <p class="a-dialogdiv a-matcher a-clr d-inline-flex">
                             <span class="a-tri a-matcher"></span>
-                            <span  class="a-writing">正在輸入...</span> 
+                            <span class="a-writing">正在輸入...</span>
+                            <span class="d-none" id="snippet"></span>
                         </p>
                     </div>
                 </div>

@@ -4,6 +4,10 @@
 <script src="{% static 'js/game_graduate_girl.js'%}"></script>
 {% endblock %}
 
+{% block background %}
+<img src="/static/img/myBg1.jpeg" alt="game-background">
+{% endblock %}
+
 {% block modalForm %}
 <form class='d-none' id="deduce-modal-form">
     {% csrf_token %}
@@ -14,8 +18,8 @@
                 <label for="player-{{i}}-deduce-input" class="col-form-label">name (role)：</label>
             </div>
             <div class="col-auto">
-                <input type="text" class="form-control" id="player-{{i}}-deduce-input" name="player-{{i}}-deduce-input" list="gameevent-options" required>
-                <datalist id="gameevent-options"></datalist>
+                <input type="text" class="form-control" id="player-{{i}}-deduce-input" name="player-{{i}}-deduce-input" list="player-{{i}}-gameevents" required>
+                <datalist class="gameevent-options" id="player-{{i}}-gameevents"></datalist>
             </div>
         </div>
         {% endfor %}
@@ -30,6 +34,7 @@
 {% endblock %}
 
 {% block players %}
+<div class='list-group list-group-flush w-100' id='player-list'>
     {% for i in range %}
     <div class='list-group-item list-group-item-action a-div d-flex d-none' id="player-{{i}}">
         <div class='a-circle a-sidebar'></div>
@@ -42,6 +47,7 @@
         </div>
     </div>
     {% endfor %}
+</div>
 {% endblock %}
 
 {% block sidebar %}

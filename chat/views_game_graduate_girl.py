@@ -4,26 +4,23 @@ from django.contrib.auth.models import User
 from .models import Match, Player
 
 
-import sys
-
-
 def examine(request, uuid):
     if request.is_ajax and request.method == "GET":
         self_user = request.user.profile
         examinee = Player.objects.get(uuid=uuid)
-        match = Match.objects.create(room=examinee.room, player_list=[examinee.uuid, self_user.uuid])
+        match = Match.objects.create(room=self_user.room, player_list=[str(examinee.uuid), str(self_user.uuid)])
         examinee.match = match
         examinee.status = 3
         self_user.match = match
         self_user.status = 3
         examinee.save()
         self_user.save()
-        # 需要準備計時
+        # 需要準備計時 給consumer來做
         # 被審問的對象要被紀錄在偵探的tag_json 直到deduce後才會全部為0
-        # utils.set_player_room, utils.process_player_wait 來改
-        return JsonResponse({"result": True, "msg": '進入房間', "examinee": str(examinee.uuid)})
+
+        return JsonResponse({"result": True, "msg": '已建立房間 等待中...', "player_list": match.player_list})
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
 
 
 def deduce(request):  # 最麻煩 放到最後在寫
@@ -35,13 +32,32 @@ def deduce(request):  # 最麻煩 放到最後在寫
         # 若遊戲結束則全員出局 若未結束 則被猜到的人遊戲結束
 
         # deduce之後 room.onoff_dict已經被修改 已經把需要被趕走的人設為-1
-        # player = await utils.get_player_by_uuid(uuid)
+
+        # player = await utils.get_player_by_uuid(uuid) 舊版
         # await utils.set_player_fields(player, {'status': 0, 'room': None})
         # await utils.set_room_fields(room, {
         #   'player_dict': room.player_dict, 'onoff_dict': room.onoff_dict, 'playerNum': room.playerNum})
+
+        # 清空偵探的的tag_json和其他人的tag_int 表示下一輪開始
         pass
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
+
+
+def clue(request):  # 提交線索
+    if request.is_ajax and request.method == "POST":
+        pass
+    else:
+        print("error: it's not through ajax.")
+
+
+def prolog(request):
+    if request.is_ajax and request.method == "GET":
+        player = request.user.profile
+        dialogs = player.game.story
+        return JsonResponse({"result": True, "dialogs": dialogs})
+    else:
+        print("error: it's not through ajax.")
 
 
 def report(request):  # 檢舉功能
@@ -56,4 +72,7 @@ def report(request):  # 檢舉功能
         # await utils.set_match_fields(match, {'player_list': match.player_list})
         pass
     else:
-        print("error: it's not through ajax.", file=sys.stderr)
+        print("error: it's not through ajax.")
+
+
+

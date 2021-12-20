@@ -7,10 +7,11 @@ from datingApp import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
-from .models import Photo, Player, School, Room, Game, GameRole, Dialogue
+from .models import Photo, Player, School, Room, Game, GameRole, GameEvent, Dialogue
 from django.forms.models import model_to_dict
 from django.db.models import Q
 from random import randint, sample
+from collections import Counter
 
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
@@ -27,27 +28,29 @@ from django.db import connection
 
 def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
-        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name'])
-    # player_dict['waiting_time']是否需要在變成字串 若為None則轉成''
+        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'school'])
 
-    if player.school is None:
-        player_dict['school'] = ''
-    else:
-        player_dict['school'] = player.school.name
-    if player.game is None:
-        player_dict['game'] = ''
-    else:
-        player_dict['game'] = player.game.game_id
     if player.room is None:
+        player_dict['game'] = ''
         player_dict['player_dict'] = {}
         player_dict['onoff_dict'] = {}
         player_dict['tag_int'] = -1
         player_dict['tag_json'] = ''
+        player_dict['event_name'] = []
+        player_dict['event_content'] = []
     else:
+        player_dict['game'] = player.room.game.game_id
         player_dict['player_dict'] = player.room.player_dict
         player_dict['onoff_dict'] = player.room.onoff_dict
         player_dict['tag_int'] = player.tag_int
         player_dict['tag_json'] = player.tag_json
+
+        event_names = []
+        event_content = []
+        for li in player.room.answer.values():
+            event_names.append(li[0]), event_content.append(li[1])
+        player_dict['event_name'] = event_names
+        player_dict['event_content'] = event_content
 
     if player.match is None:
         player_dict['player_list'] = []
@@ -90,10 +93,12 @@ def in_game(request, game_name):
         game = Game.objects.get(game_id=game_name)
         playerNum = game.best_ratio[0] + game.best_ratio[1]
         login_dict = get_loginData(user, user.profile)
+
         if settings.DEBUG is True:
             game_name = game_name[5:] if game_name.startswith("test_") else game_name
+
         url = 'chat/chatroom_game_' + game_name + '.html'
-        return render(request, url, {'login_dict': login_dict, 'range': range(1, playerNum+1)})
+        return render(request, url, {'login_dict': login_dict, 'range': range(1, playerNum)})
     else:
         # 提醒玩家 沒登入帳號不能直接用in_game
         print("error: user isn't authenticated.")
@@ -101,21 +106,21 @@ def in_game(request, game_name):
 
 def greet(request):
     if request.is_ajax and request.method == "GET":
-        dialog, sub = [], []
+        dialogs = []
         t = int(datetime.now().strftime('%H'))
         sub_t = get_dialogue_greet_sub(t)
         dialog_t = get_dialogue_dialog('GREET', sub_t)  # 是否可合併 不需要問兩次Dialogue
-        dialog.append(dialog_t)
-        sub.append(sub_t)
+        dialogs.append(dialog_t)
+        # sub.append(sub_t) sub應該用不到
 
         school_id, roomNum = get_school_roomNum_max()  # 把學校school改成城市city
         if roomNum > settings.PLENTY_ROOM_NUM:
             dialog_sch = get_dialogue_dialog('GREET', 'sch')
             dialog_sch = dialog_sch.format(school_id)
-            dialog.append(dialog_sch)
-            sub.append('sch')
+            dialogs.append(dialog_sch)
+            # sub.append('sch') sub應該用不到
 
-        return JsonResponse({"result": True, "dialog": dialog})
+        return JsonResponse({"result": True, "dialogs": dialogs})
     else:
         print("error: it's not through ajax.")  # log查看系統
 
@@ -180,6 +185,7 @@ def post_school(request):
 
         user = request.user
         if user.is_authenticated and user.is_active:
+            user = request.user
             user.profile.school = school
             user.profile.save()
 
@@ -223,7 +229,7 @@ def signup(request):
         if error_msg is not None:
             return JsonResponse({"result": False, "msg": error_msg})
 
-        # 用戶已被登入時的檢驗
+        # todo 用戶已被登入時 問題
 
         if settings.DEBUG is True:
             filter_result = User.objects.filter(email=email)
@@ -354,19 +360,6 @@ def log_out(request):
         print("error: it's not through ajax.")
 
 
-def validate_pwd(password1, password2):
-    error_msg = None
-    if len(password1) < 8:
-        error_msg = '密碼至少8個字元！'
-    if len(password1) > 30:
-        error_msg = '密碼太長！'
-    if re.match(r'^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$', password1) is None:
-        error_msg = '至少一個數字與至少一個英文字母'
-    if password1 != password2:
-        error_msg = '確認密碼不ㄧ致！'
-    return error_msg
-
-
 def change_pwd(request):
     if request.is_ajax and request.method == 'POST':
         if not request.user.is_authenticated:
@@ -392,6 +385,19 @@ def change_pwd(request):
 
     else:
         print("error: it's not through ajax.")
+
+
+def validate_pwd(password1, password2):
+    error_msg = None
+    if len(password1) < 8:
+        error_msg = '密碼至少8個字元！'
+    if len(password1) > 30:
+        error_msg = '密碼太長！'
+    if re.match(r'^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$', password1) is None:
+        error_msg = '至少一個數字與至少一個英文字母'
+    if password1 != password2:
+        error_msg = '確認密碼不ㄧ致！'
+    return error_msg
 
 
 def reset_pwd(request):
@@ -464,6 +470,7 @@ def start_game(request):
 
         # 判斷遊戲人數是否足夠
         players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))  # todo 創房者獲取資料後 其他人才離線 問題
+        # 改為用isAdult和isHetero判斷 直到成功建立者的game作為room的game
         male_players = players.filter(gender='m')
         female_players = players.filter(gender='f')
         maleNeeded = game.best_ratio[0]
@@ -481,23 +488,29 @@ def start_game(request):
 
             roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
 
+            role_group = [role.group for role in roles]
+            role_group.extend([0, 0])  # for answer_dict['noplayer']
+            event_query = get_event_query(game, role_group)
+
             player_dict = {}
             onoff_dict = {}
+            answer_dict = {}
             for player, role in zip(players, roles):
                 player.room = room  # todo 等待期間的玩家都不能存取資料庫以避免建房者發生錯誤 用player.status禁止上傳
+                player.game = game
                 player.status = 2
+                player.waiting_time = None
                 player.save()
-                player_dict[player.uuid] = [player.name, player.gender, role.name, role.group]
-                onoff_dict[player.uuid] = 1
+
+                uuid = str(player.uuid)
+                player_dict[uuid] = [player.name, player.gender, role.name, role.group]
+                onoff_dict[uuid] = 1
+                answer_dict[uuid] = event_query[role.group].pop()
 
             room.player_dict = player_dict
             room.onoff_dict = onoff_dict
-            room.playerNum = femaleNeeded + maleNeeded  # 刪除 之後不使用playerNum
-
-            # room.answer 與 gameevent一同建立 而在view中建立後consumer只能提取room.answer
-            # 多出來的部分取名為noplayer0, noplayer1...
-            # answer包含GameEvent的name和content 這樣consumer才不用多存取一次
-
+            answer_dict.update({'noplayer0': event_query[0].pop(), 'noplayer1': event_query[0].pop()})
+            room.answer = answer_dict
             room.save()
 
             # todo 更新school的room數量
@@ -516,13 +529,33 @@ def get_game(isAdult, isHetero):
     game = games[randint(0, len(games) - 1)]
 
     if settings.DEBUG is True:
-        game = Game.objects.get(id=1)
+        game = Game.objects.get(id=2)
     return game
 
 
 def get_roles_of_game(game, gender, num=1):
     roles = GameRole.objects.filter(Q(game=game) & Q(gender=gender))
     return sample(list(roles), num)
+
+
+def get_events_of_game(game, role_group, num=1):
+    events = GameEvent.objects.filter(Q(game=game) & Q(group=role_group))
+    return sample(list(events), num)
+
+
+def get_event_query(game, group_list):  # role_group to event_query: assign event to player for room.answer
+    c = Counter(group_list)
+    events = []
+    for key in c.keys():
+        events += get_events_of_game(game, key, c[key])
+    event_query = {}
+    for event in events:
+        li = event_query.get(event.group, None)
+        if li is None:
+            event_query[event.group] = [[event.name, event.content]]
+        else:
+            event_query[event.group] = li.add([event.name, event.content])
+    return event_query
 
 
 def leave(request):
@@ -545,17 +578,13 @@ def leave_game(request):
         if request.user.is_authenticated:
             player = request.user.profile
             room = player.room
-            room.onoff_dict[player.uuid] = -1
-            room.playerNum -= 1
+            room.onoff_dict[str(player.uuid)] = -1
+            room.save()
 
             player.status = 0
-            player.room = None
             player.save()
 
-            if len(room.onoff_dict) == 0:
-                room.delete()
-            else:
-                room.save()
+            # todo 更新school的room數量
 
             return JsonResponse({"result": True})
         else:
@@ -575,16 +604,11 @@ def leave_match(request):
         if request.user.is_authenticated:
             player = request.user.profile
             match = player.match
-            match.player_list.remove(player.uuid)
+            match.player_list.remove(str(player.uuid))
+            match.save()
 
             player.status = 2
-            player.match = None
             player.save()
-
-            if len(match.player_list) == 0:
-                match.delete()
-            else:
-                match.save()
 
             return JsonResponse({"result": True})
         else:

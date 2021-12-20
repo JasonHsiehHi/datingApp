@@ -111,7 +111,7 @@
     padding: 0;
 }
 
-.a-div.a-sidebar{
+.a-sidebar.a-div{
     border-top: 1px solid #3a3f48;
     padding: 20px 10px 20px 10px;
     overflow: hidden;
@@ -300,6 +300,11 @@ img.a-img{
 }
 
 .a-matcher .a-point{
+    font-weight: bold;
+    color: darkorange;  /* DarkOrange*/
+}
+
+.navbar-text.a-font .a-point{
     font-weight: bold;
     color: darkorange;  /* DarkOrange*/
 }

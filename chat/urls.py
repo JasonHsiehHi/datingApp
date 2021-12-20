@@ -22,8 +22,7 @@ urlpatterns = [
 
 # game_graduate_girl
 urlpatterns += [
-    path('start_game/test_graduate_girl/deduce', views_game_graduate_girl.deduce, name='test_deduce'),
-    path('start_game/test_graduate_girl/<str:uuid>', views_game_graduate_girl.examine, name='test_examine'),
     path('start_game/graduate_girl/deduce', views_game_graduate_girl.deduce, name='deduce'),
-    path('start_game/graduate_girl/<str:uuid>', views_game_graduate_girl.examine, name='examine')
+    path('start_game/graduate_girl/<str:uuid>', views_game_graduate_girl.examine, name='examine'),
+    path('start_game/graduate_girl/prolog', views_game_graduate_girl.prolog, name='prolog')
 ]

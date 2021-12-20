@@ -1971,7 +1971,7 @@ if(Object.keys(obj).length == 0)  //判斷空物件
 ## js的object和array:
 
 Object.keys(obj)能將object的keys轉成array 
-同理也有Object.values()和Object.entries() 都是將object的相對資料轉成陣列
+同理也有Object.values()和Object.entries() 都是將object的相對資料轉成陣列array 
 
 Object.assign({}, obj) 和 Object.assign([], arr) 用於做複合資料的複製(composite): object和array
 由於object或array的賦值為傳址(pass by reference) 會導致變動其中一個變數而影響到另一個 
@@ -1985,15 +1985,23 @@ Object.assign({}, obj) 和 Object.assign([], arr) 用於做複合資料的複製
 
 slice(start [, end]) 和 substr(start [, length])
 兩者都用於切割字串 差別在於第二參數為擷取到該位置之前 與 擷取總長度
+array.slice()也可用於拷貝array 因為會回傳一個新array
 
 theString.split(char) 則用chat字元將字串分開
-theArray.join(char) 則用chat字元將已被分開的字串合併
+theArray.join(char) 則用chat字元將已被分開的字串合併 
+常用於將array的內部元素已字串形式表示 如此就不需要用for-loop
+
+array3 = array1.concat(array2) 用於向後合併不同的array 時常會跟join混淆
+好處是自身不會發生改變 故也必須賦值到一個新array
 
 array.splice(start [, deleteCount[, item1]])
 則用於在原字串或陣列中間位置刪除元素或插入元素 
 
-array.remove(value)
-則用於刪除array中的特定值 而非刪除特定index
+array.pop() 和 array.shift() 刪除最後一項與刪除第一項
+
+array2 = array1.map(x => x * 2); 將原先內部元素執行函式後的回傳結果轉成新陣列
+const even = (element) => element % 2 === 0; array.some(even); 將判別式函式當參數 只要內部元素有一個符合即回傳true
+array.every(even); some()為至少一個符合 every()為全部皆要符合
 
 
 
@@ -4996,6 +5004,7 @@ message = dict_data['message']
 此時若沒有key值會發生問題 
 故可改用dict_data.get('message',None)取值 不存在key值時會自動回傳None
 同理 針對物件亦有getattr(object,'message', None)取值 當不存在attr時回傳None
+python中當屬性可能為undefined時 必須用getattr(), setattr(), hasattr()取代直接存取
 
 tuple()不能只存放單一元素 此時可以用(elmt,)來表示
 

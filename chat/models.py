@@ -20,7 +20,7 @@ class Room(models.Model):
 
     player_dict = models.JSONField(max_length=200, null=True, default=dict)
     onoff_dict = models.JSONField(max_length=25, null=True, default=dict)
-    answer = models.JSONField(max_length=30, null=True, default=dict)
+    answer = models.JSONField(null=True, default=dict)
 
     def __str__(self):
         return "room-%s" % self.id
@@ -29,8 +29,8 @@ class Room(models.Model):
 class Match(models.Model):
     match_id = models.CharField(max_length=20, null=True)  # 刪掉 用預設id即可
 
-    player_list = models.JSONField(max_length=200, null=True, default=list)
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
+    player_list = models.JSONField(max_length=25, null=True, default=list)
 
     def __str__(self):
         return "match-%s" % self.id
@@ -66,13 +66,13 @@ class Player(models.Model):
 
     user = models.OneToOneField(User, null=True, on_delete=models.SET_NULL, default=None, related_name='profile')
     isRegistered = models.BooleanField(default=False)
-
     gender = models.CharField(max_length=1, choices=GENDER_TYPE, null=True)
+
     isAdult = models.BooleanField(null=True, default=True)
     isHetero = models.BooleanField(null=True, default=True)
     game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
-    waiting_time = models.DateTimeField(null=True)
+    waiting_time = models.DateTimeField(null=True)  # 名稱改為timer 因為match也會用到
     isPrepared = models.BooleanField(default=False)
     isOn = models.BooleanField(default=False)
 
@@ -90,6 +90,7 @@ class Game(models.Model):
     isHetero = models.BooleanField()
     best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要 異性為[5,1] 同性為[5:0]
     threshold_ratio = models.JSONField(max_length=10)  # 有分最合適比例與及格配對比例兩種 差別在於等待時間
+    story = models.JSONField(null=True)
 
     def __str__(self):
         return self.game_id
