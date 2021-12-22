@@ -198,7 +198,7 @@ var WSManager = function(){
             }))
         }
     }
-    // 在後端仍需檢驗資料的正確性
+    // 之後刪掉
     function csg(){
         chatSocket.send(JSON.stringify({
             'call':'start_game'
@@ -230,10 +230,16 @@ var WSManager = function(){
         }))
     }
 
-    function cs(call){ // 將call的方法都用callSendWs取代
-        chatSocket.send(JSON.stringify({  
-            'call':call
-        }))
+    // 在後端仍需檢驗資料的正確性
+    // 可以多傳players:uuid以方便收尋 如此consumers.py不用在先找room 可以直接找player
+    function cs(call, ...KwJSON){ // 將call的方法都用callSendWs取代 
+        var json = { 
+            'call':call 
+        };
+        for(let li of KwJSON){
+            json[li[0]] = li[1];
+        }
+        chatSocket.send(JSON.stringify(json))
     }
 
     return{
@@ -414,6 +420,10 @@ function refreshProfile(){  // handle text of navbar and sidebar
     $('#user-name').text(localData.name).attr('data-bs-original-title', localData.name);   
 }
 
+function setNavTitle(msg){
+    $('.navbar-text.a-font').html(msg);
+}
+
 function refreshStatus(status){  // handle all UI work about status
     switch (status){  // status改用字元取代整數 當需要擴充插入先狀態時比較方便
         case 0:
@@ -421,7 +431,7 @@ function refreshStatus(status){  // handle all UI work about status
             enabledElmtCss('#normal-radio'), enabledElmtCss('#adult-radio'), enabledElmtCss('#male-radio'), enabledElmtCss('#female-radio');
             enabledElmtCss('#start-btn'), $('#start-btn').text('開始遊戲');
             disabledElmtCss('#leave-btn');
-            showNavTitle('A-LARP匿名劇本殺  ('+localData.school+')');
+            setNavTitle('A-LARP匿名劇本殺  ('+localData.school+')');
 
             (localData.gameLogs.length>0) && theUI.clearChatLogs('gameLogs');
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
@@ -432,7 +442,7 @@ function refreshStatus(status){  // handle all UI work about status
             disabledElmtCss('#normal-radio'), disabledElmtCss('#adult-radio'), disabledElmtCss('#male-radio'), disabledElmtCss('#female-radio');
             disabledElmtCss('#start-btn'), $('#start-btn').text('等待中...');
             enabledElmtCss('#leave-btn');
-            showNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>'); // theUI.showClock變為NaN:NaN (safari)
+            setNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>'); // theUI.showClock變為NaN:NaN (safari)
             
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
             theUI.showSys('等待時間: <span class="a-clock a-point"></span>'), theUI.showClock();
@@ -462,8 +472,6 @@ function refreshGameStatus(){  // will be overloaded by game_{gamename}.js
 function refreshGameSingle(){  // will be overloaded by game_{gamename}.js
     console.log("will be overloaded by game_{gamename}.js");
 }
-
-
 
 function bindMsgSend() {
     $("#send-text").on('keypress',function(a){
@@ -500,17 +508,6 @@ function bindMsgSend() {
     })
 }
 
-function showNavTitle(msg){
-    $('.navbar-text.a-font').html(msg);
-}
-
-function showNoticeModal(msg){
-    $("#notice-modal-form").removeClass('d-none');
-    $('#modal .modal-title').text('通知');
-    $('#notice-modal-form .modal-body p').text(msg);
-    $('#modal').modal('show');
-}
-
 function bindModalHide(){
     $('#modal').on('hidden.bs.modal', function(e) {
         $('#modal').find('form').each(function(a){
@@ -519,6 +516,18 @@ function bindModalHide(){
         $('#modal .a-error').text('');
         (!0 === term.next_modal) && (showNoticeModal(term.next_msg), term.next_modal=!1);
     });
+}
+
+function setNextNotice(msg){
+    term.next_modal = !0, term.next_msg = msg;
+    // extended feature: msg_list can set multiple notice modal
+}
+
+function showNoticeModal(msg){
+    $("#notice-modal-form").removeClass('d-none');
+    $('#modal .modal-title').text('通知');
+    $('#notice-modal-form .modal-body p').text(msg);
+    $('#modal').modal('show');
 }
 
 function loginMethodSet(){
@@ -553,7 +562,8 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {  
                 if (!0 === data['result']){
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    setNextNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
+                    $('#modal').modal('hide');
                 }else{
                     $('#signup-modal-form p.a-error').text(data['msg']);
                 }
@@ -583,7 +593,8 @@ function loginMethodSet(){
                     }
                     refreshProfile(), loginData.isLogin = !0, loadLoginData(); // refreshProfile()刪除 因為已合併到loadLoginData
 
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    setNextNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
+                    $('#modal').modal('hide');
                     $('#modal').on('hide.bs.modal', function(e) {
                         (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
@@ -606,7 +617,8 @@ function loginMethodSet(){
             success: function(data) {
                 if (!0 === data['result']){
                     loginData.isLogin = !1, loadLoginData();
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    setNextNotice(data['msg']);
+                    $('#modal').modal('hide');
                     $('#modal').on('hide.bs.modal', function(e) {
                         (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
@@ -630,7 +642,8 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    setNextNotice(data['msg']);
+                    $('#modal').modal('hide');
                     $('#modal').on('hide.bs.modal', function(e) {
                         (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
@@ -654,7 +667,8 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){  // todo 寄信需要提醒用戶等一下
-                    term.next_modal = !0, term.next_msg = data['msg'], $('#modal').modal('hide');
+                    setNextNotice(data['msg']);
+                    $('#modal').modal('hide');
                 }else{
                     $('#reset-pwd-modal-form p.a-error').text(data['msg'])
                 }
@@ -735,7 +749,7 @@ function profileMethodSet(){
                     var school = localData.school;
                     theUI.clearChatLogs();
                     theUI.gotoSchoolAsync(function(){
-                        var li = data['dialog'];
+                        var li = data['dialogs'];
                         li.splice(0,0,['已抵達<span class="a-point">'+school + schoolSet[school] +'</span>了😎',!1]); // insert msg into data.dialog
                         theUI.showMsgsAsync(li);
                     });
@@ -751,9 +765,7 @@ function profileMethodSet(){
     for (let school of schoolImgSet){
         $('#school-options').append("<option value="+school+">");
     }
-
 }
-
 
 function settingsMethod(){
     $("#settings-form").on('submit',function(e){   
@@ -770,24 +782,18 @@ function leaveMethod(){
     $("#leave-btn").on('click',function(a){
         $("#leave-modal-form").removeClass('d-none');
         $('#modal .modal-title').text('離開')
-        $('#modal').modal('show');
-    })
-
-    $("#leave-btn").on('click',function(a){
         if (loginData.status === 1)
             $('#leave-modal-form .modal-body p:eq(0)').text('確定停止等待嗎？');
         else if (loginData.status === 2)
             $('#leave-modal-form .modal-body p:eq(0)').text('確定要離開遊戲嗎？');
         else if (loginData.status === 3)
             $('#leave-modal-form .modal-body p:eq(0)').text('確定要離開房間嗎？');
+        $('#modal').modal('show');
     })
 
     $("#leave-modal-form").on('submit',function(e){  
         e.preventDefault();
-        if (loginData.status === 0)
-            return false
-
-        else if (loginData.status === 1){
+        if (loginData.status === 1){
             $.ajax({
                 type: 'GET',
                 url: '/chat/leave',
@@ -812,7 +818,7 @@ function leaveMethod(){
                 dataType: "json",
                 success:function(data) {
                     if (!0 === data['result']){
-                        theWS.callLeaveGame();
+                        theWS.callSendWs('leave_game');
                     }else{
                         $('#leave-modal-form p.a-error').text(data['msg']);
                     }
@@ -828,8 +834,7 @@ function leaveMethod(){
                 dataType: "json",
                 success:function(data) {
                     if (!0 === data['result']){
-
-                        theWS.callLeaveMatch();
+                        theWS.callSendWs('leave_match');
                     }else{
                         $('#leave-modal-form p.a-error').text(data['msg']);
                     }
@@ -863,7 +868,7 @@ function startMethod(){
             success: function(data) {
                 if (!0 === data['result']){
                     loginData.status = 1, refreshStatus(loginData.status);
-                    (!0 === data['start']) && theWS.callStartGame();
+                    (!0 === data['start']) && theWS.callSendWs('start_game');
                     $('#sidebar').offcanvas('hide');
                 }else{
                     showNoticeModal(data['msg']);

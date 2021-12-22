@@ -10,7 +10,7 @@ from django.core.cache import cache
 from .models import Photo, Player, School, Room, Game, GameRole, GameEvent, Dialogue
 from django.forms.models import model_to_dict
 from django.db.models import Q
-from random import randint, sample
+from random import randint, sample, shuffle
 from collections import Counter
 
 from django.core.exceptions import ValidationError
@@ -49,6 +49,8 @@ def get_loginData(user, player):
         event_content = []
         for li in player.room.answer.values():
             event_names.append(li[0]), event_content.append(li[1])
+        shuffle(event_names), shuffle(event_content)
+
         player_dict['event_name'] = event_names
         player_dict['event_content'] = event_content
 
@@ -189,8 +191,8 @@ def post_school(request):
             user.profile.school = school
             user.profile.save()
 
-        dialog = []  # todo dialog GOTO 動態資訊
-        return JsonResponse({"result": True, "school": school.name, "dialog": dialog})
+        dialogs = []  # todo dialog 動態資訊
+        return JsonResponse({"result": True, "school": school.name, "dialogs": dialogs})
     else:
         print("error: it's not through ajax.")
 
@@ -515,10 +517,10 @@ def start_game(request):
 
             # todo 更新school的room數量
 
-            return JsonResponse({"result": True, "msg": '遊戲人數齊全，等待加載...', "start": True})
+            return JsonResponse({"result": True, "start": True, "msg": '遊戲人數齊全，等待加載...'})
         # 人數不足 等待
         else:
-            return JsonResponse({"result": True, "msg": '請等待其他玩家進入遊戲', "start": False})
+            return JsonResponse({"result": True, "start": False, "msg": '請等待其他玩家進入遊戲'})
 
     else:
         print("error: it's not through ajax.")
@@ -578,6 +580,7 @@ def leave_game(request):
         if request.user.is_authenticated:
             player = request.user.profile
             room = player.room
+
             room.onoff_dict[str(player.uuid)] = -1
             room.save()
 

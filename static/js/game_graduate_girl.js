@@ -19,15 +19,23 @@ var gameCheckGate = function(){
         return dialog
     }
 
+    function clu(){  // 刪掉 直接在onmessage時顯示並存入gameLogs即可
+        // 用於呈現當前其他人提供給偵探的線索 都是匿名
+        // 會由偵探的tag.json['clue']中要資料 且每一筆都會分開呈現 
+        // 之後會存在localStorage.gameLogs中
+        var dialog;
+    }
+
     function eve(){
         // 同時存入sidebar中
         // 想intro和tutor一樣 接在greet之後 不需要決定由誰來講 dialog[0], dialog[1]
+        // 由loginData.event_content取用
         var dialog;
     }
 
     function rol(){
         // 只有你的角色可以看到的資料 你是誰? 做了什麼? 需要做什麼?
-        // 針對不同角色(group)的介紹
+        // 針對不同角色(group)的介紹：提供線索與調查 / 審問與推理
         var dialog;
     }
 
@@ -53,6 +61,7 @@ var gameCheckGate = function(){
     return {
         player:pla,
         matcher:mat,
+        clue:clu,
         event:eve,
         role:rol,
         prolog:prl
@@ -61,17 +70,18 @@ var gameCheckGate = function(){
 
 function deduceMethod(){
     $("#start-btn").on('click',function(e){
-        if (loginData.status !== 2)
+        if (loginData.status !== 2)  // it's overlayed #start-modal-form
             return false
         $("#deduce-modal-form").removeClass('d-none');
-        $('#modal .modal-title').text('推理環節')
+        $('#modal .modal-title').text('推理環節');
         $('#modal').modal('show');
     })
 
     $("#deduce-modal-form").on('submit',function(e){
         e.preventDefault();
-        
         var formArray = $(this).serializeArray();
+        for (let i=0;i<position.length;i++)
+            formArray[i]['name'] = $('#player-'+(i+1).toString()).data('uuid');
         $.ajax({
             type: 'POST',
             url: '/chat/start_game/graduate_girl/deduce',
@@ -87,7 +97,10 @@ function deduceMethod(){
                     // 將loginData.onoff_dict更新到最新 之後用refreshPlayers
                     // theWS.callMakeOut() 把人趕走
                     // 最後要做theWS.callInform() 遊戲結束！ 或 嫌疑人出局... 通知其他玩家結果
-                    refreshPlayers();
+
+                    // 會更新tag_json和tag_int 因為涉及所有人 故最後要做結果通知
+                    // 最簡單的方法就是每一輪結束後 多要進行網頁重整 可以寫在theWS.callMakeOut()之中 無論有沒有成功趕人都要做
+
                     refreshStatus(loginData.status), refreshGameStatus(1, loginData.status);
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
@@ -107,7 +120,7 @@ function deduceMethod(){
     }
 
     setOptions();
-    
+
     for (let i=1; i<loginData.onoff_dict.length; i++){
         $('#player-'+i.toString()+'-deduce-input').on('change',function(a){
             seletedEvent[$(this).attr('name')] = $(this).val();
@@ -118,22 +131,19 @@ function deduceMethod(){
                 $('.gameevent-options').not(this).append("<option value="+name+">");
         })
     }
-
 }
 
 function examineMethod(css_id, player_uuid){
     $(css_id).on('click',function(e){
-        if (loginData.status !== 2)
-            return false
         $.ajax({
             type: 'GET',
-            url: '/chat/start_game/graduate_girl/' + player_uuid,
+            url: '/chat/start_game/graduate_girl/examine/' + player_uuid,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
                     // 偵探 tag_json要做紀錄
-                    theWS.callEnterMatch();
-                    showNoticeModal(data['msg']), theUI.showSys('等待對方回應...');
+                    theWS.callSendWs('enter_match');
+                    showNoticeModal('已建立房間 等待中...'), theUI.showSys('等待對方回應...');
                 }else{
                     showNoticeModal(data['msg']);
                     // 對方無法拒絕 但要考慮剛好離線問題
@@ -145,8 +155,56 @@ function examineMethod(css_id, player_uuid){
     })
 }
 
-function clueMethod(){
+function clueMethod(css_id, player_uuid){
+    $(css_id).on('click',function(a){
+        $("#clue-modal-form").removeClass('d-none');
+        $('#modal .modal-title').text('提供線索');
+        $('#modal').modal('show');
+    })
+    $("#clue-modal-form").on('submit',function(e){
+        e.preventDefault();
+        var formArray = $(this).serializeArray();
+        $.ajax({
+            type: 'POST',
+            url: '/chat/start_game/graduate_girl/clue'+ player_uuid,
+            data: formArray,
+            dataType: "json",
+            success: function(data) {
+                // 更新 tag_int
+                // theWS.callSendWs 通知偵探
+                // 最後顯示在gameLogs中 因為每次都會有多個人提供線索 怕sidebar太凌亂
+            },
+            error: function(data) { $('#clue-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#clue-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+}
 
+function inquireMethod(css_id, player_uuid){
+    $(css_id).on('click',function(a){
+        $("#inquire-modal-form").removeClass('d-none');
+        $('#modal .modal-title').text('調查');
+        $('#inquire-modal-form .modal-body p:eq(0)').text('是否確定調查'+ loginData.player_dict[player_uuid][0]+'('+loginData.player_dict[player_uuid][2]+')?');
+        $('#modal').modal('show');
+    })
+    $("#inquire-modal-form").on('submit',function(e){
+        e.preventDefault();
+        $.ajax({
+            type: 'GET',
+            url: '/chat/start_game/graduate_girl/inquire/' + player_uuid,
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){
+                    // 更新 tag_int
+                    // 存入自己的sidebar
+                }else{
+                    $('#inquire-modal-form p.a-error').text(data['msg']);
+                }
+            },
+            error: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
 }
 
 function loadRoleData(){
@@ -168,7 +226,12 @@ function loadRoleData(){
             $(css_id+'-deduce').removeClass('d-none');
             $(css_id+'-deduce').find('label').text(name+' '+sub);
         }else{  // self[3] === 0
-            (group === 0) && $(css_id+'-btn').addClass('d-none');
+            if(group === 1){
+                $(css_id+'-btn').text('線索')
+            }else{
+                $(css_id+'-btn').text('調查'), inquireMethod(css_id+'-btn', uuid);
+                // tag_int 0 表示都沒有 1為已調查 2為已提供線索
+            }
         }
         i++;
     }
@@ -203,7 +266,7 @@ function refreshGameStatus(self_group, status){
         case 2:
             for (let uuid in position)
                 (1 === loginData.onoff_dict[uuid]) && enabledElmtCss(position[uuid]+'-btn');
-            showNavTitle('LARP劇本：<span class="a-point">'+ GAMETITLE +'</span>');
+            setNavTitle('LARP劇本：<span class="a-point">'+ GAMETITLE +'</span>');
 
             (localData.chatLogs.length > 0) && theUI.clearChatLogs('chatLogs');
             if (localData.gameLogs.length === 0){
@@ -220,7 +283,7 @@ function refreshGameStatus(self_group, status){
         case 3:
             for (let uuid in position)
                 (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
-            showNavTitle('審問中... 剩餘時間：<span class="a-point a-clock"></span>');
+            setNavTitle('審問中... 剩餘時間：<span class="a-point a-clock"></span>');
 
             if (localData.chatLogs.length !== 0){
                 var isMore = theUI.loadChatLogs('chatLogs');  

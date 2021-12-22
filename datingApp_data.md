@@ -11,6 +11,7 @@
 進入遊戲後可變更background 增加由原顏色到淺色的css動畫
 chatlog上線時會清除之前的內容 但會有'聊天紀錄更多...'的選項
 chatlog分為遊戲訊息與聊天訊息兩種 依據loginData.status來分即可
+disenabled button改回灰色 enabled button改回原本顏色
 
 最後再加上其他人的互動鍵 '提供線索'
 將school改為city 且school不用刪掉

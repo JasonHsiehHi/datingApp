@@ -1974,6 +1974,7 @@ Object.keys(obj)能將object的keys轉成array
 同理也有Object.values()和Object.entries() 都是將object的相對資料轉成陣列array 
 
 Object.assign({}, obj) 和 Object.assign([], arr) 用於做複合資料的複製(composite): object和array
+
 由於object或array的賦值為傳址(pass by reference) 會導致變動其中一個變數而影響到另一個 
 等同：{...obj} 和 [...arr]
 
@@ -2002,6 +2003,15 @@ array.pop() 和 array.shift() 刪除最後一項與刪除第一項
 array2 = array1.map(x => x * 2); 將原先內部元素執行函式後的回傳結果轉成新陣列
 const even = (element) => element % 2 === 0; array.some(even); 將判別式函式當參數 只要內部元素有一個符合即回傳true
 array.every(even); some()為至少一個符合 every()為全部皆要符合
+
+
+## python 常用dict與list方法:
+python - 刪除list.pop(index), 新增list.append(), 合併list.extend()
+python - 刪除dict.pop(key)/ del dict[key], 新增dict[key] = value, 合併dict.update()
+
+## javascript 常用object與array方法:
+javascript - 刪除array.pop()/array.shift()/array.slice(), 新增array.push(value), 合併array1.concat(array2)
+javascript - 刪除delete object[key], 新增object[key] = value, 合併object3 = Object.assign({}, o1, o2)
 
 
 
@@ -5031,6 +5041,10 @@ y = [1,2,3,4,5,6]
 y_list = ['assss','dvv']
 [print(i) for y in y_list for i in y]  # output: a s s s s d v v
 亦可用for迴圈完成巢狀結構 (有點不合語法 其原因為for y in y_list：必須要有明確的變數 故y_list會先放在前面)
+
+a = [51,27,13,56]
+a_dict ={i:x for i,x in enumerate(a)} # 同理也可以用在dict中
+enumerate(list) 會直接回傳tuples(index, a[index])的格式 對於list非常方便
 
 x = 3
 (lambda k: k+3)(x)  # output: 6

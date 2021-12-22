@@ -23,7 +23,7 @@
             </div>
         </div>
         {% endfor %}
-        <p class='border border-3 border-warning p-1'>當猜出嫌疑人昨晚做的事時，則該名嫌疑人出局。 <br>而當猜出與偵探發生關係的嫌疑人時，則結束遊戲。</p>
+        <p class='border border-3 border-warning p-1'>* 當猜出嫌疑人昨晚做的事時，則該名嫌疑人出局。 <br>* 而當猜出與偵探發生關係的嫌疑人時，則結束遊戲。</p>
         <p class='text-danger p-1 a-error'></p>
     </div>
     <div class="modal-footer">
@@ -31,6 +31,34 @@
         <button class="btn btn-warning" type="submit">確定</button>
     </div>
 </form>
+
+<form class='d-none' id="clue-modal-form">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="clue-input" class="form-label">向偵探提供線索:</label>
+            <input type="text" class="form-control" id="clue-input" name="clue-input" required>
+        </div>
+        <p class='border border-3 border-warning p-1'>* 每一輪只能向偵探提供一次線索</p>
+        <p class='text-danger p-1 a-error'></p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-warning" type="submit">確定</button>
+    </div>
+</form>
+
+<form class='d-none' id="inquire-modal-form">
+    <div class="modal-body">
+        <div class="mb-3"><p>是否確定調查{}？</p></div>
+        <p class='text-danger p-1 a-error'>* 每一輪只能調查一位嫌疑人</p>
+    </div>
+    <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-warning" type="submit">確定</button>
+    </div>
+</form>
+
 {% endblock %}
 
 {% block players %}

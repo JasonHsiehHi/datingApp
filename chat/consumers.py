@@ -107,6 +107,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.call_leave_match()
         elif call == 'make_leave':
             await self.call_make_leave()
+        elif call == 'see_message':
+            await self.call_see_message()
         else:
             print(self.uuid + ' insert a wrong call: ' + call)
 
@@ -321,6 +323,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'msg': message,
             'from': self.uuid
         })
+
+    async def call_see_message(self):
+        # 會看tag_json['message']來找資料 只要資料不為空就會傳訊 並pop()掉所有資料 故reciver會接到list
+        # 並規定前端都要存在gameLogs
+        pass
 
     async def timer(self, duration_min, call, **kwargs):
         time.sleep(duration_min * 60)
