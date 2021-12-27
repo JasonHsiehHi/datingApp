@@ -108,7 +108,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         elif call == 'make_leave':
             await self.call_make_leave()
         elif call == 'see_message':
-            await self.call_see_message()
+            await self.call_see_message(content['player'])
         else:
             print(self.uuid + ' insert a wrong call: ' + call)
 
@@ -245,15 +245,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         })
     '''
 
-    async def call_make_out(self):
+    async def call_make_out(self):  # 因為還是必須檢驗 故傳參數意義不大
         self.player_data = await utils.refresh_player(self.player_data)
         self.room, game, room_players = await utils.get_room_players(self.player_data)
-
-        for uuid, i in self.room.onoff_dict.items():
-            if i == -1:  # deduce之後執行 room.onoff_dict已被修改 已把需要趕走的人設為-1
-                await self.channel_layer.group_send(uuid, {
-                    'type': 'call_leave_game'
-                })
+        onoff_dict = dict(self.room.onoff_dict)
+        if all(v == -1 for v in onoff_dict.values()) is True:  # game over
+            await self.channel_layer.group_send('room-'+str(self.room.id), {
+                'type': 'game_over'
+            })
+        else:  # make someone out
+            await self.channel_layer.group_send('room-'+str(self.room.id), {
+                'type': 'out_or_in',
+                'onoff': onoff_dict
+            })
 
     async def call_enter_match(self):
         self.player_data = await utils.refresh_player(self.player_data)
@@ -315,19 +319,26 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # 在Match model中加上leaver_list 標記需要離開的人
         pass
 
-    async def call_inform(self, to_uuid, message):
+    async def call_inform(self, group_name, message):
         # 不發生player資料改變 只做資料傳遞
         # 不能由前端發出 只能在consumer中調用 避免用戶直接透過此方法傳訊
-        await self.channel_layer.group_send(to_uuid, {
+        await self.channel_layer.group_send(group_name, {
             'type': 'inform',
             'msg': message,
             'from': self.uuid
         })
 
-    async def call_see_message(self):
-        # 會看tag_json['message']來找資料 只要資料不為空就會傳訊 並pop()掉所有資料 故reciver會接到list
-        # 並規定前端都要存在gameLogs
-        pass
+    async def call_see_message(self, to_uuid):
+        await self.channel_layer.group_send(to_uuid, {
+            'type': 'see_message',
+            'from': self.uuid,
+            'toMe': False
+        })
+
+        await self.see_message({
+            'from': self.uuid,
+            'toMe': True
+        })
 
     async def timer(self, duration_min, call, **kwargs):
         time.sleep(duration_min * 60)
@@ -350,7 +361,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.uuid == event['from']:
             await self.send_json({
                 "type": 'START',
-                "msg": '遊戲開始！',
                 "game": self.game_id,
                 "player_dict": self.room.player_dict,
                 "onoff_dict": self.room.onoff_dict
@@ -364,7 +374,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             await self.send_json({
                 "type": 'START',
-                "msg": '遊戲開始！',  # 沒有使用後端資料的msg 應交由前端來做
                 "game": event['game'],
                 "player_dict": event['player_dict'],
                 "onoff_dict": event['onoff_dict']})
@@ -394,7 +403,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             await self.send_json({
                 "type": 'OUT',
-                "msg": ' 已離開遊戲...',
                 'sender': event['from']
             })
 
@@ -413,7 +421,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.uuid == event['from']:
             await self.send_json({
                 "type": 'ENTER',
-                "msg": ' 進入房間',
                 "player_list": event['player_list']
             })
 
@@ -436,7 +443,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             await self.send_json({
                 "type": 'ENTER',
-                "msg": ' 進入房間',
                 "player_list": event['player_list'],
                 'sender': event['from']
             })
@@ -457,14 +463,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def leave_match(self, event):
         if self.uuid == event['from']:
             await self.send_json({
-                "type": 'LEAVEDOWN',
-                "msg": ' 你已離開房間...'
+                "type": 'LEAVEDOWN'
             })
         else:
             # await self.call_leave_match_down(event['from'])
             await self.send_json({
                 "type": 'LEAVE',
-                "msg": ' 已離開房間...',
                 'sender': event['from'],
                 "player_list": event['player_list']
             })
@@ -487,7 +491,56 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "type": 'INFORM',
                 "msg": event['msg']
             })
+        else:
+            await self.send_json({
+                "type": 'INFORM',
+                "msg": '通知成功'
+            })
 
+    async def see_message(self, event):
+        if self.uuid == event['from']:
+            if event['toMe'] is True:
+                await self.send_json({
+                    "type": 'MESSAGE',
+                    "toMe": True
+                })
+        else:
+            self.player_data = await utils.refresh_player(self.player_data)
+            msg_li = self.player_data.tag_json['message']
+            await self.send_json({
+                "type": 'MESSAGE',
+                "toMe": False,
+                "msgs": msg_li
+            })
+            self.player_data.tag_json['message'] = []
+            await utils.set_player_fields(self.player_data, {'tag_json': self.player_data.tag_json})
+
+    async def game_over(self, event):
+        await self.channel_layer.group_discard(
+            'room-'+str(self.room.id),
+            self.channel_name
+        )
+        await self.send_json({
+            "type": 'OVER',
+            "isOver": True
+        })
+
+    async def out_or_in(self, event):
+        onoff_dict = event['onoff']
+        if onoff_dict[self.uuid] == -1:
+            await self.channel_layer.group_discard(
+                'room-' + str(self.room.id),
+                self.channel_name
+            )
+            await self.send_json({
+                "type": 'OVER',
+                "isOver": False
+            })
+
+        elif onoff_dict[self.uuid] == 1:
+            await self.send_json({
+                "type": 'ALIVE'
+            })
 
 
 

@@ -21,7 +21,7 @@ def examine(request, uuid):
         self_player.tag_json[uuid] = 1  # 被審問的對象要被紀錄在偵探的tag_json 直到deduce後才會全部為0
         self_player.save()
 
-        # 需要準備計時 給consumer來做
+        # todo 需要準備計時 給consumer來做
 
         return JsonResponse({"result": True, "player_list": match.player_list})
     else:
@@ -30,27 +30,41 @@ def examine(request, uuid):
 
 def deduce(request):
     if request.is_ajax and request.method == "POST":
-        deduce_dict = request.POST
+        deduce_dict = request.POST.dict()
+        deduce_dict.pop('csrfmiddlewaretoken')
         self_player = request.user.profile
+        if len(self_player.tag_json) == 0:
+            pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
+
         room = self_player.room
         # format of room.answer: {player_uuid: [gameevent_name, gameevent_content], ...}
         answer_dict = {uuid: li[0] for uuid, li in dict(room.answer).items()}
-        players = Player.objects.fliter(room=room)
+        players = Player.objects.filter(room=room)
         out_list = []
         gameover = False
 
         for uuid, name in deduce_dict.items():
             self_player.tag_json[uuid] = 0
+
             if name == answer_dict[uuid]:
                 out_list.append(uuid)
-                room.onoff_dict[uuid] = -1  # out_player的status=0 room=None還未設定
+                room.onoff_dict[uuid] = -1
+
+                player = players.get(uuid=uuid)  # make player out of game
+                player.status = 0
+                player.room = None
+                player.tag_int = None
+                player.save()
+
                 if name == '昨晚與偵探發生關係':
                     gameover = True
                     for key in dict(room.onoff_dict):
-                        room.onoff_dict[key] = -1  # out_player的status=0 room=None還未設定
+                        room.onoff_dict[key] = -1
+                        players.update(status=0, room=None, tag_int=None, tag_json=None)  # everyone are out
+                        out_list = deduce_dict.keys()
                     break
             else:
-                player = players.get(uuid=uuid)
+                player = players.get(uuid=uuid)  # make player into next round
                 player.tag_int = 0
                 player.save()
 
@@ -69,7 +83,7 @@ def clue(request, uuid):
         if self_player.tag_int != 1:
             pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
         detective = Player.objects.get(uuid=uuid)
-        detective.tag_json['message'] = message
+        detective.tag_json['message'].append(message)
         detective.save()
 
         self_player.tag_int = 2
@@ -87,7 +101,7 @@ def inquire(request, uuid):
             pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
 
         room = self_player.room
-        names = [li[0] for key, li in room.answer if key != uuid]
+        names = [li[0] for key, li in dict(room.answer).items() if key != uuid and li[1] != ' ']
         name = names[randint(0, len(names) - 1)]
 
         self_player.tag_int = 1
@@ -101,9 +115,11 @@ def inquire(request, uuid):
 def prolog(request):
     if request.is_ajax and request.method == "GET":
         self_player = request.user.profile
+        uuid = str(self_player.uuid)
         room = self_player.room
-        self_group = room.player_dict[str(self_player.uuid)][3]
-
+        self_group = room.player_dict[uuid][3]
+        self_role = room.player_dict[uuid][2]
+        self_event = room.answer[uuid][0]
         if self_player.tag_json is None and self_player.tag_int is None:
             if self_group == 1:
                  di = {uuid: 0 for uuid in dict(room.player_dict).keys()}
@@ -115,28 +131,43 @@ def prolog(request):
                 self_player.tag_int = 0
             self_player.save()
 
-        dialogs = self_player.game.story
-        return JsonResponse({"result": True, "dialogs": dialogs})
+        role_dialogs = []
+        if self_group == 1:
+            role_dialogs.append(["妳是這場遊戲的<span class='a-point'>偵探</span>", False, "s"])
+        else:  # self_group == 0:
+            if self_event == "與偵探發生關係":
+                suspects = "渣男"
+                text2 = "(噓！渣男的身份只有你知道，你必須想辦法摘贓給別人！)"
+            else:
+                suspects = "嫌疑人"
+                text2 = "(你不是渣男，但是昨晚酒後失態，所以不能讓偵探知道你昨天幹了什麼傻事，並設法協助偵探找出渣男！)"
+            text1 = "你是這場遊戲的<span class='a-point'>{0}-{1}</span>，你昨晚在酒吧<span class='a-point'>{2}</span>".\
+                format(suspects, self_role, self_event)
+            role_dialogs.append([text1, False, "s"])
+            role_dialogs.append([text2, False, "s"])
+
+        return JsonResponse({"result": True, "role": role_dialogs})
     else:
         print("error: it's not through ajax.")
 
 
-def report(request):  # 檢舉功能 趕人離開match
+def report(request):  # 檢舉功能 : make people leave match
     if request.is_ajax and request.method == "POST":
-        # for uuid in players:
-        #    match.player_list.remove(uuid)  可能一次檢舉多人
+        self_player = request.user.profile
+        match = self_player.match
+        players = Player.objects.filter(match=match)
+        leave_dict = request.POST  # out_dict[uuid]= -1 則離開
+        leave_players = [uuid for uuid, v in leave_dict.items() if v == -1]
 
-        #    player = await utils.get_player_by_uuid(uuid)
-        #    await utils.set_player_fields(player, {'status': 2, 'match': None})
-        #    player.save()
-
-        #    改用前端callSendWs() 告知其他人這個人離開了
-        #    await self.channel_layer.group_send(uuid, {
-        #        'type': 'leave_match'
-        #    })
-        # match.save()
-
-        pass
+        for uuid in leave_players:
+            match.player_list.remove(uuid)
+            player = players.get(uuid=uuid)
+            player.status = 2
+            player.match = None
+            player.save()
+        match.save()
+        # 前端ajax的success需要進行callSendWs() 告知其他人這個人離開了
+        return JsonResponse({"result": True, "leave_players": leave_players})
     else:
         print("error: it's not through ajax.")
 

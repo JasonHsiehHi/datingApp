@@ -19,7 +19,6 @@ function chatroomWS(){
             (!1===loginData.isBanned) && setTimeout(chatroomWS, 15000);
             // todo 最後用theUI.showSys來表示已經斷線且目前連不上
         };
-        // todo 增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
@@ -65,9 +64,10 @@ function chatroomWS(){
 
 
                 case 'START':
-                    loginData.status = 2, loginData.player_dict = data['player_dict'], loginData.onoff_dict = data['onoff_dict']; // 刪掉 之後會重導
-                    $('#modal').modal('hide'), showNoticeModal(data['msg']);
-                    $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat/start_game/chatroom_game_"+data['game']; });
+                    showNotice('遊戲開始！');
+                    $('#notice-modal').on('hide.bs.modal', function(e) { 
+                        window.location.href = "/chat/start_game/"+data['game']; 
+                    });
                     break;
 
                 case 'OUT':  // 通知其他人離開遊戲
@@ -78,25 +78,27 @@ function chatroomWS(){
                     refreshGameSingle(self[3], css_id, 'OUT');  // self variable is from game_{gamename}.js
 
                     loginData.onoff_dict[data.sender] = -1;
-                    var sender_name = loginData.player_dict[data.sender][0];
-                    theUI.showSys('<span class="a-point">'+sender_name+'</span>' + data['msg']);
+                    var sender_name = loginData.player_dict[data.sender][0],
+                        sender_role = loginData.player_dict[data.sender][2];
+                    theUI.showSys('<span class="a-point">'+sender_name+'('+sender_role+')</span>' + ' 已離開遊戲。');
                     
                     break;
-                case 'OUTDOWN':  // 通知其他人離開遊戲後自己才能重新導向到/chat
-                    loginData.status = 0, loginData.player_dict = {}, loginData.onoff_dict = {};   // 刪掉 之後會重導
-                    $('#modal').modal('hide'), showNoticeModal('你已離開遊戲');
-                    $('#modal').on('hide.bs.modal', function(e) { window.location.href = "/chat"; }); 
+                case 'OUTDOWN':  // 通知其他人離開遊戲後自己才能重新導向到/chat                    
+                    showNotice('你已離開遊戲'), theUI.showSys('你已離開遊戲。');
+                    $('#notice-modal').on('hide.bs.modal', function(e) { 
+                        window.location.href = "/chat"; 
+                    }); 
                     break;
 
                 case 'ENTER':  // 通知其他人進入match
-                    loginData.status = 3, refreshStatus(loginData.status), refreshGameStatus(self[3], loginData.status);
+                    loginData.status = 3, refreshStatus(3), refreshGameStatus(self[3], 3);
                     loginData.player_list = data['player_list'];
-                    var anons_list = JSON.parse(JSON.stringify(data['player_list']));
-                    anons_list.remove(loginData.uuid);
 
-                    $('#modal').modal('hide'), showNoticeModal(data['msg']);
-                    if (void 0 !== data['sender']){
-                        var name = loginData.player_dict[data['sender']][0];
+                    showNotice(' 進入房間');
+                    var anons_list = [...loginData.player_list];
+                    anons_list.remove(loginData.uuid);
+                    if (void 0 !== data.sender){
+                        var name = loginData.player_dict[data.sender][0];
                         theUI.showSys('<span class="a-point">'+name+'</span>'+'邀請你進入房間');
                     }else{
                         var name_list = anons_list.map( uuid => loginData.player_dict[uuid][0] )
@@ -106,16 +108,16 @@ function chatroomWS(){
 
                 case 'LEAVE': // 通知其他人離開match
                     loginData.player_list = data['player_list'];
-                    var name = loginData.player_dict[data['sender']][0];
+                    var name = loginData.player_dict[data.sender][0];
                     var empty_msg = (loginData.player_list.length === 1)?'房間內剩你一人':'';
-                    $('#modal').modal('hide'), showNoticeModal(name+data['msg']+empty_msg), theUI.showSys('<span class="a-point">'+name+ '</span>'+ data['msg']+empty_msg);
+                    showNotice(name + ' 已離開房間...' + empty_msg), theUI.showSys('<span class="a-point">'+name+ '</span>'+' 已離開房間...'+empty_msg);
                     break;
 
                 case 'LEAVEDOWN': // 通知其他人離開match後自己離開
-                    loginData.status = 2, refreshStatus(loginData.status), refreshGameStatus(self[3], loginData.status);
+                    loginData.status = 2, refreshStatus(2), refreshGameStatus(self[3], 2);
                     loginData.player_list = [];
                     
-                    $('#modal').modal('hide'), showNoticeModal(data['msg']);
+                    showNotice(' 你已離開房間...');
                     break;
                 case 'DISCON':
                     var css_id = position[data.sender];
@@ -126,7 +128,7 @@ function chatroomWS(){
 
                     loginData.onoff_dict[data.sender] = 0;
                     var sender_name = loginData.player_dict[data.sender][0];
-                    theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
+                    // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
 
                     if (loginData.status === 3)
                         toggle.discon = !0;
@@ -141,7 +143,7 @@ function chatroomWS(){
 
                     loginData.onoff_dict[data.sender] = 1;
                     var sender_name = loginData.player_dict[data.sender][0];
-                    theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
+                    // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
 
                     if (loginData.status === 3){
                         toggle.discon = !1;
@@ -152,8 +154,39 @@ function chatroomWS(){
                     }
                     break;
 
+                case 'OVER':
+                    showGameNotice('OVER', data['isOver']), theUI.showSys('玩家可按"離開"鍵 並準備進行下一場遊戲。');
+                    disabledGameBtns();
+                    break;
+
+                case 'ALIVE':
+                    showGameNotice('ALIVE', self[3]);
+                    $('#notice-modal').on('hide.bs.modal', function(e) { 
+                        window.location.assign(window.location.href)
+                    });
+                    break;
+
                 case 'INFORM':
-                    $('#modal').modal('hide'), showNoticeModal(data['msg']);
+                    var msg = $('#snippet').text(data['msg']).text();
+                    showNotice(msg);
+                    break;
+                case 'MESSAGE':
+                    if (true === data.toMe){
+                        showNotice('訊息成功送達！');
+                    }else{
+                        var begin_str = gameGate.message();
+                        if (loginData.status === 2){
+                            for (let msg of data['msgs']){
+                                msg = $('#snippet').text(begin_str + msg).text();
+                                theUI.showMsg(msg);
+                            }
+                        }
+                        var dialogs = data['msgs'].map(msg => [$('#snippet').text(begin_str + msg).text(), !1, 'a']);
+                        if (1===dialogs.length)
+                            theUI.storeChatLogs(dialogs[0], 1, 'gameLogs');
+                        else
+                            theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
+                    }
                     break;
             }
         };
@@ -198,7 +231,19 @@ var WSManager = function(){
             }))
         }
     }
-    // 之後刪掉
+    // 在後端仍需檢驗資料的正確性
+    function cs(call, ...KwJSON){
+        var json = { 
+            'call':call 
+        };
+        if (void 0 !== KwJSON){
+            for(let li of KwJSON){
+                json[li[0]] = li[1];
+            }
+        }
+        chatSocket.send(JSON.stringify(json))
+    }
+    /* 之後刪掉
     function csg(){
         chatSocket.send(JSON.stringify({
             'call':'start_game'
@@ -229,31 +274,22 @@ var WSManager = function(){
             'call':'make_leave'
         }))
     }
-
-    // 在後端仍需檢驗資料的正確性
-    // 可以多傳players:uuid以方便收尋 如此consumers.py不用在先找room 可以直接找player
-    function cs(call, ...KwJSON){ // 將call的方法都用callSendWs取代 
-        var json = { 
-            'call':call 
-        };
-        for(let li of KwJSON){
-            json[li[0]] = li[1];
-        }
-        chatSocket.send(JSON.stringify(json))
-    }
+    */
 
     return{
         msgSendWs:ms,
         msgsSendWs:mss,
         statusRespWs:st,
         writingNowWs:wn,
+        callSendWs:cs,
+        /*
         callStartGame:csg,
         callLeaveGame:clg,
         callMakeOut:cmo,
         callEnterMatch:cem,
         callLeaveMatch:clm,
-        callMakeLeave:cml,
-        callSendWs:cs
+        callMakeLeave:cml
+        */
     }
 }
 
@@ -417,6 +453,7 @@ function refreshProfile(){  // handle text of navbar and sidebar
     var school_name = localData.school+' '+schoolSet[localData.school];
     $('#school').text(school_name).attr('data-bs-original-title', school_name);
     $('#user-tag').text(localData.name[0]);
+    $('#user-role').text('(還未進入遊戲)');
     $('#user-name').text(localData.name).attr('data-bs-original-title', localData.name);   
 }
 
@@ -431,7 +468,8 @@ function refreshStatus(status){  // handle all UI work about status
             enabledElmtCss('#normal-radio'), enabledElmtCss('#adult-radio'), enabledElmtCss('#male-radio'), enabledElmtCss('#female-radio');
             enabledElmtCss('#start-btn'), $('#start-btn').text('開始遊戲');
             disabledElmtCss('#leave-btn');
-            setNavTitle('A-LARP匿名劇本殺  ('+localData.school+')');
+            var school_text = (0 === localData.school.length)?'':'('+localData.school+')';
+            setNavTitle('A-LARP匿名劇本殺 '+school_text);
 
             (localData.gameLogs.length>0) && theUI.clearChatLogs('gameLogs');
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
@@ -492,7 +530,7 @@ function bindMsgSend() {
     })
     $("#send-text").on('focus',function(a){
         toggle.focus = !0;
-        theUI.scrollToNow(), theUI.unreadTitle(!0);
+        // theUI.scrollToNow(), theUI.unreadTitle(!0);
     })
     $("#send-text").on('blur',function(a){
         toggle.focus = !1;
@@ -514,20 +552,26 @@ function bindModalHide(){
             (!$(this).hasClass('d-none')) && $(this).addClass('d-none');
         });
         $('#modal .a-error').text('');
-        (!0 === term.next_modal) && (showNoticeModal(term.next_msg), term.next_modal=!1);
+        (!0 === term.next_modal) && (showNotice(term.next_msg), term.next_modal=!1);
     });
 }
 
-function setNextNotice(msg){
+function bindUpMore(){
+    $("#show-more-btn").on('click',function(a){
+        var isMore = (2 === loginData.status)?theUI.loadChatLogsMore('gameLogs'):theUI.loadChatLogsMore('chatLogs');
+        (!0 === isMore)?appearElmtCss('#show-more'): disappearElmtCss('#show-more');
+    }) 
+}
+
+function setNextNotice(msg){  // 刪掉 現在只要用showNotice即可 因為會自自動關閉#modal開啟#notice-modal
     term.next_modal = !0, term.next_msg = msg;
     // extended feature: msg_list can set multiple notice modal
 }
 
-function showNoticeModal(msg){
-    $("#notice-modal-form").removeClass('d-none');
-    $('#modal .modal-title').text('通知');
+function showNotice(msg){
+    $('#modal').modal('hide');
     $('#notice-modal-form .modal-body p').text(msg);
-    $('#modal').modal('show');
+    $('#notice-modal').modal('show');
 }
 
 function loginMethodSet(){
@@ -562,6 +606,7 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {  
                 if (!0 === data['result']){
+                    
                     setNextNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
                     $('#modal').modal('hide');
                 }else{
@@ -585,17 +630,15 @@ function loginMethodSet(){
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
-                console.log(data['result']);
                 if (!0 === data['result']){
-                    for (let prep in data['loginData']){
+                    for (let prep in data['loginData']){  // 如果要重新導向 則資料不用傳入
                         loginData[prep] = data['loginData'][prep];
                         localStorage[prep] = data['loginData'][prep];  // 不要用localData和ocalStorage 改直接存入loginData
                     }
                     refreshProfile(), loginData.isLogin = !0, loadLoginData(); // refreshProfile()刪除 因為已合併到loadLoginData
-
                     setNextNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
                     $('#modal').modal('hide');
-                    $('#modal').on('hide.bs.modal', function(e) {
+                    $('#notice-modal').on('hide.bs.modal', function(e) {
                         (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
                 }else{
@@ -616,10 +659,11 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.isLogin = !1, loadLoginData();
+                    loginData.isLogin = !1, loadLoginData();  // 如果要重新導向 則資料不用傳入
+                    
                     setNextNotice(data['msg']);
                     $('#modal').modal('hide');
-                    $('#modal').on('hide.bs.modal', function(e) {
+                    $('#notice-modal').on('hide.bs.modal', function(e) {
                         (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
                 }else{
@@ -642,9 +686,10 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
+                    
                     setNextNotice(data['msg']);
                     $('#modal').modal('hide');
-                    $('#modal').on('hide.bs.modal', function(e) {
+                    $('#notice-modal').on('hide.bs.modal', function(e) {
                         (!1 === term.next_modal) && (window.location.href = "/chat");
                     });
                 }else{
@@ -667,6 +712,7 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){  // todo 寄信需要提醒用戶等一下
+                    
                     setNextNotice(data['msg']);
                     $('#modal').modal('hide');
                 }else{
@@ -854,10 +900,10 @@ function startMethod(){
         if (loginData.status !== 0)
             return false
         else if (localData.name.length===0){
-            showNoticeModal('尚未取新的遊戲暱稱。');
+            showNotice('尚未取新的遊戲暱稱。');
             return false
         }else if (localData.school.length===0){
-            showNoticeModal('尚未選擇所在城市。');
+            showNotice('尚未選擇所在城市。');
             return false
         }
 
@@ -867,38 +913,47 @@ function startMethod(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.status = 1, refreshStatus(loginData.status);
-                    (!0 === data['start']) && theWS.callSendWs('start_game');
+                    if (!0 === data['start']){
+                        theWS.callSendWs('start_game');
+                    }else{
+                        loginData.status = 1, refreshStatus(loginData.status); // into waiting phase
+                        loginData.waiting_time =  data['waiting_time'];
+                    }
                     $('#sidebar').offcanvas('hide');
                 }else{
-                    showNoticeModal(data['msg']);
+                    showNotice(data['msg']);
                 }
             },
-            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 }
 
 var checkGate = function(){
-    function itr(){  // 不能用 需要改版
+    function itr(isDirected=false){  // 不能用 需要改版
         var dialog;
-        if (localData.name.length===0 && loginData.isLogin === !1)
-            dialog = ['歡迎來到Acard！😂 這是一個由學生新創團隊開發的校園交友平台，這裡的<span class="a-point">所有動作都以指令執行</span>', !1]
-        else
-            dialog = ['歡迎回來！',!1]
+        if (localData.name.length===0 && loginData.isLogin === !1){
+            dialog = ['歡迎來到Acard！😂 這是一個由學生新創團隊開發的校園交友平台，這裡的<span class="a-point">所有動作都以指令執行</span>', !1];
+        }
+        else{
+            dialog = ['歡迎回來！',!1];
+        }
+        (!0 === isDirected) && theUI.showMsg(dialog[0]);
         return dialog
     }
-    function tut(){  // 改成 是否登入
+    function tut(isDirected=false){  // 改成 是否登入
         var dialog;
         if (localData.school.length===0)
-            dialog = ['請先前往你想交友的<span class="a-point">學校</span>吧！ 輸入/go sch_id (學校縮寫例如:NTU, NCCU等)', !1]
+            dialog = ['請先前往你想交友的<span class="a-point">學校</span>吧！ 輸入/go sch_id (學校縮寫例如:NTU, NCCU等)', !1];
         else if(localData.name.length===0)
-            dialog = ['接著請輸入你的<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>。 輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)', !1]
+            dialog = ['接著請輸入你的<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>。 輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)', !1];
         else if(loginData.isLogin === !1)
-            dialog = ['朋友你還沒登入帳號哦', !1]
-        else
-            dialog = ['當前資料為：... 可以直接進行遊戲哦', !1]
+            dialog = ['朋友你還沒登入帳號哦', !1];
+        else{
+            dialog = ['當前資料為：... 可以直接進行遊戲哦', !1];
+        }
+        (!0 === isDirected) && theUI.showMsg(dialog[0]);
         return dialog
     }
 
@@ -916,11 +971,11 @@ var checkGate = function(){
                         li.splice(1,0, itr());
                     theUI.showMsgsAsync(li);
                 }else{
-                    showNoticeModal(data['msg']);
+                    showNotice(data['msg']);
                 }
             },
-            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     }
 
@@ -1003,7 +1058,8 @@ var chatUI = function(){
     }
 
     function om(dialog, direction='down'){
-        var newElmt, content = (!0 === dialog[1])? imgWrapper(dialog[0]): msgWrapper(dialog[0]);
+        var newElmt;
+        var content = (!0 === dialog[1])? imgWrapper(dialog[0]): msgWrapper(dialog[0]);
         switch (dialog[2]){
             case 'm':
                 newElmt = $('<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+content+'</span></p></div>');
@@ -1099,8 +1155,11 @@ var chatUI = function(){
 
     function cl(log_name='chatLogs'){
         localData[log_name] = [], localStorage[log_name] = '[]';
-        var first = $('#show-more'), last = $('#writing');
-        $('#dialog').empty().apeend(first, last);
+        //var first = $('#show-more'), last = $('#writing');
+        //$('#dialog').empty().apeend(first, last);
+        $('#dialog>div').not('#show-more').not('#writing').remove();
+        sm('已清除對話紀錄');
+
     }
 
     /* 
@@ -1135,23 +1194,13 @@ var chatUI = function(){
     }*/
 
     function ll(log_name='chatLogs', n=30){
-        var first = $('#show-more'), last = $('#writing');
-        $('#dialog').empty().apeend(first, last);
+        //var first = $('#show-more'), last = $('#writing');
+        //$('#dialog').empty().append(first, last);
+        $('#dialog>div').not('#show-more').not('#writing').remove();
         var reversed = localData[log_name].slice().reverse();
         var dialog, isMore, cnt = 0, atmost = (n<=reversed.length)?n-1: reversed.length-1;
         while(cnt<reversed.length && cnt<n){
             dialog = reversed[atmost-cnt];
-            /*switch (dialog[2]){
-                case 'm':
-                    (!0 === dialog[1])?(si(dialog[0]), elmts_text += term.showSelfImg_text):(sm(dialog[0]), elmts_text += term.showSelfMsg_text);
-                    break;
-                case 'a':
-                    (!0 === dialog[1])?(i(dialog[0]), elmts_text += term.showImg_text):(m(dialog[0]), elmts_text += term.showMsg_text);
-                    break;
-                case 's':
-                    (!0 === dialog[1])?(syi(dialog[0]), elmts_text += term.showSysImg_text): (sy(dialog[0]), elmts_text += term.showSys_text);
-                    break;
-            }*/
             om(dialog), cnt++;
         }
         (reversed.length>cnt)?(term[log_name+'_remain'] = (reversed.length-cnt), isMore=!0): (term[log_name+'_remain'] = 0, isMore=!1);
@@ -1219,7 +1268,7 @@ var chatUI = function(){
         var s = 0, elmts_text = '';
         for (let t of msg_List){
             setTimeout(function(){
-                om([...t, 'm']);
+                om([...t, 'a']);
             }, s*interval);
             s++;
         }
@@ -1232,7 +1281,7 @@ var chatUI = function(){
         
     }
 
-    function sty(dialog_list, interval=400, callback=null){
+    function sty(dialog_list, interval=1500, callback=null){
         var s = 0, elmts_text = '';
         for (let t of dialog_list){
             setTimeout(function(){
@@ -1316,7 +1365,7 @@ Array.prototype.remove = function(val) {
     }
 }
 
-var loginData = JSON.parse(document.getElementById('loginData').textContent);
+var loginData = JSON.parse(document.getElementById('loginData').textContent),
     TITLE = "ACard - AnonCard | 2021年台灣校園交友平台",
     unreadMsg = 0,
     school_url = '/static/img/mark/',  // 換成city
@@ -1332,7 +1381,7 @@ var loginData = JSON.parse(document.getElementById('loginData').textContent);
     toggle = getToggle()
     
 $(document).ready(function() {
-    bindMsgSend(), installToolTip(), bindModalHide();   
+    bindMsgSend(), installToolTip(), bindModalHide(), bindUpMore(); 
     loginMethodSet(), profileMethodSet(), leaveMethod(), startMethod(), settingsMethod();
     // 後端比localStorage可靠 但仍同時使用loginData和localData 
     // 最好一次傳完 而且其實loginData資料不大 如此一來localStorage就只需要處理不是從後端來的資料

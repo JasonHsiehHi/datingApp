@@ -29,8 +29,9 @@ from django.db import connection
 def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
         'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'school'])
-
-    if player.room is None:
+    room = player.room
+    match = player.match
+    if room is None:
         player_dict['game'] = ''
         player_dict['player_dict'] = {}
         player_dict['onoff_dict'] = {}
@@ -39,25 +40,25 @@ def get_loginData(user, player):
         player_dict['event_name'] = []
         player_dict['event_content'] = []
     else:
-        player_dict['game'] = player.room.game.game_id
-        player_dict['player_dict'] = player.room.player_dict
-        player_dict['onoff_dict'] = player.room.onoff_dict
+        player_dict['game'] = room.game.game_id
+        player_dict['player_dict'] = room.player_dict
+        player_dict['onoff_dict'] = room.onoff_dict
         player_dict['tag_int'] = player.tag_int
         player_dict['tag_json'] = player.tag_json
 
         event_names = []
         event_content = []
-        for li in player.room.answer.values():
+        for li in room.answer.values():
             event_names.append(li[0]), event_content.append(li[1])
         shuffle(event_names), shuffle(event_content)
 
         player_dict['event_name'] = event_names
         player_dict['event_content'] = event_content
 
-    if player.match is None:
+    if match is None:
         player_dict['player_list'] = []
     else:
-        player_dict['player_list'] = player.match.player_list
+        player_dict['player_list'] = match.player_list
 
     login_dict = {
         'isLogin': True,
@@ -94,11 +95,13 @@ def in_game(request, game_name):
         # 遊戲中的ajax則要傳送到 views_game_{gamename}.py
         game = Game.objects.get(game_id=game_name)
         playerNum = game.best_ratio[0] + game.best_ratio[1]
+
+        # dialogs = game.story 移到db_{game_name}.js
+
         login_dict = get_loginData(user, user.profile)
 
         if settings.DEBUG is True:
             game_name = game_name[5:] if game_name.startswith("test_") else game_name
-
         url = 'chat/chatroom_game_' + game_name + '.html'
         return render(request, url, {'login_dict': login_dict, 'range': range(1, playerNum)})
     else:
@@ -496,7 +499,11 @@ def start_game(request):
 
             player_dict = {}
             onoff_dict = {}
-            answer_dict = {}
+            answer_dict = {  # noplayer can not take special event, so pop() first
+                'noplayer0': event_query[0].pop(),
+                'noplayer1': event_query[0].pop()
+            }
+            shuffle(event_query[0])
             for player, role in zip(players, roles):
                 player.room = room  # todo 等待期間的玩家都不能存取資料庫以避免建房者發生錯誤 用player.status禁止上傳
                 player.game = game
@@ -507,11 +514,11 @@ def start_game(request):
                 uuid = str(player.uuid)
                 player_dict[uuid] = [player.name, player.gender, role.name, role.group]
                 onoff_dict[uuid] = 1
-                answer_dict[uuid] = event_query[role.group].pop()
+                answer_dict[uuid] = event_query[int(role.group)].pop()
 
             room.player_dict = player_dict
             room.onoff_dict = onoff_dict
-            answer_dict.update({'noplayer0': event_query[0].pop(), 'noplayer1': event_query[0].pop()})
+
             room.answer = answer_dict
             room.save()
 
@@ -520,7 +527,8 @@ def start_game(request):
             return JsonResponse({"result": True, "start": True, "msg": '遊戲人數齊全，等待加載...'})
         # 人數不足 等待
         else:
-            return JsonResponse({"result": True, "start": False, "msg": '請等待其他玩家進入遊戲'})
+            return JsonResponse({"result": True, "start": False, "msg": '請等待其他玩家進入遊戲',
+                                 "waiting_time": self_player.waiting_time})
 
     else:
         print("error: it's not through ajax.")
@@ -532,6 +540,7 @@ def get_game(isAdult, isHetero):
 
     if settings.DEBUG is True:
         game = Game.objects.get(id=2)
+
     return game
 
 
@@ -541,8 +550,18 @@ def get_roles_of_game(game, gender, num=1):
 
 
 def get_events_of_game(game, role_group, num=1):
-    events = GameEvent.objects.filter(Q(game=game) & Q(group=role_group))
-    return sample(list(events), num)
+    all_events = GameEvent.objects.filter(Q(game=game) & Q(group=role_group))
+    specials = all_events.filter(content=' ')
+    events = all_events.exclude(content=' ')
+
+    if specials.exists():
+        if num-len(specials) >= 1:
+            result = list(specials) + sample(list(events), num - len(specials))
+        else:
+            result = list(specials)
+    else:
+        result = sample(list(events), num)
+    return result
 
 
 def get_event_query(game, group_list):  # role_group to event_query: assign event to player for room.answer
@@ -550,13 +569,14 @@ def get_event_query(game, group_list):  # role_group to event_query: assign even
     events = []
     for key in c.keys():
         events += get_events_of_game(game, key, c[key])
+
     event_query = {}
     for event in events:
-        li = event_query.get(event.group, None)
-        if li is None:
-            event_query[event.group] = [[event.name, event.content]]
-        else:
-            event_query[event.group] = li.add([event.name, event.content])
+        li = event_query.get(int(event.group), None)
+        if li is None:  # 表示還未建立event_query[event.group]
+            event_query[int(event.group)] = [[event.name, event.content]]
+        else:  # 表示已建立event_query[event.group] 故添加下一個元素
+            event_query[int(event.group)].append([event.name, event.content])
     return event_query
 
 

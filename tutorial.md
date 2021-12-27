@@ -1726,10 +1726,22 @@ author.save()  # 最後還是要記得儲存
 if HttpRequest.method == 'POST':  # 可使用相關的屬性做判別
   do_something()
 
-request.POST和request.GET雖然都是表單dict物件 但兩者不會同時出現
+request.POST和request.GET雖然都是QueryDict物件(不是dict 但為dict的子類) 且兩者不會同時出現
 僅會針對client端發出的request類型來出現相對應的物件
 form元素並不一定要做POST 也可用於提交URL來實現GET <form action="GET">
 www.google.com?AGetKey=3&AnotherOne=hello
+
+QueryDict是django的request.POST物件：是dict的子類 可以使用dict所有內建的方法
+創建方法： qd = QueryDict('a=1&a=2&c=3', mutable=False) # output: QueryDict: {'a': ['1', '2'], 'c': ['3']}
+亦可用： QueryDict.fromkeys(['a', 'a', 'b'], value='val') 不同創建方法 用於指定value
+
+最大的差異在於所有的value都是list形式 因為可能有同鍵多個值的狀況 mutable=False一般用於存儲資料故不充許改變資料
+可用:QueryDict.dict() # output: {'a': '3'}   dict(QueryDict) # output: {'a': ['1', '2', '3']}
+轉成python的dict 也可用dict(QueryDict)複製一個新的dict 但前者指保留最後一個值 而後者是list形式
+QueryDict.lists()  # output: [('a', ['1', '2', '3'])]
+轉成python的list 其中元素會以tuple的方式呈現
+
+qb.urlencode()  # output: 'a=1&a=2&c=3' 轉回get的?url形式
 
 - - - ---------------------------------------------------
 # api.py
@@ -3207,6 +3219,10 @@ $('#root').delegate('a', 'click', function(){  // 'a'是'#root'的子元素
 });
 bind()與deleate()都由on()而來 可用on()來實現兩者
 亦可直接用on()/off()代替bind()/unbind()
+
+$body.on("click", "#btn1", btnClick1) 使用函數名btnClick1作為綁定的對象  
+$body.off("click", "#btn1", btnClick1) 此時亦可通過函數名來解除綁定 
+最大的差別是此時調用主體要改用父元素 而非子元素 取代delegate()
 
 當點擊子節點時 父節點同時也會被點擊
 此時當兩個節點綁的是不同的事件處理器時 就會發生問題
@@ -5372,7 +5388,7 @@ window.location.reload() 重整頁面 (window可省略) 可直接在console使�
 location.replace(url) 將當前頁面替換成url (不可按上一頁回去)
 location.assign(url) 跳轉至url (可按上一頁回去)
 
-history.go(0) 等同 window.location.reload() 
+history.go(0) 等同 window.location.reload() 會連js或css檔都重新載入
 history.go(-1) 等同 history.back()
 history.go(1) 等同 history.forward()
 
@@ -5728,10 +5744,11 @@ youtube的video元素之高度為528px 當瀏覽器大於最小寬度時稍為�
 google的輸入欄最小寬度為436px 故當瀏覽器在最小寬度時應再縮小一點 436px * 436px
 
 同理grid模式的row,col也會有{breakpoint}系統 但響應式設計不太一樣
-以col-xs為例：只要小於xs的尺寸大小 就會變垂直排列以避免方格變形(類似於手機的排版方式)
+以col-xs為例：只要大於xs的尺寸大小 就會變垂直排列以避免方格變形(類似於手機的排版方式)
 
 大致邏輯是xxx-{breakpoint} 表示只適用於大於此{breakpoint}尺寸的裝置
-故-xs為其預設 即可適用於所有大於xs尺寸的裝置
+故-xs為其預設(即col-xs-4 等同 col-4) 即可適用於所有大於xs尺寸的裝置 
+
 
 另外還有media_queries(@) 可用於偵測裝置大小並輸出符合大小的css內容
 @media (min-width: 768px){  // 最小寬度為768px以上的裝置

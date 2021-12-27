@@ -17,7 +17,6 @@
 
     <link rel="stylesheet" href="{% static 'css/chatroom.css'%}"/>
     
-    <script src="{% static 'js/test_db.js'%}"></script>
     <script src="{% static 'js/db.js'%}"></script>
     {{ login_dict|json_script:"loginData" }}
     <script src="{% static 'js/chatroom.js'%}"></script>
@@ -43,7 +42,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-warning a-clr">
-                    <h5 class="modal-title"></h5>
+                    <p class="h5 modal-title"></p>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="close"></button>
                 </div>
                 <form class='d-none' id="signup-modal-form">
@@ -203,15 +202,6 @@
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
-                <form class='d-none' id="notice-modal-form">
-                    <div class="modal-body">
-                        <div class="mb-3"><p></p></div>
-                    </div>
-                    <div class="modal-footer justify-content-center">
-                        <button type="button" class="btn btn-warning" data-bs-dismiss="modal">確定</button>
-                    </div>
-                </form>
-
                 <form class='d-none' id="leave-modal-form">
                     <div class="modal-body">
                         <div class="mb-3"><p>確定要離開嗎？</p></div>
@@ -228,6 +218,24 @@
         </div>
     </div>
 
+    <div class="modal fade" id="notice-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning a-clr">
+                    <p class="h5 modal-title">通知</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="close"></button>
+                </div>
+                <form id="notice-modal-form">
+                    <div class="modal-body">
+                        <div class="mb-3"><p></p></div>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-warning" data-bs-dismiss="modal">確定</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     <nav class="navbar a-div a-clr">
         <div class="container-fluid">
             <button class="navbar-toggler btn a-div a-clr" id='sidebar-btn' type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
@@ -333,8 +341,8 @@
         <div class="a-container a-clr">
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar" id='dialog'>
-                    <div id='show-more' class="a-chat d-none d-flex">
-                        <button id='show-more-btn'>顯示更多...</button>
+                    <div id='show-more' class="a-chat d-none d-flex justify-content-center">
+                        <button type="button" class='btn btn-secondary btn-sm' id='show-more-btn'><span class='text-light'>(更多聊天紀錄...)</span></button>
                     </div>
                     <div id='writing' class="a-chat d-none d-flex">
                         <p class="a-dialogdiv a-matcher a-clr d-inline-flex">

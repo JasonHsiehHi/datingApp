@@ -1,11 +1,11 @@
 var gameCheckGate = function(){
     function pla(isDirected=true){
-        var li;
-        for(let [key, value] of Object.entries(onoff_dict)){
+        var li = [];
+        for(let [key, value] of Object.entries(loginData.onoff_dict)){
             (value === 1) && li.push(key);
         }
-        var name_list = li.map(uuid => loginData.player_dict[uuid][0]);
-        var dialog = ['<span class="a-point">'+name_list.join(",")+ '</span>加入遊戲', !1]
+        var name_list = li.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
+        var dialog = ['<span class="a-point">'+ name_list.join(", ")+ '</span> 已加入遊戲', !1];
         (!0 === isDirected) && theUI.showSys(dialog[0]);
         return dialog
         
@@ -13,30 +13,27 @@ var gameCheckGate = function(){
     function mat(isDirected=true){
         var li = [...loginData.player_list];
         li.remove(loginData.uuid);
-        var name_list = li.map(uuid => loginData.player_dict[uuid][0]);
-        var dialog = ['<span class="a-point">'+name_list.join(',')+'</span> 已進入房間', !1]
+        var name_list = li.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
+        var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 已進入房間', !1];
         (!0 === isDirected) && theUI.showSys(dialog[0]);
         return dialog
     }
 
-    function clu(){  // 刪掉 直接在onmessage時顯示並存入gameLogs即可
-        // 用於呈現當前其他人提供給偵探的線索 都是匿名
-        // 會由偵探的tag.json['clue']中要資料 且每一筆都會分開呈現 
-        // 之後會存在localStorage.gameLogs中
-        var dialog;
+    function mes(){  // be used by chatSocket.onmessage data.type='MESSAGE'
+        var text = '某人向妳提供線索：'
+        return text
     }
 
-    function eve(){
-        // 同時存入sidebar中
-        // 想intro和tutor一樣 接在greet之後 不需要決定由誰來講 dialog[0], dialog[1]
-        // 由loginData.event_content取用
-        var dialog;
+    function eve(isDirected=false){
+        var li = loginData['event_content'].filter(text => text !== ' ')
+        var dialog = ['提示線索：<br><em>' + li.join('<br>')+'</em>', !1];
+        (!0 === isDirected) && theUI.showMsg(dialog[0]);
+        return dialog
     }
 
-    function rol(){
-        // 只有你的角色可以看到的資料 你是誰? 做了什麼? 需要做什麼?
-        // 針對不同角色(group)的介紹：提供線索與調查 / 審問與推理
-        var dialog;
+    function rol(self_group){
+        var dialog = role_desc[self_group];
+        return dialog
     }
 
     function prl(){
@@ -46,24 +43,26 @@ var gameCheckGate = function(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    var li = data['dialogs'];
-                    li.splice();  // 還沒想要要插哪裡 eve rol 可以插進去 因為同一個角色不會變 
+                    var li = [...story_dialogs];
+                    var event = eve();
+                    $('#game-event').html(event[0]);
+                    li.push(...data.role, rol(self[3]), [...event, 'a']);
                     theUI.showStoryAsync(li), theUI.storeChatLogs(li, li.length, 'gameLogs')
                 }else{
-                    showNoticeModal(data['msg']);
+                    showNotice(data['msg']);
                 }
             },
-            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     }
 
     return {
         player:pla,
         matcher:mat,
-        clue:clu,
         event:eve,
         role:rol,
+        message:mes,
         prolog:prl
     }
 }
@@ -80,28 +79,22 @@ function deduceMethod(){
     $("#deduce-modal-form").on('submit',function(e){
         e.preventDefault();
         var formArray = $(this).serializeArray();
-        for (let i=0;i<position.length;i++)
-            formArray[i]['name'] = $('#player-'+(i+1).toString()).data('uuid');
+        var pos_li;
+        for (let i=1; i<(formArray.length + 1); i++){
+            pos_li = formArray[i]['name'].split('-',2);
+            formArray[i]['name'] = $(pos_li.join('-')).data('uuid');
+        }
         $.ajax({
             type: 'POST',
             url: '/chat/start_game/graduate_girl/deduce',
             data: formArray,
             dataType: "json",
             success: function(data) {
-                if (!0 === data['result']){
-                    // 一定要到後端 因為前端不知道 最終結果前端可以知道 因為本來就要回傳遊戲結果
-
-                    // data['over'] 猜到渣男 遊戲結束 全員退出但保留畫面 theWS.callLeaveGame(user_id) player_id為全部人員
-                    // data['out'] 為一種player_list 如果為空則表示無人出局 用theWS.callLeaveMatch(user_id)  
+                if (!0 === data['result']){                    
+                    // 偵探call_make_out => 被指名的玩家離開但保留畫面 沒被指名的玩家通知此玩家已經離開 (玩家出局)
+                    // 偵探call_make_out => gameover 遊戲結束 全體保留畫面 players按鍵全關動不了 (遊戲結束)
                     
-                    // 將loginData.onoff_dict更新到最新 之後用refreshPlayers
-                    // theWS.callMakeOut() 把人趕走
-                    // 最後要做theWS.callInform() 遊戲結束！ 或 嫌疑人出局... 通知其他玩家結果
-
-                    // 會更新tag_json和tag_int 因為涉及所有人 故最後要做結果通知
-                    // 最簡單的方法就是每一輪結束後 多要進行網頁重整 可以寫在theWS.callMakeOut()之中 無論有沒有成功趕人都要做
-
-                    refreshStatus(loginData.status), refreshGameStatus(1, loginData.status);
+                    theWS.callSendWs('make_out');
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
                     $('#deduce-modal-form p.a-error').text(data['msg']);
@@ -114,21 +107,32 @@ function deduceMethod(){
     })
     function setOptions(){
         seletedEvent = {};
-        for (let name of eventNameSet){
+        var set = new Set(eventSet);
+        set.delete('偵探本人');
+        for (let name of set){
             $('.gameevent-options').append("<option value="+name+">");
         }
     }
 
     setOptions();
 
-    for (let i=1; i<loginData.onoff_dict.length; i++){
-        $('#player-'+i.toString()+'-deduce-input').on('change',function(a){
-            seletedEvent[$(this).attr('name')] = $(this).val();
-            var set = new Set(eventNameSet);
+    var onoff_list = [];
+    for(let [key, value] of Object.entries(loginData.onoff_dict)){
+        (value === 1 || value === 0) && onoff_list.push(key);
+    }
+    for (let uuid of onoff_list){
+        $(position[uuid]+'-deduce-input').on('change',function(a){
+            var set = new Set(eventSet);
+            set.delete('偵探本人');
+            seletedEvent[position[uuid]] = $(this).val();
             for (let opt of Object.values(seletedEvent))
                 set.delete(opt);
+            $('.gameevent-options').not(position[uuid]+'-gameevents').empty();
+            for (let key in seletedEvent){
+                (position[uuid] !== key) && $(key+'-gameevents').append("<option value="+seletedEvent[key]+">");
+            }
             for (let name of set)
-                $('.gameevent-options').not(this).append("<option value="+name+">");
+                $('.gameevent-options').not(position[uuid]+'-gameevents').append("<option value="+name+">");
         })
     }
 }
@@ -141,16 +145,15 @@ function examineMethod(css_id, player_uuid){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    // 偵探 tag_json要做紀錄
+                    loginData.tag_json[player_uuid] = 1;
                     theWS.callSendWs('enter_match');
-                    showNoticeModal('已建立房間 等待中...'), theUI.showSys('等待對方回應...');
+                    showNotice('已建立房間 等待中...'), theUI.showSys('等待對方回應...');
                 }else{
-                    showNoticeModal(data['msg']);
-                    // 對方無法拒絕 但要考慮剛好離線問題
+                    showNotice(data['msg']);  // 對方無法拒絕 但要考慮剛好離線問題
                 }
             },
-            error: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { showNoticeModal('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 }
@@ -166,13 +169,17 @@ function clueMethod(css_id, player_uuid){
         var formArray = $(this).serializeArray();
         $.ajax({
             type: 'POST',
-            url: '/chat/start_game/graduate_girl/clue'+ player_uuid,
+            url: '/chat/start_game/graduate_girl/clue/'+ player_uuid,
             data: formArray,
             dataType: "json",
             success: function(data) {
-                // 更新 tag_int
-                // theWS.callSendWs 通知偵探
-                // 最後顯示在gameLogs中 因為每次都會有多個人提供線索 怕sidebar太凌亂
+                if (!0 === data['result']){
+                    loginData.tag_int = 2;
+                    theWS.callSendWs('see_message',['player', player_uuid]);
+                    $('#modal').modal('hide');
+                }else{
+                    $('#inquire-modal-form p.a-error').text(data['msg']);
+                }
             },
             error: function(data) { $('#clue-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { $('#clue-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
@@ -184,7 +191,8 @@ function inquireMethod(css_id, player_uuid){
     $(css_id).on('click',function(a){
         $("#inquire-modal-form").removeClass('d-none');
         $('#modal .modal-title').text('調查');
-        $('#inquire-modal-form .modal-body p:eq(0)').text('是否確定調查'+ loginData.player_dict[player_uuid][0]+'('+loginData.player_dict[player_uuid][2]+')?');
+        var name_role = others[player_uuid][0]+'('+others[player_uuid][2]+')';
+        $('#inquire-modal-form .modal-body p:eq(0)').text('是否確定調查'+name_role+'?');
         $('#modal').modal('show');
     })
     $("#inquire-modal-form").on('submit',function(e){
@@ -195,8 +203,11 @@ function inquireMethod(css_id, player_uuid){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    // 更新 tag_int
-                    // 存入自己的sidebar
+                    loginData.tag_int = 1;
+                    var text = name_role + '沒有 '+data['event'];
+                    $('#game-inquire').text(text);
+                    setNextNotice(text);
+                    $('#modal').modal('hide');
                 }else{
                     $('#inquire-modal-form p.a-error').text(data['msg']);
                 }
@@ -204,6 +215,17 @@ function inquireMethod(css_id, player_uuid){
             error: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
+    })
+}
+
+function disabledGameBtns(){
+    var css_id; 
+    for (let uuid in position)
+        css_id = position[uuid], disabledElmtCss(css_id+'-btn');
+    disabledElmtCss('#start-btn');
+    $('body').off('click', "#leave-btn");
+    $("#leave-btn").on('click',function(a){ 
+        window.location.href = "/chat"; 
     })
 }
 
@@ -224,10 +246,10 @@ function loadRoleData(){
         if (self[3] === 1){
             $(css_id+'-btn').text('審問'), examineMethod(css_id+'-btn', uuid);
             $(css_id+'-deduce').removeClass('d-none');
-            $(css_id+'-deduce').find('label').text(name+' '+sub);
+            $(css_id+'-deduce').find('label').text(name+' '+sub+':');
         }else{  // self[3] === 0
             if(group === 1){
-                $(css_id+'-btn').text('線索')
+                $(css_id+'-btn').text('線索'), clueMethod(css_id+'-btn', uuid);
             }else{
                 $(css_id+'-btn').text('調查'), inquireMethod(css_id+'-btn', uuid);
                 // tag_int 0 表示都沒有 1為已調查 2為已提供線索
@@ -235,14 +257,13 @@ function loadRoleData(){
         }
         i++;
     }
+    var event = gameGate.event();
+    $('#game-event').html(event[0]);
 
-    // localData.position = position, localStorage.position = JSON.stringify(position);
-    
     if (self[3] === 1){
         $('#start-btn').text('推 理'), deduceMethod();
         refreshGameStatus(1, loginData.status);
     }else{ // self[3] === 0
-
         $('#start-btn').text('行 動').attr('disabled', true);
         refreshGameStatus(0, loginData.status);
     }
@@ -250,25 +271,22 @@ function loadRoleData(){
 }
 
 function refreshGameStatus(self_group, status){
-    // 補助chatroom.js的refreshStatus來控制行動鍵與互動鍵 每一輪推理完也要更新
-    // 只在遊戲中的status2或status3中處理行動鍵與互動鍵 且依據不同角色而有所不同
-
     // 每次進入match (成功執行examine)後 refresh loginData.tag_json (用來記錄誰被審問過)
     // 嫌疑人每次傳訊息 (成功執行'提供線索')後 refresh loginData.tag_int (用來紀錄自己是否做過)
-    
-    // gameGate.prolog()用來顯示遊戲劇情並存入localStorage中 便不再用prolog取資料 每次直接執行且劇情無延遲
-    // 取得資料後要用theUI.showStoryAsync()來做 僅在status 2 進行
-    // 將gameevent補足在story之後 並貼在gameevet的<div>中
-    // 一開始就會存入localStorage 差別在於之後不用要資料 故只有剛進去後的第一次會有劇情延遲 之後都不會有 用if判別
-    
+        
     refreshPlayers();
     switch (status){ 
         case 2:
-            for (let uuid in position)
+            for (let uuid in position){
                 (1 === loginData.onoff_dict[uuid]) && enabledElmtCss(position[uuid]+'-btn');
+
+                // 處理tag_json和tag_int
+            }
+                
             setNavTitle('LARP劇本：<span class="a-point">'+ GAMETITLE +'</span>');
 
             (localData.chatLogs.length > 0) && theUI.clearChatLogs('chatLogs');
+
             if (localData.gameLogs.length === 0){
                 gameGate.player(), gameGate.prolog();
             }else{
@@ -281,14 +299,19 @@ function refreshGameStatus(self_group, status){
                 enabledElmtCss('#start-btn');
             break;
         case 3:
-            for (let uuid in position)
+            for (let uuid in position){
                 (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
+
+                // 處理tag_json和tag_int
+            }
+            
             setNavTitle('審問中... 剩餘時間：<span class="a-point a-clock"></span>');
 
             if (localData.chatLogs.length !== 0){
                 var isMore = theUI.loadChatLogs('chatLogs');  
                 (!0 === isMore) && appearElmtCss('#show-more');  //todo 完成'顯示更多'UI和功能
             }
+
             theUI.showSys('房間剩餘時間: <span class="a-clock a-point"></span>'), theUI.showClock(); // todo showClock改用倒數
             gameGate.matcher();
 
@@ -306,49 +329,62 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
         switch (loginData.onoff_dict[uuid]){
             case 0:
                 (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
-                $(css_id).find('.a-title').attr('data-bs-original-title', name + '(離線)');
+                $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
+                $(css_id).find('.a-onoff').html('(離線)');  // 當名字過長時 會不會有問題
                 disabledElmtCss(css_id+'-btn');
                 break;
             case 1:
                 ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
                 $(css_id).find('.a-title').attr('data-bs-original-title', name);
+                $(css_id).find('.a-onoff').html();
                 enabledElmtCss(css_id+'-btn');
                 break;
             case -1:
                 (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
-                $(css_id).find('.a-title').attr('data-bs-original-title', name + '(已退出)');
+                $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(已退出)');
+                $(css_id).find('.a-onoff').html('(已退出)');
                 $(css_id).find('.a-circle').text('');
                 disabledElmtCss(css_id+'-btn');
+                if (self[3] === 1){
+                    $(css_id+'-deduce-input').attr('placeholder','已退出遊戲').removeAttr('required').attr('disabled', true);
+                }
                 break;
         }
     }
 }
 
-function refreshGameSingle(self_group, player_css, player_type){  // to refresh other one player status
+function refreshGameSingle(self_group, player_css, ws_type){  // to refresh other one player status
     // only used in websocket.onmessage
-    if (self_group === 1){
-        switch (player_type){
-            case 'CONN':
-                enabledElmtCss(player_css+'-btn');
-                break;
-            case 'DISCON':
-                disabledElmtCss(player_css+'-btn');
-                break;
-            case 'OUT':
-                disabledElmtCss(player_css+'-btn');
-                break;
-        }
-    }else{
-
+    switch (ws_type){  //react the ws_type according to different role 
+        case 'CONN':
+            enabledElmtCss(player_css+'-btn');
+            break;
+        case 'DISCON':
+            disabledElmtCss(player_css+'-btn');
+            break;
+        case 'OUT':
+            disabledElmtCss(player_css+'-btn');
+            break;
     }
+    
+}
 
+function showGameNotice(ws_type, ...args){
+    switch (ws_type){
+        case 'OVER':
+            (!0 === args[0])? showNotice('遊戲結束，偵探成功破案！'): showNotice('出局！ 你昨晚的所做所為已被偵探查明。 可按"離開"鍵 並準備進行下一場遊戲。');
+            break;
+        case 'ALIVE':
+            (1 === args[0])? showNotice('進入下一輪，妳未能找到昨晚的渣男。'):showNotice('進入下一輪，你昨晚的所做所為尚未被偵探察覺。');
+            break;
+    }
 }
 
 
 var GAMETITLE = '畢業後的第一夜',
-    eventNameSet = new Set(loginData['event_name']),
-    seletedEvent = {},
     gameGate = gameCheckGate(),  // 輸出遊戲相關的dialog
+    eventSet = loginData['event_name'],
+    seletedEvent = {},
     self = [],
     others = {},
     position = {}

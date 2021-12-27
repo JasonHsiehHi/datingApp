@@ -16,11 +16,13 @@ disenabled button改回灰色 enabled button改回原本顏色
 最後再加上其他人的互動鍵 '提供線索'
 將school改為city 且school不用刪掉
 settings-form 關閉時發出
+增加開頭畫面：可篩選不符合條件的瀏覽器 另外流量超載就自動斷線
 
 遊戲進行中變更密碼或登出 (是否直接用urlpatterns導向)
 多久會自動登出 登出後數據是否需要改變
 
 前端loginData, localData, localStorage, term 和後端ddatabase (資料應該放哪, 應該由哪一流程傳入傳出...等)
+微調輸出三大方法:notice, chatlog, navtitle
 
 變數轉譯問題(預防xss攻擊)
 RWD調整
@@ -96,10 +98,24 @@ best_ratio為[5,1] threshold_ratio為[3,1]
 ["為什麼我完全沒印象......",0,"m"],
 ["<span class='a-point'>好姐妹</span>：哈哈哈我也沒仔細看！ 喝到最後很多人都茫了～",0,"a"],
 ["(這個男生是誰呀？ 完全記不起來...... 總之先回去那間酒吧看看吧)",0,"m"],
-["",0,"w"],
-["左側是昨晚與妳待在酒吧的<span class='a-point'>嫌疑人</sapn>：<br>
-只有其中一位是真正發生關係的渣男，請選擇任何一位嫌疑人單獨進行<span class='a-point'>審問</sapn>吧！",0,"s"]
+["",0,"w"]
 
+
+role-偵探： (group=1)
+["妳是這場遊戲的<span class='a-point'>偵探</span>", 0,"s"],
+["<span class='a-point'>審問</span>：<br>
+左側名單是昨晚與妳待在酒吧的<span class='a-point'>嫌疑人</span>，只有其中一位是真正發生關係的渣男，請選擇任何一位嫌疑人單獨進行<span class='a-point'>審問</span>吧！<br>
+<span class='a-point'>推理</span>：<br>
+每一輪最後偵探將進行<span class='a-point'>推理</span>，若成功識別個別嫌疑人昨晚酒後失態所做的事，則該名嫌疑人失敗出局，直到找出嫌疑人中的渣男則偵探勝利，成功破案遊戲結束。",0,"s"]
+
+role-其他人： (group=0)
+["你是這場遊戲的<span class='a-point'>{0}-{1}</span>，你昨晚在酒吧<span class='a-point'>{2}</span>", 0,"s"],
+["<span class='a-point'>調查</span>：<br>
+你可以<span class='a-point'>調查</span>左側名單上的嫌疑人，查看對方昨晚可能做的事，藉此協助<span class='a-point'>偵探</span>辦案。<br>
+若<span class='a-point'>偵探</span>成功找出嫌疑人中的渣男，則其餘嫌疑人勝利，成功洗刷罪名。 反之嫌疑人中的渣男未被找出，則渣男勝利，成功躲過。<br>
+<span class='a-point'>線索</span>：<br>
+可向偵探傳送一句話做為線索，除此之外偵探會對每一位嫌疑人進行審問，你必須想辦法不讓<span class='a-point'>偵探</span>識別昨晚自己酒後失態所做的事，若被成功識別則該名嫌疑人失敗出局。<br>
+",0,"s"]
 
 
 

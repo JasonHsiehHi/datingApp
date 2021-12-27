@@ -1,6 +1,7 @@
 {% extends "chat/chatroom.html" %}
 {% block script_file %}
 {%load static%}
+<script src="{% static 'js/db_graduate_girl.js'%}"></script>
 <script src="{% static 'js/game_graduate_girl.js'%}"></script>
 {% endblock %}
 
@@ -14,10 +15,10 @@
     <div class="modal-body">
         {% for i in range %}
         <div class="mb-3 row g-3 align-items-center d-none" id="player-{{i}}-deduce">
-            <div class="col-auto">
+            <div class="col-5">
                 <label for="player-{{i}}-deduce-input" class="col-form-label">name (role)：</label>
             </div>
-            <div class="col-auto">
+            <div class="col-6">
                 <input type="text" class="form-control" id="player-{{i}}-deduce-input" name="player-{{i}}-deduce-input" list="player-{{i}}-gameevents" required>
                 <datalist class="gameevent-options" id="player-{{i}}-gameevents"></datalist>
             </div>
@@ -68,7 +69,7 @@
         <div class='a-circle a-sidebar'></div>
         <div class='ps-1 pt-1 flex-grow-1'>
             <div class='d-flex justify-content-between'>
-                <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="name">name</span>
+                <div class='mb-0 a-player a-sidebar'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="name">name</span><span class='a-onoff a-sidebar'></span></div>
                 <button class="btn btn-warning a-sidebar btn-sm" id="player-{{i}}-btn" type="button">互動</button>
             </div>
             <div class='a-sub a-sidebar'>(role)</div>
@@ -79,5 +80,10 @@
 {% endblock %}
 
 {% block sidebar %}
-<div class='a-div a-sidebar' id='game-event'></div>
+<div class='a-div a-sidebar'>
+    <p class="h5"></p><div class='mx-3' id='game-event'></div>
+</div>
+<div class='a-div a-sidebar'>
+    <p class="h5"></p><div class='mx-3' id='game-inquire'></div>
+</div>
 {% endblock %}
