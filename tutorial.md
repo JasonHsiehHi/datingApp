@@ -2219,6 +2219,9 @@ jquery 使用text()代替.textContent 和html()代替.innerHTML
 text()只會取純文字部分 而html()則能包含元素標籤
 若為<input>等輸入型元素則需用val()取代text()
 
+同理用text(str)會直接將str內部的元素標籤顯示出來 html(str)則會轉成html架構
+此外前端用text(str)方式顯示 就可以將html(str)方式所造成的script攻擊化解掉
+
 linkPara.parentNode.removeChild(linkPara);
 為刪除自身節點的方法 因為自身無法刪除自身 須透過parentNode幫忙
 

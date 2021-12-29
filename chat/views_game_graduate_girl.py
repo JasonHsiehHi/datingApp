@@ -41,12 +41,18 @@ def deduce(request):
         answer_dict = {uuid: li[0] for uuid, li in dict(room.answer).items()}
         players = Player.objects.filter(room=room)
         out_list = []
-        gameover = False
 
         for uuid, name in deduce_dict.items():
             self_player.tag_json[uuid] = 0
 
-            if name == answer_dict[uuid]:
+            if name == answer_dict[uuid]: # everyone are out
+                if name == '與偵探發生關係':
+                    room.onoff_dict = {key: -1 for key in dict(room.onoff_dict)}
+                    players.exclude(uuid=self_player.uuid).update(status=0, room=None, tag_int=None, tag_json=None)
+                    out_list = list(deduce_dict.keys())
+                    room.save()
+                    return JsonResponse({"result": True, "over": True, "out_players": out_list})
+
                 out_list.append(uuid)
                 room.onoff_dict[uuid] = -1
 
@@ -56,13 +62,6 @@ def deduce(request):
                 player.tag_int = None
                 player.save()
 
-                if name == '昨晚與偵探發生關係':
-                    gameover = True
-                    for key in dict(room.onoff_dict):
-                        room.onoff_dict[key] = -1
-                        players.update(status=0, room=None, tag_int=None, tag_json=None)  # everyone are out
-                        out_list = deduce_dict.keys()
-                    break
             else:
                 player = players.get(uuid=uuid)  # make player into next round
                 player.tag_int = 0
@@ -70,7 +69,7 @@ def deduce(request):
 
         self_player.save()
         room.save()
-        return JsonResponse({"result": True, "over": gameover, "out_players": out_list})
+        return JsonResponse({"result": True, "over": False, "out_players": out_list})
 
     else:
         print("error: it's not through ajax.")

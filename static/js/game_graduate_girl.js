@@ -43,11 +43,22 @@ var gameCheckGate = function(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
+                    if (self[3] === 1){
+                        var di = {};
+                        for (let key in loginData.onoff_dict) { 
+                            di[key] = 1; 
+                        }
+                        di['message'] = [];
+                        loginData.tag_json = di, loginData.tag_int = -1;
+                    }else{ // self[3] === 0
+                        loginData.tag_json = {}, loginData.tag_int = 0;
+                    }
+
                     var li = [...story_dialogs];
                     var event = eve();
                     $('#game-event').html(event[0]);
                     li.push(...data.role, rol(self[3]), [...event, 'a']);
-                    theUI.showStoryAsync(li), theUI.storeChatLogs(li, li.length, 'gameLogs')
+                    theUI.showStoryAsync(li), theUI.storeChatLogs(li, li.length, 'gameLogs');
                 }else{
                     showNotice(data['msg']);
                 }
@@ -80,9 +91,9 @@ function deduceMethod(){
         e.preventDefault();
         var formArray = $(this).serializeArray();
         var pos_li;
-        for (let i=1; i<(formArray.length + 1); i++){
+        for (let i=1; i<formArray.length; i++){
             pos_li = formArray[i]['name'].split('-',2);
-            formArray[i]['name'] = $(pos_li.join('-')).data('uuid');
+            formArray[i]['name'] = $('#'+pos_li.join('-')).data('uuid');
         }
         $.ajax({
             type: 'POST',
@@ -110,7 +121,8 @@ function deduceMethod(){
         var set = new Set(eventSet);
         set.delete('偵探本人');
         for (let name of set){
-            $('.gameevent-options').append("<option value="+name+">");
+            //$('.gameevent-options').append("<option value="+name+">");
+            $('.gameevent-options').append('<option value='+name+'>'+name+'</option>');
         }
     }
 
@@ -122,17 +134,12 @@ function deduceMethod(){
     }
     for (let uuid of onoff_list){
         $(position[uuid]+'-deduce-input').on('change',function(a){
-            var set = new Set(eventSet);
-            set.delete('偵探本人');
             seletedEvent[position[uuid]] = $(this).val();
-            for (let opt of Object.values(seletedEvent))
-                set.delete(opt);
-            $('.gameevent-options').not(position[uuid]+'-gameevents').empty();
-            for (let key in seletedEvent){
-                (position[uuid] !== key) && $(key+'-gameevents').append("<option value="+seletedEvent[key]+">");
-            }
-            for (let name of set)
-                $('.gameevent-options').not(position[uuid]+'-gameevents').append("<option value="+name+">");
+            $('.gameevent-options').find('option').show();
+            for (let opt of Object.values(seletedEvent)){
+                // 刪掉 .not('select[value='+opt+']')
+                $('.gameevent-options').not('select[value='+opt+']').find('option[value='+opt+']').hide();
+            }                
         })
     }
 }
@@ -283,7 +290,7 @@ function refreshGameStatus(self_group, status){
                 // 處理tag_json和tag_int
             }
                 
-            setNavTitle('LARP劇本：<span class="a-point">'+ GAMETITLE +'</span>');
+            setNavTitle('劇本：<span class="a-point">'+ GAMETITLE +'</span>');
 
             (localData.chatLogs.length > 0) && theUI.clearChatLogs('chatLogs');
 
@@ -346,7 +353,9 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
                 $(css_id).find('.a-circle').text('');
                 disabledElmtCss(css_id+'-btn');
                 if (self[3] === 1){
-                    $(css_id+'-deduce-input').attr('placeholder','已退出遊戲').removeAttr('required').attr('disabled', true);
+                    // $(css_id+'-deduce-input').attr('placeholder','已退出遊戲')
+                    $(css_id+'-deduce-input').removeAttr('required').attr('disabled', true).removeClass('gameevent-options');
+                    $(css_id+'-deduce-input>option:eq(0)').text('已退出遊戲');
                 }
                 break;
         }
@@ -372,10 +381,10 @@ function refreshGameSingle(self_group, player_css, ws_type){  // to refresh othe
 function showGameNotice(ws_type, ...args){
     switch (ws_type){
         case 'OVER':
-            (!0 === args[0])? showNotice('遊戲結束，偵探成功破案！'): showNotice('出局！ 你昨晚的所做所為已被偵探查明。 可按"離開"鍵 並準備進行下一場遊戲。');
+            (!0 === args[0])? showNotice('遊戲結束，偵探成功破案！ 可按"離開"鍵 並準備進行下一場遊戲。'): showNotice('出局！ 你昨晚的所做所為已被偵探查明。 可按"離開"鍵 並準備進行下一場遊戲。');
             break;
         case 'ALIVE':
-            (1 === args[0])? showNotice('進入下一輪，妳未能找到昨晚的渣男。'):showNotice('進入下一輪，你昨晚的所做所為尚未被偵探察覺。');
+            (1 === args[0])? showNotice('進入下一輪，妳未能找到昨晚的渣男。'):showNotice('進入下一輪，你昨晚所做的蠢事尚未被偵探察覺。');
             break;
     }
 }

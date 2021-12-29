@@ -24,44 +24,38 @@ function chatroomWS(){
             var data = JSON.parse(e.data);
             console.log('receive: '+ data.type);
             switch (data.type){
-                case 'WN':  // 已經沒有typeSet了 直接用'WN'即可
-                    if (localData.name!==data.sender){  // 換成uuid 才符合辨識度 之後再換
+                case 'WN':
                         theUI.showWritingNow(data.wn);
-                    }
                     break;
                 case 'ST':
-                    if(localData.name===data.receiver){
-                        while(term.emlt_for_status.length>0){
-                            var elmt = term.emlt_for_status.pop();
-                            theUI.showStatus(elmt, data.num);
-                        }
+                    var elmt;
+                    while(localData.elmt_for_status.length>0){
+                        elmt = localData.elmt_for_status.pop();
+                        theUI.showStatus(elmt, data.num);
                     }
+                    localStorage.elmt_for_status = '[]';
                     break;
+                
                 case 'MSG':
-                    if(localData.name!==data.sender){
-                        var text_only = $('#snippet').text(data.msg).text();
-                        var dialog = [text_only, data.isImg, 'a']
-                        theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);
-                        // (data.isImg)?(theUI.showImg(text_only), theUI.storeChatLogs(term.showImg_text)):(theUI.showMsg(text_only), theUI.storeChatLogs(term.showMsg_text));
-                        
-                        theWS.statusRespWs(data.sender);  // 接收到訊息後回傳
-                    }
+                    console.log(data.msg);
+                    var text_only = $('#snippet').html(data.msg).text();
+                    console.log(text_only);
+                    var dialog = [text_only, false, 'a'];  // data.isImg is false, sending img hasn't been available.
+                    theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);                        
+                    theWS.statusRespWs(data.sender, 2);
                     break;
+
                 case 'MSGS':
-                    if(localData.name!==data.sender){
-                        var dialog = data.msgs.map(li => [$('#snippet').text(li[0]).text(), li[1], 'a']);
-                        theUI.showMsgsAsync(dialog, 0, function(){
-                            theUI.storeChatLogs(dialog, dialog.length);
-                        });
-                        theWS.statusRespWs(data.sender);  // 接收到訊息後回傳
-                    }   
+                    var dialog = data.msgs.map(li => [$('#snippet').html(li[0]).text(), false, 'a']);  // data.isImg is false, sending img hasn't been available.
+                    theUI.showMsgsAsync(data.msgs, 0, function(){
+                        theUI.storeChatLogs(dialog, dialog.length);
+                    });
+                    theWS.statusRespWs(data.sender, 2);
                     break;
 
                 case 'ERROR':
                     console.log(data.error);
                     break;
-                // 上面的還沒修過
-
 
                 case 'START':
                     showNotice('遊戲開始！');
@@ -124,13 +118,13 @@ function chatroomWS(){
                     (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
                     var name = $(css_id).find('.a-title').text();
                     $(css_id).find('.a-title').attr('data-bs-original-title', name + '(離線)');
-                    refreshGameSingle(self[3], css_id, 'DISCON');
+                    (2 === loginData.status) && refreshGameSingle(self[3], css_id, 'DISCON');
 
                     loginData.onoff_dict[data.sender] = 0;
                     var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
 
-                    if (loginData.status === 3)
+                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender))
                         toggle.discon = !0;
  
                     break;
@@ -139,13 +133,13 @@ function chatroomWS(){
                     ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
                     var name = $(css_id).find('.a-title').text();
                     $(css_id).find('.a-title').attr('data-bs-original-title', name);
-                    refreshGameSingle(self[3], css_id, 'CONN');
+                    (2 === loginData.status) && refreshGameSingle(self[3], css_id, 'CONN');
 
                     loginData.onoff_dict[data.sender] = 1;
                     var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
 
-                    if (loginData.status === 3){
+                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !1;
                         if(localData.text_in_discon.length>0){
                             theWS.msgsSendWs(localData.text_in_discon); // todo need to update for multiplayer match
@@ -167,7 +161,7 @@ function chatroomWS(){
                     break;
 
                 case 'INFORM':
-                    var msg = $('#snippet').text(data['msg']).text();
+                    var msg = $('#snippet').html(data['msg']).text();
                     showNotice(msg);
                     break;
                 case 'MESSAGE':
@@ -177,11 +171,11 @@ function chatroomWS(){
                         var begin_str = gameGate.message();
                         if (loginData.status === 2){
                             for (let msg of data['msgs']){
-                                msg = $('#snippet').text(begin_str + msg).text();
+                                msg = $('#snippet').html(begin_str + msg).text();
                                 theUI.showMsg(msg);
                             }
                         }
-                        var dialogs = data['msgs'].map(msg => [$('#snippet').text(begin_str + msg).text(), !1, 'a']);
+                        var dialogs = data['msgs'].map(msg => [$('#snippet').html(begin_str + msg).text(), !1, 'a']);
                         if (1===dialogs.length)
                             theUI.storeChatLogs(dialogs[0], 1, 'gameLogs');
                         else
@@ -204,28 +198,28 @@ var WSManager = function(){
         }else{
             localData.text_in_discon.push([msg, isImg]), localStorage.text_in_discon = JSON.stringify(localData.text_in_discon);
         }
-        var elmt, dialog=[msg, isImg, 'm'];
-        // (isImg) ? (elmt = theUI.showSelfImg(msg), theUI.storeChatLogs(term.showSelfImg_text)):(elmt = theUI.showSelfMsg(msg), theUI.storeChatLogs(term.showSelfMsg_text));
+        var elmt, dialog = [$('#snippet').html(msg).text(), isImg, 'm'];
         elmt = theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);
-        theUI.showStatus(elmt,1), term.emlt_for_status.push(elmt);        
+        theUI.showStatus(elmt, 1);
+        localData.elmt_for_status.push(elmt), localStorage.elmt_for_status = JSON.stringify(localData.elmt_for_status);
     }
     function mss(msg_list){  //  the matcher is disconnected, so send mag_list instead of msg in next connection.
-        if(!1===toggle.discon){
+        if(!1 === toggle.discon){
             chatSocket.send(JSON.stringify({
                 'msgs':msg_list
             }))
         }
     }
-    function st(sender,num=2){
-        if(!1===toggle.discon){
+    function st(sender, num=2){
+        if(!1 === toggle.discon){
             chatSocket.send(JSON.stringify({
                 'st':num,
-                'from':sender
+                'backto':sender
             }))
         }
     }
     function wn(isWriting){
-        if(!1===toggle.discon){
+        if(!1 === toggle.discon){
             chatSocket.send(JSON.stringify({
                 'wn':isWriting
             }))
@@ -243,53 +237,13 @@ var WSManager = function(){
         }
         chatSocket.send(JSON.stringify(json))
     }
-    /* 之後刪掉
-    function csg(){
-        chatSocket.send(JSON.stringify({
-            'call':'start_game'
-        }))
-    }
-    function clg(){
-        chatSocket.send(JSON.stringify({
-            'call':'leave_game'
-        }))
-    }
-    function cmo(){
-        chatSocket.send(JSON.stringify({
-            'call':'make_out'
-        }))
-    }
-    function cem(){
-        chatSocket.send(JSON.stringify({
-            'call':'enter_match'
-        }))
-    }
-    function clm(){
-        chatSocket.send(JSON.stringify({
-            'call':'leave_match'
-        }))
-    }
-    function cml(){
-        chatSocket.send(JSON.stringify({
-            'call':'make_leave'
-        }))
-    }
-    */
 
     return{
         msgSendWs:ms,
         msgsSendWs:mss,
         statusRespWs:st,
         writingNowWs:wn,
-        callSendWs:cs,
-        /*
-        callStartGame:csg,
-        callLeaveGame:clg,
-        callMakeOut:cmo,
-        callEnterMatch:cem,
-        callLeaveMatch:clm,
-        callMakeLeave:cml
-        */
+        callSendWs:cs
     }
 }
 
@@ -299,15 +253,11 @@ function getLocalData(){
         school: '',  // 改掉 school改成city
         lastSaid: 's',
         text_in_discon: [],
+        elmt_for_status:[],
         imgUrl_adult: '',
         chatLogs:[],
         gameLogs:[]
     };
-
-    // chatLogsNum: 0,  // 改掉 不需要那摸複雜
-    // chatLogsMaxNum: 250  // 改掉 不需要那摸複雜
-    // for (let i = 0;i<5;i++)
-    //     data['chatLogs'+i.toString()] = '';  // 改掉 不需要那摸複雜
 
     if ('undefined' !== typeof(Storage)){
         if ('true'===localStorage.isSaved){ 
@@ -315,28 +265,21 @@ function getLocalData(){
             data.school = localStorage.school,
             data.lastSaid = localStorage.lastSaid,
             data.text_in_discon = JSON.parse(localStorage.text_in_discon),
+            data.elmt_for_status = JSON.parse(localStorage.elmt_for_status),
             data.imgUrl_adult = localStorage.imgUrl_adult,
             data.chatLogs = JSON.parse(localStorage.chatLogs),
             data.gameLogs = JSON.parse(localStorage.gameLogs);
 
-            // data.chatLogsNum = +localStorage.chatLogsNum,
-            // data.chatLogsMaxNum = +localStorage.chatLogsMaxNum,
-            // for (let i = 0;i<5;i++)
-            //     data['chatLogs'+i.toString()] = localStorage['chatLogs'+i.toString()]
         }else{
             localStorage.isSaved = 'true',
             localStorage.name = '取個暱稱吧',
             localStorage.school = '',
             localStorage.lastSaid = 's',
             localStorage.text_in_discon = '[]',
+            localStorage.elmt_for_status = '[]',
             localStorage.imgUrl_adult = '',
             localStorage.chatLogs = '[]',
             localStorage.gameLogs = '[]';
-
-            // localStorage.chatLogsNum = '0',
-            // localStorage.chatLogsMaxNum = '250',
-            // for (let i = 0;i<5;i++)
-            //     localStorage['chatLogs'+i.toString()] = ''
         }
     }else{
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
@@ -346,9 +289,6 @@ function getLocalData(){
 
 function getTermData(){
     var term = {
-        name:'',
-        schoolId:'',
-        emlt_for_status:[],
         timerId_clock: null,
         timerId_writing: null,
         next_modal:!1,
@@ -356,14 +296,6 @@ function getTermData(){
         chatLogs_remain:0,
         gameLogs_remain:0
     };
-
-    // showSelfMsg_text:'',
-    // showMsg_text:'',
-    // showSelfImg_text:'',
-    // showImg_text:'',
-    // showSys_text:'',
-    // showMsgs_text:'',
-
     return term
 }
 function getToggle(){
@@ -381,26 +313,10 @@ function getToggle(){
     return toggle
 }
 
-/* 已被取代
-function appearElmtId(elmt_id){
-    ($('#'+elmt_id).hasClass('d-none')) && $('#'+elmt_id).removeClass('d-none');
-}
-function disappearElmtId(elmt_id){
-    (!$('#'+elmt_id).hasClass('d-none')) && $('#'+elmt_id).addClass('d-none');
-}
-
-function disabledElmtId(elmt_id){
-    (void 0 === $('#'+elmt_id).attr('disabled')) && $('#'+elmt_id).attr('disabled', true);
-}
-function enabledElmtId(elmt_id){
-    (void 0 !== $('#'+elmt_id).attr('disabled')) && $('#'+elmt_id).removeAttr('disabled');
-}
-*/
-
-function appearElmtCss(elmt_css){
+function appearElmtCss(elmt_css){  // just show()
     ($(elmt_css).hasClass('d-none')) && $(elmt_css).removeClass('d-none');
 }
-function disappearElmtCss(elmt_css){
+function disappearElmtCss(elmt_css){  // just hide() 
     (!$(elmt_css).hasClass('d-none')) && $(elmt_css).addClass('d-none');
 }
 
@@ -516,17 +432,19 @@ function bindMsgSend() {
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
             var text = $("#send-text").val();
-            (void 0 !== text && null !== text &&'' !== text) && (3 === loginData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未與任何人連線哦！');
+            (void 0 !== text && null !== text &&'' !== text) && (3 === loginData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未進入房間哦！');
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
         }
     })
     $("#send-text").on('input',function(a){
-        if (3 === loginData.status && !1 == toggle.writing){
-            theWS.writingNowWs(!0), toggle.writing = !0;
+        if (3 === loginData.status){
+            (!1 === toggle.writing) && (theWS.writingNowWs(!0), toggle.writing = !0);
+
+            (null !== term.timerId_writing) && clearTimeout(term.timerId_writing);
+            term.timerId_writing = setTimeout(function(){ theWS.writingNowWs(!1); },10000);  // 當時間超過10秒再發送 theWS.writingNowWs(!1)
         }
-        (null !== term.timerId_writing) && clearTimeout(term.timerId_writing);  // 當時間超過10秒再發送 theWS.writingNowWs(!1)
-        term.timerId_writing = setTimeout(function(){ theWS.writingNowWs(!1); },10000);
+
     })
     $("#send-text").on('focus',function(a){
         toggle.focus = !0;
@@ -534,8 +452,8 @@ function bindMsgSend() {
     })
     $("#send-text").on('blur',function(a){
         toggle.focus = !1;
-        if (3 === loginData.status && !0 == toggle.writing){
-            theWS.writingNowWs(!1), toggle.writing = !1;
+        if (3 === loginData.status){
+            (!0 === toggle.writing) && (theWS.writingNowWs(!1), toggle.writing = !1);
         }
     })
     $("#send-btn").on('click',function(a){
@@ -817,9 +735,7 @@ function settingsMethod(){
     $("#settings-form").on('submit',function(e){   
         e.preventDefault();
         // url: '/chat/settings'
-        // 改採關閉後檢驗資料是否改變 若改變則傳送 不變則不做反應
-        // 在<form>中仍有submit的<input>
-        // 並在chatlog上顯示 像是改學校或改暱稱
+        // change to start_game modal form
     })
 
 }
@@ -988,11 +904,19 @@ var checkGate = function(){
 
 function msgWrapper(msg){
     var msg_text = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, '<a onclick=\"window.open("$1","_blank")\">$1</a>').replace(/\n/g, '<br>');
+    /*
+    msg_text = msg_text.replace(/&amp;lt;script/g, "&amp;amp;lt;script").replace(/script&amp;gt;/g, 'script&amp;amp;gt;')
+    .replace(/&amp;lt;img/g, "&amp;amp;lt;img").replace(/img&amp;gt;/g, 'img&amp;amp;gt;')
+    .replace(/&amp;lt;script.*&amp;gt;.*&amp;lt;\/script.*&amp;gt;/g, '')
+    */
+    // .replace(/on(error|mousewheel|mouseover|click|load|onload|submit|focus|blur|start)=[^"]*/g,'');
+    
     return msg_text
 }
 
 function imgWrapper(imgUrl){
-    var imgElmt = '<img class="img-fluid a-img" src='+imgUrl+' alt="refresh website or send again please!"></img>';
+    var imgElmt = '<img class="img-fluid a-img" alt="refresh website or send again please!"></img>';
+    imgElmt.attr('src', imgUrl);
     return imgElmt
 }
 
@@ -1002,8 +926,7 @@ var chatUI = function(){
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt), st(newElmt,1);
         localData.lastSaid = 'm',localStorage.lastSaid='m';
-        ut(!1), toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
-        // term['showSelfMsg_text'] = newElmt_text; // for storeChatLogs()
+        ut(!1), toggle.focus === !0 &&toggle.scroll === !1 && (now(), ut(!0));
         return newElmt
     }
 
@@ -1012,8 +935,7 @@ var chatUI = function(){
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt), st(newElmt,1);
         localData.lastSaid = 'm',localStorage.lastSaid='m';
-        ut(!1), toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
-        // term['showSelfImg_text'] = newElmt_text; // for storeChatLogs()
+        ut(!1), toggle.focus === !0 &&toggle.scroll === !1 && (now(), ut(!0));
         return newElmt
     }
 
@@ -1022,8 +944,7 @@ var chatUI = function(){
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 'a',localStorage.lastSaid = 'a';
-        ut(!1), toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
-        // term['showMsg_text'] = newElmt_text; // for storeChatLogs()
+        ut(!1), toggle.focus === !0 && toggle.scroll === !1 && (now(), ut(!0));
         return newElmt
     }
 
@@ -1032,8 +953,7 @@ var chatUI = function(){
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 'a',localStorage.lastSaid = 'a';
-        ut(!1), toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
-        // term['showImg_text'] = newElmt_text; // for storeChatLogs()
+        ut(!1), toggle.focus === !0 && toggle.scroll === !1 && (now(), ut(!0));
         return newElmt
     }
 
@@ -1042,8 +962,7 @@ var chatUI = function(){
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 's',localStorage.lastSaid = 's';
-        ut(!1), toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
-        // term['showSys_text'] = newElmt_text; // for storeChatLogs()
+        ut(!1), toggle.focus === !0 &&toggle.scroll === !1 && (now(), ut(!0));
         return newElmt
     }
 
@@ -1052,8 +971,7 @@ var chatUI = function(){
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 's',localStorage.lastSaid = 's';
-        ut(!1), toggle.focus == !0 &&toggle.scroll == !1 && (n(), ut(!0));
-        // term['showSysImg_text'] = newElmt_text; // for storeChatLogs()
+        ut(!1), toggle.focus === !0 &&toggle.scroll === !1 && (now(), ut(!0));
         return newElmt
     }
 
@@ -1074,7 +992,7 @@ var chatUI = function(){
         }
         localData.lastSaid = dialog[2], localStorage.lastSaid=dialog[2];
         ('down'=== direction)?$('#writing').before(newElmt): $('#show-more').after(newElmt);
-        ut(!1), (toggle.focus === !0)&& (toggle.scroll === !1) && (n(), ut(!0));
+        ut(!1), (toggle.focus === !0)&& (toggle.scroll === !1) && (now(), ut(!0));
         return newElmt
     }
 
@@ -1094,21 +1012,21 @@ var chatUI = function(){
         }
         var newElmt = $(newElmt_text).addClass('d-none');
         $('#writing').before(newElmt), localData.lastSaid = 'a',localStorage.lastSaid = 'a';
-        ut(!1), toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
+        ut(!1), toggle.focus == !0 && toggle.scroll == !1 && (now(), ut(!0));
         return newElmt
     }
 
     function wn(isWriting){
-        (!0==isWriting) ? $('#writing').removeClass('d-none'):$('#writing').addClass('d-none');
-        toggle.focus == !0 && toggle.scroll == !1 && (n(), ut(!0));
+        (!0 === isWriting) ? $('#writing').removeClass('d-none'): $('#writing').addClass('d-none');
+        toggle.focus === !0 && toggle.scroll === !1 && (now(), ut(!0));
     }
     function st(myElmt,num){
-        var st ={
-            2:'(已送達)',1:'(傳送中)',0:'(未送達)'
+        var st ={  // st[0] haven't been used.
+            2:'(已送達)',1:'(傳送中)',0:'(傳送失敗)'
         }
-        myElmt.find('.a-status>span:eq(0)').text(st[num])   
+        myElmt.find('.a-status>span:eq(0)').text(st[num]);
     }
-    function n(){
+    function now(){
         toggle.scroll = !0;
         $('.outer-scrollbar').animate({
             scrollTop:$('#dialog').height()
@@ -1120,7 +1038,7 @@ var chatUI = function(){
         });
     }
 
-    function c(startTime=null, duration=null){
+    function clk(startTime=null, duration=null){
         // 加入倒數功能 duration
         function time(){
             var date = new Date();
@@ -1144,58 +1062,13 @@ var chatUI = function(){
         hasRead?(unreadMsg=0, document.title=TITLE): (unreadMsg+=1, document.title='('+unreadMsg+')' + TITLE)
     }
 
-    /*
-    function cl(){
-        var last = $('#writing');
-        for (let i = 0;i<5;i++)
-            localData['chatLogs'+i.toString()] = '', localStorage['chatLogs'+i.toString()] = '';
-        localData.chatLogsMaxNum = 250,localStorage.chatLogsMaxNum = localData.chatLogsMaxNum.toString() ,localData.chatLogsNum=0,localStorage.chatLogsNum='0';
-        $('#dialog').empty(),$('#dialog').append(last);
-    }*/
-
     function cl(log_name='chatLogs'){
         localData[log_name] = [], localStorage[log_name] = '[]';
-        //var first = $('#show-more'), last = $('#writing');
-        //$('#dialog').empty().apeend(first, last);
         $('#dialog>div').not('#show-more').not('#writing').remove();
         sm('已清除對話紀錄');
-
     }
 
-    /* 
-    function ll(n=null){
-        if ('undefined' !== typeof(Storage)){
-            var last = $('#writing');
-            $('#dialog').empty(), $('#dialog').append(last);
-            if(localData.chatLogsNum>=250){
-                var index = (Number(localData.chatLogsNum/50) % 5);  // index最多為0~4共5個 多出來的部分會進行輪轉 
-            }else{
-                var index = 4;
-            }            
-            for (let i = 0;i<5;i++){ 
-                var elmts = $(localData['chatLogs'+index.toString()]);
-                if(n===null || n>elmts.length){
-                    $('#writing').before(elmts);
-                    n = n - elmts.length;
-                }else{ // n<=elmts.length
-                    elmts = elmts.filter(function(i){
-                        return i>=elmts.length-n 
-                    })
-                    $('#writing').before(elmts);
-                    n = 0;
-                }
-                if(n===0)
-                    break;
-                index--;
-                (index === -1)&&(index = 4)
-            }
-            term.chatLogsTag = (n===null)? 0 :(n>localData.chatLogsNum)? 0 :localData.chatLogsNum-n;
-        }
-    }*/
-
     function ll(log_name='chatLogs', n=30){
-        //var first = $('#show-more'), last = $('#writing');
-        //$('#dialog').empty().append(first, last);
         $('#dialog>div').not('#show-more').not('#writing').remove();
         var reversed = localData[log_name].slice().reverse();
         var dialog, isMore, cnt = 0, atmost = (n<=reversed.length)?n-1: reversed.length-1;
@@ -1217,18 +1090,6 @@ var chatUI = function(){
         (reversed.length>cnt)?(term[log_name+'_remain'] = (reversed.length-cnt), isMore=!0): (term[log_name+'_remain'] = 0, isMore=!1);
         return isMore
     }
-
-
-    /* 
-    function sl(elmt_text, n=1){ // todo 目前先用50個dialogdiv換行 塞滿200個dialogdiv後開始刪減 之後在用Blob找準確大小
-        var index = parseInt(localData.chatLogsNum/50) % 5, isFull = (localData.chatLogsNum>=localData.chatLogsMaxNum)?!0:!1;
-        if (isFull){  // todo 測試超過250句
-            localData['chatLogs'+index.toString()] = '',localStorage['chatLogs'+index.toString()] = '';
-            localData.chatLogsMaxNum = localData.chatLogsMaxNum +50, localStorage.chatLogsMaxNum = localData.chatLogsMaxNum.toString();
-        }
-        localData['chatLogs'+index.toString()] = localData['chatLogs'+index.toString()]+elmt_text, localStorage['chatLogs'+index.toString()] = localStorage['chatLogs'+index.toString()]+elmt_text;
-        localData.chatLogsNum+= n, localStorage.chatLogsNum = localData.chatLogsNum.toString();
-    }*/
 
     function sl(dialog, n=1, log_name='chatLogs'){
         (n === 1)? localData[log_name].push(dialog) : localData[log_name] = localData[log_name].concat(dialog);
@@ -1264,8 +1125,8 @@ var chatUI = function(){
         }
     }
 
-    function ms(msg_List, interval=500, callback=null){  // async function 
-        var s = 0, elmts_text = '';
+    function mgs(msg_List, interval=500, callback=null){  // async function 
+        var s = 0;
         for (let t of msg_List){
             setTimeout(function(){
                 om([...t, 'a']);
@@ -1273,7 +1134,6 @@ var chatUI = function(){
             s++;
         }
         setTimeout(function(){
-            // term['showMsgs_text'] = elmts_text;
             if ('function'===typeof(callback)){
                 callback();  
             }
@@ -1290,15 +1150,11 @@ var chatUI = function(){
             s++;
         }
         setTimeout(function(){
-            // term['showMsgs_text'] = elmts_text; 所有的term都會換掉 不直接存html結構
             if ('function'===typeof(callback)){
                 callback();  
             }
         }, s*interval);
     }
-
-
-
     return{
         showSelfMsg:mm,
         showSelfImg:mi,
@@ -1308,9 +1164,9 @@ var chatUI = function(){
         showSysImg:si,
         showOneMsg:om,
         showStatus:st,
-        showClock:c,
+        showClock:clk,
         showQuestion:q,
-        scrollToNow:n,
+        scrollToNow:now,
         showWritingNow:wn,
         unreadTitle:ut,
         clearChatLogs:cl,
@@ -1318,7 +1174,7 @@ var chatUI = function(){
         loadChatLogsMore:llm,
         storeChatLogs:sl,
         gotoSchoolAsync:go,
-        showMsgsAsync:ms,
+        showMsgsAsync:mgs,
         showStoryAsync:sty
     }
 }
@@ -1329,7 +1185,6 @@ function installToolTip() {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
 }
-
 
 function timeAMPM(date) {  // time_str = timeAMPM(new Date())  output: '1:01 pm'
     var hours = date.getHours(), minutes = date.getMinutes();
@@ -1380,11 +1235,9 @@ var loginData = JSON.parse(document.getElementById('loginData').textContent),
     term = getTermData(),
     toggle = getToggle()
     
+    
 $(document).ready(function() {
     bindMsgSend(), installToolTip(), bindModalHide(), bindUpMore(); 
     loginMethodSet(), profileMethodSet(), leaveMethod(), startMethod(), settingsMethod();
-    // 後端比localStorage可靠 但仍同時使用loginData和localData 
-    // 最好一次傳完 而且其實loginData資料不大 如此一來localStorage就只需要處理不是從後端來的資料
     loadLoginData(), loadLocalData(); 
-    // loadLocalData()表示尚未登入也可以存取的資料
 });
