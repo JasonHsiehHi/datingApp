@@ -21,7 +21,7 @@ def examine(request, uuid):
         self_player.tag_json[uuid] = 1  # 被審問的對象要被紀錄在偵探的tag_json 直到deduce後才會全部為0
         self_player.save()
 
-        # todo 需要準備計時 給consumer來做
+        # todo 需要準備計時 且consumer每次都要讀取 不同於waiting_time 需改為倒數計時
 
         return JsonResponse({"result": True, "player_list": match.player_list})
     else:

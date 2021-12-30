@@ -121,7 +121,6 @@ function deduceMethod(){
         var set = new Set(eventSet);
         set.delete('偵探本人');
         for (let name of set){
-            //$('.gameevent-options').append("<option value="+name+">");
             $('.gameevent-options').append('<option value='+name+'>'+name+'</option>');
         }
     }
@@ -137,8 +136,7 @@ function deduceMethod(){
             seletedEvent[position[uuid]] = $(this).val();
             $('.gameevent-options').find('option').show();
             for (let opt of Object.values(seletedEvent)){
-                // 刪掉 .not('select[value='+opt+']')
-                $('.gameevent-options').not('select[value='+opt+']').find('option[value='+opt+']').hide();
+                $('.gameevent-options').find('option[value='+opt+']').hide();
             }                
         })
     }
@@ -213,8 +211,7 @@ function inquireMethod(css_id, player_uuid){
                     loginData.tag_int = 1;
                     var text = name_role + '沒有 '+data['event'];
                     $('#game-inquire').text(text);
-                    setNextNotice(text);
-                    $('#modal').modal('hide');
+                    showNotice(text);
                 }else{
                     $('#inquire-modal-form p.a-error').text(data['msg']);
                 }
@@ -339,12 +336,14 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
                 $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
                 $(css_id).find('.a-onoff').html('(離線)');  // 當名字過長時 會不會有問題
                 disabledElmtCss(css_id+'-btn');
+                (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !0, theUI.showSys(name +' 目前為離線狀態...'));
                 break;
             case 1:
                 ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
                 $(css_id).find('.a-title').attr('data-bs-original-title', name);
                 $(css_id).find('.a-onoff').html();
                 enabledElmtCss(css_id+'-btn');
+                (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !1);
                 break;
             case -1:
                 (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
@@ -352,8 +351,9 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
                 $(css_id).find('.a-onoff').html('(已退出)');
                 $(css_id).find('.a-circle').text('');
                 disabledElmtCss(css_id+'-btn');
+                (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !0, theUI.showSys(name +' 已離開房間。 玩家可按"離開"鍵 離開目前的房間'));
+                
                 if (self[3] === 1){
-                    // $(css_id+'-deduce-input').attr('placeholder','已退出遊戲')
                     $(css_id+'-deduce-input').removeAttr('required').attr('disabled', true).removeClass('gameevent-options');
                     $(css_id+'-deduce-input>option:eq(0)').text('已退出遊戲');
                 }

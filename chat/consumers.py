@@ -293,6 +293,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
 
 
+
     # functions received from other chatConsumers
     async def is_on(self, event):
         if self.uuid != event['from']:

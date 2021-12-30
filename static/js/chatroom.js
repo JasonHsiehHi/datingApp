@@ -37,9 +37,7 @@ function chatroomWS(){
                     break;
                 
                 case 'MSG':
-                    console.log(data.msg);
                     var text_only = $('#snippet').html(data.msg).text();
-                    console.log(text_only);
                     var dialog = [text_only, false, 'a'];  // data.isImg is false, sending img hasn't been available.
                     theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);                        
                     theWS.statusRespWs(data.sender, 2);
@@ -291,8 +289,6 @@ function getTermData(){
     var term = {
         timerId_clock: null,
         timerId_writing: null,
-        next_modal:!1,
-        next_msg:'',
         chatLogs_remain:0,
         gameLogs_remain:0
     };
@@ -470,7 +466,6 @@ function bindModalHide(){
             (!$(this).hasClass('d-none')) && $(this).addClass('d-none');
         });
         $('#modal .a-error').text('');
-        (!0 === term.next_modal) && (showNotice(term.next_msg), term.next_modal=!1);
     });
 }
 
@@ -479,11 +474,6 @@ function bindUpMore(){
         var isMore = (2 === loginData.status)?theUI.loadChatLogsMore('gameLogs'):theUI.loadChatLogsMore('chatLogs');
         (!0 === isMore)?appearElmtCss('#show-more'): disappearElmtCss('#show-more');
     }) 
-}
-
-function setNextNotice(msg){  // 刪掉 現在只要用showNotice即可 因為會自自動關閉#modal開啟#notice-modal
-    term.next_modal = !0, term.next_msg = msg;
-    // extended feature: msg_list can set multiple notice modal
 }
 
 function showNotice(msg){
@@ -524,9 +514,7 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {  
                 if (!0 === data['result']){
-                    
-                    setNextNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
-                    $('#modal').modal('hide');
+                    showNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
                 }else{
                     $('#signup-modal-form p.a-error').text(data['msg']);
                 }
@@ -554,10 +542,9 @@ function loginMethodSet(){
                         localStorage[prep] = data['loginData'][prep];  // 不要用localData和ocalStorage 改直接存入loginData
                     }
                     refreshProfile(), loginData.isLogin = !0, loadLoginData(); // refreshProfile()刪除 因為已合併到loadLoginData
-                    setNextNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
-                    $('#modal').modal('hide');
+                    showNotice(data['msg']);  // msg由後端移到前端 因為只有不成功時才能有msg
                     $('#notice-modal').on('hide.bs.modal', function(e) {
-                        (!1 === term.next_modal) && (window.location.href = "/chat");
+                        window.location.href = "/chat";
                     });
                 }else{
                     $('#login-modal-form p.a-error').text(data['msg']);
@@ -579,10 +566,9 @@ function loginMethodSet(){
                 if (!0 === data['result']){
                     loginData.isLogin = !1, loadLoginData();  // 如果要重新導向 則資料不用傳入
                     
-                    setNextNotice(data['msg']);
-                    $('#modal').modal('hide');
+                    showNotice(data['msg']);
                     $('#notice-modal').on('hide.bs.modal', function(e) {
-                        (!1 === term.next_modal) && (window.location.href = "/chat");
+                        window.location.href = "/chat";
                     });
                 }else{
                     $('#logout-modal-form p.a-error').text(data['msg']);
@@ -605,10 +591,9 @@ function loginMethodSet(){
             success: function(data) {
                 if (!0 === data['result']){
                     
-                    setNextNotice(data['msg']);
-                    $('#modal').modal('hide');
+                    showNotice(data['msg']);
                     $('#notice-modal').on('hide.bs.modal', function(e) {
-                        (!1 === term.next_modal) && (window.location.href = "/chat");
+                        window.location.href = "/chat";
                     });
                 }else{
                     $('#change-pwd-modal-form p.a-error').text(data['msg'])
@@ -631,8 +616,7 @@ function loginMethodSet(){
             success: function(data) {
                 if (!0 === data['result']){  // todo 寄信需要提醒用戶等一下
                     
-                    setNextNotice(data['msg']);
-                    $('#modal').modal('hide');
+                    showNotice(data['msg']);
                 }else{
                     $('#reset-pwd-modal-form p.a-error').text(data['msg'])
                 }
@@ -903,14 +887,7 @@ var checkGate = function(){
 }
 
 function msgWrapper(msg){
-    var msg_text = msg.replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, '<a onclick=\"window.open("$1","_blank")\">$1</a>').replace(/\n/g, '<br>');
-    /*
-    msg_text = msg_text.replace(/&amp;lt;script/g, "&amp;amp;lt;script").replace(/script&amp;gt;/g, 'script&amp;amp;gt;')
-    .replace(/&amp;lt;img/g, "&amp;amp;lt;img").replace(/img&amp;gt;/g, 'img&amp;amp;gt;')
-    .replace(/&amp;lt;script.*&amp;gt;.*&amp;lt;\/script.*&amp;gt;/g, '')
-    */
-    // .replace(/on(error|mousewheel|mouseover|click|load|onload|submit|focus|blur|start)=[^"]*/g,'');
-    
+    var msg_text = msg.replace(/\n/g, '<br>').replace(/(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g, '<a href=\'$1\' target=\'_blank\'>$1</a>');
     return msg_text
 }
 
@@ -1071,10 +1048,12 @@ var chatUI = function(){
     function ll(log_name='chatLogs', n=30){
         $('#dialog>div').not('#show-more').not('#writing').remove();
         var reversed = localData[log_name].slice().reverse();
-        var dialog, isMore, cnt = 0, atmost = (n<=reversed.length)?n-1: reversed.length-1;
+        var dialog, elmt, isMore, cnt = 0, atmost = (n<=reversed.length)?n-1: reversed.length-1;
         while(cnt<reversed.length && cnt<n){
             dialog = reversed[atmost-cnt];
-            om(dialog), cnt++;
+            elmt = om(dialog), cnt++;
+            (dialog[2] === 'm') && (cnt>loginData.text_in_discon.length) && st(elmt, 2); // some dialogs haven't sent.
+            
         }
         (reversed.length>cnt)?(term[log_name+'_remain'] = (reversed.length-cnt), isMore=!0): (term[log_name+'_remain'] = 0, isMore=!1);
         return isMore
@@ -1082,10 +1061,11 @@ var chatUI = function(){
 
     function llm(log_name='chatLogs', n=30){  // used by '#show-more'
         var reversed = localData[log_name].slice(0, term[log_name+'_remain']).reverse();
-        var dialog, isMore, cnt = 0;
+        var dialog, elmt, isMore, cnt = 0;
         while(cnt<reversed.length && cnt<n){
             dialog = reversed[cnt];
-            om(dialog, 'up'), cnt++;
+            elmt = om(dialog, 'up'), cnt++;
+            (dialog[2] === 'm') && st(elmt, 2);
         }
         (reversed.length>cnt)?(term[log_name+'_remain'] = (reversed.length-cnt), isMore=!0): (term[log_name+'_remain'] = 0, isMore=!1);
         return isMore
