@@ -82,11 +82,17 @@ function chatroomWS(){
                     }); 
                     break;
 
-                case 'ENTER':  // 通知其他人進入match
-                    loginData.status = 3, refreshStatus(3), refreshGameStatus(self[3], 3);
-                    loginData.player_list = data['player_list'];
-
+                case 'ENTER':
                     showNotice(' 進入房間');
+                    $('#notice-modal').on('hide.bs.modal', function(e) { 
+                        window.location.assign(window.location.href);
+                    }); 
+                    /*
+                    loginData.player_list = data['player_list'];
+                    loginData.waiting_time = data['waiting_time'];
+                    console.log(data['waiting_time']);
+                    loginData.status = 3, refreshStatus(3), refreshGameStatus(self[3], 3);
+
                     var anons_list = [...loginData.player_list];
                     anons_list.remove(loginData.uuid);
                     if (void 0 !== data.sender){
@@ -96,6 +102,7 @@ function chatroomWS(){
                         var name_list = anons_list.map( uuid => loginData.player_dict[uuid][0] )
                         theUI.showSys('<span class="a-point">'+name_list.join(',')+'</span>'+' 已進入房間');
                     }
+                    */
                     break;
 
                 case 'LEAVE': // 通知其他人離開match
@@ -106,10 +113,16 @@ function chatroomWS(){
                     break;
 
                 case 'LEAVEDOWN': // 通知其他人離開match後自己離開
-                    loginData.status = 2, refreshStatus(2), refreshGameStatus(self[3], 2);
+                
+                    /*
                     loginData.player_list = [];
-                    
-                    showNotice(' 你已離開房間...');
+                    loginData.status = 2, refreshStatus(2), refreshGameStatus(self[3], 2);
+                    */
+
+                    (!0 === data['timeout'])?showNotice('時間到！ 即將自動關閉房間...'):showNotice(' 你已離開房間...');;
+                    $('#notice-modal').on('hide.bs.modal', function(e) { 
+                        window.location.assign(window.location.href);
+                    }); 
                     break;
                 case 'DISCON':
                     var css_id = position[data.sender];
@@ -1015,11 +1028,10 @@ var chatUI = function(){
         });
     }
 
-    function clk(startTime=null, duration=null){
-        // 加入倒數功能 duration
+    function clk(timePoint=null, countDown=false){
         function time(){
             var date = new Date();
-            var offsetTime = (date-start)/ 1000;
+            var offsetTime = (!1 === countDown)?((date-point)/ 1000) : ((point-date)/ 1000);
             var s = parseInt(offsetTime % 60), m = parseInt((offsetTime / 60) % 60), h = parseInt((offsetTime / 60 / 60) % 100);
             h = (h < 10) ? ("0" + h) : h;
             m = (m < 10) ? ("0" + m) : m;
@@ -1028,9 +1040,9 @@ var chatUI = function(){
             var display = m+':'+s;
             $('.a-clock').text(display);
             
-            (1===loginData.status) && (term.timerId_clock = setTimeout(time, 1000));  // time-conuting only in status:1
+            (1===loginData.status || 3===loginData.status) && (term.timerId_clock = setTimeout(time, 1000));  // time-conuting only in status:1 and status:3
         } 
-        var start = (null!==startTime)?(new Date(startTime)):(new Date());
+        var point = (null !== timePoint)?(new Date(timePoint)):(new Date());
         (null !== term.timerId_clock) && clearTimeout(term.timerId_clock);
         setTimeout(time, 50);
     }
@@ -1052,7 +1064,7 @@ var chatUI = function(){
         while(cnt<reversed.length && cnt<n){
             dialog = reversed[atmost-cnt];
             elmt = om(dialog), cnt++;
-            (dialog[2] === 'm') && (cnt>loginData.text_in_discon.length) && st(elmt, 2); // some dialogs haven't sent.
+            (dialog[2] === 'm') && (cnt>localData.text_in_discon.length) && st(elmt, 2); // some dialogs haven't sent.
             
         }
         (reversed.length>cnt)?(term[log_name+'_remain'] = (reversed.length-cnt), isMore=!0): (term[log_name+'_remain'] = 0, isMore=!1);

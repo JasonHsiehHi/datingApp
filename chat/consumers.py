@@ -3,7 +3,9 @@ from . import utils
 from django.core.cache import cache
 from datetime import datetime, timezone
 import time
+from threading import Timer
 from datingApp import settings
+from asgiref.sync import async_to_sync
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -51,14 +53,23 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                         'match-'+str(self.match.id),
                         self.channel_name
                     )
+
+                    td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
+                    seconds = td.total_seconds()
+                    call = {'call': 'leave_match', "isTimeout": True}
+                    await self.timer(seconds, **call)
+
             await self.accept()
         else:
             await self.close()
 
     async def disconnect(self, close_code):
         self.player_data = await utils.refresh_player(self.player_data)
-        self.player_data = await utils.set_player_fields(
-            self.player_data, {'isPrepared': False, 'waiting_time': None, 'isOn': False})
+        if self.player_data.status == 1:
+            self.player_data = await utils.set_player_fields(
+                self.player_data, {'isPrepared': False, 'waiting_time': None, 'isOn': False})
+        else:
+            self.player_data = await utils.set_player_fields(self.player_data, {'isOn': False})
 
         await self.channel_layer.group_discard(
             self.uuid,
@@ -145,7 +156,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             elif call == 'enter_match':
                 await self.call_enter_match()
             elif call == 'leave_match':
-                await self.call_leave_match()
+                isTimeout = getattr(content, 'isTimeout', False)
+                await self.call_leave_match(isTimeout)
             elif call == 'make_leave':
                 await self.call_make_leave()
             elif call == 'see_message':
@@ -218,9 +230,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def call_enter_match(self):
         self.player_data = await utils.refresh_player(self.player_data)
         self.match, player_list = await utils.get_match_players(self.player_data)
-
-        # self.match_playerNum = len(player_list)
-
         self.in_match = True
         await self.channel_layer.group_add(
             'match-'+str(self.match.id),
@@ -233,20 +242,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'player_list': player_list,
                 'from': self.uuid
             })
+        td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
+        seconds = td.total_seconds()
+        call = {"call": 'leave_match', "isTimeout": True}
+        await self.timer(seconds, **call)
 
-        # 使用timer()計時
-        # 進房時間長短由當前還在的玩家決定 上線與離線的玩家 時間到離開會跟任何一方離開的結果相同 其他人離開時間歸0
-        # 時間到時檢查match是否已刪除 若已消失則不寄送訊息 因為表示玩家自行離開
-
-
-    async def call_leave_match(self):
+    async def call_leave_match(self, isTimeout=False):
         self.match, player_list = await utils.get_match_players(self.player_data)
-        # self.match_playerNum = len(player_list)
         await self.channel_layer.group_send('match-'+str(self.match.id), {
             'type': 'leave_match',
             'match_id': 'match-' + str(self.match.id),
             'from': self.uuid,
-            'player_list': player_list
+            'player_list': player_list,
+            'timeout': isTimeout
         })
 
         self.in_match = False
@@ -285,13 +293,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'toMe': True
         })
 
-    async def timer(self, duration_min, call, **kwargs):
-        time.sleep(duration_min * 60)
-        content = {'call': call, **kwargs}
-        # 為防突然離線 必須用waiting_time紀錄
-        await self.receive_json(content)
+    async def timer(self, sleep_secs, **kwargs):
+        t = Timer(sleep_secs, async_to_sync(self.execute_in_match), kwargs=kwargs)
+        t.start()
 
-
+    async def execute_in_match(self, **kwargs):
+        in_match = getattr(self, 'in_match', None)
+        if in_match is True:
+            await self.receive_json(kwargs)
 
 
     # functions received from other chatConsumers
@@ -338,7 +347,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.uuid == event['from']:
             await self.send_json({
                 "type": 'ENTER',
-                "player_list": event['player_list']
+                "player_list": event['player_list'],
             })
 
         else:
@@ -365,7 +374,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def leave_match(self, event):
         if self.uuid == event['from']:
             await self.send_json({
-                "type": 'LEAVEDOWN'
+                "type": 'LEAVEDOWN',
+                "timeout": event['timeout']
             })
         else:
             await self.send_json({

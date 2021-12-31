@@ -207,6 +207,8 @@ DELETE_PHOTO_AFTER_TIME = False
 CERTAIN_TIME_FOR_DELETE_PHOTO = 24 * 15  # 每15天會把房間內照片檔刪除
 MAXIMUM_FOR_DELETE_PHOTO = 30  # 單一房間內的用戶最多只能留30份照片檔
 
+ROOMTIME_MIN = {1: 60, 2: 20, 3: 15, 4: 12, 5: 10, 6: 8, 7: 8, 8: 8}
+
 # for SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

@@ -30,6 +30,9 @@ GCE上線部署
 
 
 # 架構圖 LARP
+1.obj_name 以物件為主體 描述使用方法與其他物件的關聯性
+2.process_name 以流程為主體 描述執行順序及原因
+
 login和logout都會重新導向一次window.location.href="/chat" 
 此時才會重新做loadLoginData()
 
@@ -38,6 +41,18 @@ loadLocalData, loadRoleData都只會在ready時執行 其餘狀態都使用refre
 
 function receive from other consumer：只能進行後端到前端的訊息傳遞而已 不做任何資料存取
 function called by receive_json：大多只為準備傳給其他consumer的資料 一般不存取資料庫(改變資料庫工作交給view)
+
+
+先檢查是否在線上 再檢查tag紀錄
+
+obj_name:
+used_by:
+to_use:
+
+
+process_name:
+
+
 
 
 # 手動測試流程 LARP

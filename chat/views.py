@@ -631,6 +631,7 @@ def leave_match(request):
             match.save()
 
             player.status = 2
+            player.waiting_time = None
             player.save()
 
             return JsonResponse({"result": True})

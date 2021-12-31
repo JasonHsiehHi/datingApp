@@ -1,8 +1,10 @@
 from django.http import JsonResponse
 
+from datingApp import settings
 from django.contrib.auth.models import User
 from .models import Match, Player
 from random import randint
+from datetime import datetime, timezone, timedelta
 
 
 def examine(request, uuid):
@@ -10,14 +12,21 @@ def examine(request, uuid):
         self_player = request.user.profile
         if len(self_player.tag_json) == 0 or self_player.tag_json[uuid] != 0:
             pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
+        room = self_player.room
+        onoff_list = [1 for v in dict(room.onoff_dict).values() if v != -1]
+        onoff_num = len(onoff_list)
 
         examinee = Player.objects.get(uuid=uuid)
         match = Match.objects.create(room=self_player.room, player_list=[str(examinee.uuid), str(self_player.uuid)])
+
         examinee.match = match
         examinee.status = 3
+        examinee.waiting_time = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.ROOMTIME_MIN[onoff_num])
         examinee.save()
+
         self_player.match = match
         self_player.status = 3
+        self_player.waiting_time = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.ROOMTIME_MIN[onoff_num])
         self_player.tag_json[uuid] = 1  # 被審問的對象要被紀錄在偵探的tag_json 直到deduce後才會全部為0
         self_player.save()
 
@@ -45,7 +54,7 @@ def deduce(request):
         for uuid, name in deduce_dict.items():
             self_player.tag_json[uuid] = 0
 
-            if name == answer_dict[uuid]: # everyone are out
+            if name == answer_dict[uuid]:  # everyone are out
                 if name == '與偵探發生關係':
                     room.onoff_dict = {key: -1 for key in dict(room.onoff_dict)}
                     players.exclude(uuid=self_player.uuid).update(status=0, room=None, tag_int=None, tag_json=None)

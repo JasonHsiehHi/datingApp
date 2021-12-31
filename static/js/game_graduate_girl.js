@@ -14,7 +14,7 @@ var gameCheckGate = function(){
         var li = [...loginData.player_list];
         li.remove(loginData.uuid);
         var name_list = li.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
-        var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 已進入房間', !1];
+        var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 目前待在房間中', !1];
         (!0 === isDirected) && theUI.showSys(dialog[0]);
         return dialog
     }
@@ -150,7 +150,7 @@ function examineMethod(css_id, player_uuid){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.tag_json[player_uuid] = 1;
+                    // loginData.tag_json[player_uuid] = 1, refreshGameStatus(1, loginData.status);
                     theWS.callSendWs('enter_match');
                     showNotice('已建立房間 等待中...'), theUI.showSys('等待對方回應...');
                 }else{
@@ -179,7 +179,7 @@ function clueMethod(css_id, player_uuid){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.tag_int = 2;
+                    loginData.tag_int = 2, refreshGameStatus(0, loginData.status);
                     theWS.callSendWs('see_message',['player', player_uuid]);
                     $('#modal').modal('hide');
                 }else{
@@ -208,7 +208,7 @@ function inquireMethod(css_id, player_uuid){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.tag_int = 1;
+                    loginData.tag_int = 1, refreshGameStatus(0, loginData.status);
                     var text = name_role + '沒有 '+data['event'];
                     $('#game-inquire').text(text);
                     showNotice(text);
@@ -282,9 +282,26 @@ function refreshGameStatus(self_group, status){
     switch (status){ 
         case 2:
             for (let uuid in position){
-                (1 === loginData.onoff_dict[uuid]) && enabledElmtCss(position[uuid]+'-btn');
-
-                // 處理tag_json和tag_int
+                if (1 === loginData.onoff_dict[uuid]){
+                    /*
+                    if (self_group === 1)
+                        (0 === loginData.tag_json[uuid]) && enabledElmtCss(position[uuid]+'-btn');
+                    else{ // self_group === 0
+                        switch(loginData.tag_int){
+                            case 0:
+                                (0 === other[uuid][3]) && enabledElmtCss(position[uuid]+'-btn');
+                                break;
+                            case 1:
+                                (1 === other[uuid][3]) && enabledElmtCss(position[uuid]+'-btn');
+                                break;
+                            case 2:
+                                disabledElmtCss(position[uuid]+'-btn');
+                                break;
+                        }
+                    }
+                    */
+                    enabledElmtCss(position[uuid]+'-btn')  // for test
+                } 
             }
                 
             setNavTitle('劇本：<span class="a-point">'+ GAMETITLE +'</span>');
@@ -305,18 +322,13 @@ function refreshGameStatus(self_group, status){
         case 3:
             for (let uuid in position){
                 (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
-
-                // 處理tag_json和tag_int
             }
             
-            setNavTitle('審問中... 剩餘時間：<span class="a-point a-clock"></span>');
-
-            if (localData.chatLogs.length !== 0){
-                var isMore = theUI.loadChatLogs('chatLogs');  
-                (!0 === isMore) && appearElmtCss('#show-more');  //todo 完成'顯示更多'UI和功能
-            }
-
-            theUI.showSys('房間剩餘時間: <span class="a-clock a-point"></span>'), theUI.showClock(); // todo showClock改用倒數
+            setNavTitle('審問中... 剩餘時間：<span class="a-point a-clock"></span>'), theUI.showClock(loginData.waiting_time, !0);
+            // if (localData.chatLogs.length !== 0){ }
+            var isMore = theUI.loadChatLogs('chatLogs');  
+            (!0 === isMore) && appearElmtCss('#show-more');
+            
             gameGate.matcher();
 
             if (self_group === 1)
@@ -334,7 +346,7 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
             case 0:
                 (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
                 $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
-                $(css_id).find('.a-onoff').html('(離線)');  // 當名字過長時 會不會有問題
+                $(css_id).find('.a-onoff').html('(離線)');
                 disabledElmtCss(css_id+'-btn');
                 (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !0, theUI.showSys(name +' 目前為離線狀態...'));
                 break;
