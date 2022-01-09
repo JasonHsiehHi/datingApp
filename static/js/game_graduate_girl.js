@@ -25,7 +25,7 @@ var gameCheckGate = function(){
     }
 
     function eve(isDirected=false){
-        var li = loginData['event_content'].filter(text => text !== ' ')
+        var li = loginData['event_content'].filter(text => text !== ' ');
         var dialog = ['提示線索：<br><em>' + li.join('<br>')+'</em>', !1];
         (!0 === isDirected) && theUI.showMsg(dialog[0]);
         return dialog
@@ -101,10 +101,7 @@ function deduceMethod(){
             data: formArray,
             dataType: "json",
             success: function(data) {
-                if (!0 === data['result']){                    
-                    // 偵探call_make_out => 被指名的玩家離開但保留畫面 沒被指名的玩家通知此玩家已經離開 (玩家出局)
-                    // 偵探call_make_out => gameover 遊戲結束 全體保留畫面 players按鍵全關動不了 (遊戲結束)
-                    
+                if (!0 === data['result']){
                     theWS.callSendWs('make_out');
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
@@ -222,7 +219,7 @@ function inquireMethod(css_id, player_uuid){
     })
 }
 
-function disabledGameBtns(){
+function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'
     var css_id; 
     for (let uuid in position)
         css_id = position[uuid], disabledElmtCss(css_id+'-btn');
@@ -233,11 +230,11 @@ function disabledGameBtns(){
     })
 }
 
-function loadRoleData(){
+function loadRoleData(){  // according to individual role, to display different sidebar
     self = loginData.player_dict[loginData.uuid];
     others = JSON.parse(JSON.stringify(loginData.player_dict)), delete others[loginData.uuid];
     $('#user-role').text( '('+self[2]+')' );
-    var i = 1, css_id, name, sub, gender, group;
+    var i = 1, css_id, name, gender, sub, group;
     for (let uuid in others){
         css_id = '#player-' + i.toString();
         name = others[uuid][0], gender = (others[uuid][1]==='m')? 'a-male':'a-female', sub = '('+others[uuid][2]+')', group = others[uuid][3];
@@ -247,8 +244,10 @@ function loadRoleData(){
         $(css_id).find('.a-circle').addClass(gender).text(name[0]);
         $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name);
         $(css_id).find('.a-sub').text(sub);
+
         if (self[3] === 1){
             $(css_id+'-btn').text('審問'), examineMethod(css_id+'-btn', uuid);
+
             $(css_id+'-deduce').removeClass('d-none');
             $(css_id+'-deduce').find('label').text(name+' '+sub+':');
         }else{  // self[3] === 0
@@ -256,7 +255,6 @@ function loadRoleData(){
                 $(css_id+'-btn').text('線索'), clueMethod(css_id+'-btn', uuid);
             }else{
                 $(css_id+'-btn').text('調查'), inquireMethod(css_id+'-btn', uuid);
-                // tag_int 0 表示都沒有 1為已調查 2為已提供線索
             }
         }
         i++;
@@ -271,43 +269,37 @@ function loadRoleData(){
         $('#start-btn').text('行 動').attr('disabled', true);
         refreshGameStatus(0, loginData.status);
     }
-
 }
 
-function refreshGameStatus(self_group, status){
-    // 每次進入match (成功執行examine)後 refresh loginData.tag_json (用來記錄誰被審問過)
-    // 嫌疑人每次傳訊息 (成功執行'提供線索')後 refresh loginData.tag_int (用來紀錄自己是否做過)
-        
+function refreshGameStatus(self_group, status){  // according to dividual role, refresh tag_json and tag_int
     refreshPlayers();
+    var css_id;
     switch (status){ 
         case 2:
             for (let uuid in position){
-                if (1 === loginData.onoff_dict[uuid]){
-                    /*
+                css_id = position[uuid];
+                if (1 === loginData.onoff_dict[uuid]){  // tag_json and tag_int only affect the players online
+                    /*  完成測試後使用
                     if (self_group === 1)
-                        (0 === loginData.tag_json[uuid]) && enabledElmtCss(position[uuid]+'-btn');
+                        (1 === loginData.tag_json[uuid]) && disabledElmtCss(css_id+'-btn');
                     else{ // self_group === 0
                         switch(loginData.tag_int){
                             case 0:
-                                (0 === other[uuid][3]) && enabledElmtCss(position[uuid]+'-btn');
                                 break;
                             case 1:
-                                (1 === other[uuid][3]) && enabledElmtCss(position[uuid]+'-btn');
+                                (0 === other[uuid][3]) && disabledElmtCss(css_id+'-btn');
                                 break;
                             case 2:
-                                disabledElmtCss(position[uuid]+'-btn');
+                                disabledElmtCss(css_id+'-btn');
                                 break;
                         }
                     }
                     */
-                    enabledElmtCss(position[uuid]+'-btn')  // for test
                 } 
             }
-                
             setNavTitle('劇本：<span class="a-point">'+ GAMETITLE +'</span>');
 
-            (localData.chatLogs.length > 0) && theUI.clearChatLogs('chatLogs');
-
+            (localData.chatLogs.length>0) && theUI.clearChatLogs('chatLogs');
             if (localData.gameLogs.length === 0){
                 gameGate.player(), gameGate.prolog();
             }else{
@@ -323,22 +315,19 @@ function refreshGameStatus(self_group, status){
             for (let uuid in position){
                 (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
             }
-            
             setNavTitle('審問中... 剩餘時間：<span class="a-point a-clock"></span>'), theUI.showClock(loginData.waiting_time, !0);
-            // if (localData.chatLogs.length !== 0){ }
+
             var isMore = theUI.loadChatLogs('chatLogs');  
             (!0 === isMore) && appearElmtCss('#show-more');
-            
             gameGate.matcher();
 
             if (self_group === 1)
                 disabledElmtCss('#start-btn');
             break;
     }
-
 }
 
-function refreshPlayers(){  // refresh loginData.onoff_dict
+function refreshPlayers(){  // refresh loginData.onoff_dict, only be called by refreshGameStatus
     var css_id, name;
     for (let uuid in position){
         css_id = position[uuid], name = $(css_id).find('.a-title').text();
@@ -347,6 +336,7 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
                 (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
                 $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
                 $(css_id).find('.a-onoff').html('(離線)');
+
                 disabledElmtCss(css_id+'-btn');
                 (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !0, theUI.showSys(name +' 目前為離線狀態...'));
                 break;
@@ -354,6 +344,7 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
                 ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
                 $(css_id).find('.a-title').attr('data-bs-original-title', name);
                 $(css_id).find('.a-onoff').html();
+
                 enabledElmtCss(css_id+'-btn');
                 (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !1);
                 break;
@@ -362,10 +353,11 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
                 $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(已退出)');
                 $(css_id).find('.a-onoff').html('(已退出)');
                 $(css_id).find('.a-circle').text('');
+
                 disabledElmtCss(css_id+'-btn');
                 (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !0, theUI.showSys(name +' 已離開房間。 玩家可按"離開"鍵 離開目前的房間'));
                 
-                if (self[3] === 1){
+                if (self[3] === 1){  // for action btn
                     $(css_id+'-deduce-input').removeAttr('required').attr('disabled', true).removeClass('gameevent-options');
                     $(css_id+'-deduce-input>option:eq(0)').text('已退出遊戲');
                 }
@@ -374,9 +366,8 @@ function refreshPlayers(){  // refresh loginData.onoff_dict
     }
 }
 
-function refreshGameSingle(self_group, player_css, ws_type){  // to refresh other one player status
-    // only used in websocket.onmessage
-    switch (ws_type){  //react the ws_type according to different role 
+function refreshGameSingle(ws_type, player_css, ...args){  // refresh one player status, only be called in websocket.onmessage
+    switch (ws_type){  // react the ws_type according to induvidual role
         case 'CONN':
             enabledElmtCss(player_css+'-btn');
             break;
@@ -387,23 +378,22 @@ function refreshGameSingle(self_group, player_css, ws_type){  // to refresh othe
             disabledElmtCss(player_css+'-btn');
             break;
     }
-    
 }
 
 function showGameNotice(ws_type, ...args){
-    switch (ws_type){
+    switch (ws_type){  // react the ws_type according to induvidual role
         case 'OVER':
             (!0 === args[0])? showNotice('遊戲結束，偵探成功破案！ 可按"離開"鍵 並準備進行下一場遊戲。'): showNotice('出局！ 你昨晚的所做所為已被偵探查明。 可按"離開"鍵 並準備進行下一場遊戲。');
             break;
         case 'ALIVE':
-            (1 === args[0])? showNotice('進入下一輪，妳未能找到昨晚的渣男。'):showNotice('進入下一輪，你昨晚所做的蠢事尚未被偵探察覺。');
+            (1 === args[0])? showNotice('進入下一輪，妳未能找到昨晚的渣男。'): showNotice('進入下一輪，你昨晚所做的蠢事尚未被偵探察覺。');
             break;
     }
 }
 
 
 var GAMETITLE = '畢業後的第一夜',
-    gameGate = gameCheckGate(),  // 輸出遊戲相關的dialog
+    gameGate = gameCheckGate(),
     eventSet = loginData['event_name'],
     seletedEvent = {},
     self = [],

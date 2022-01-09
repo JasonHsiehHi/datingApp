@@ -254,7 +254,7 @@ def signup(request):
                 if isSent is False:
                     return JsonResponse({"result": False, "msg": '寄件失敗，請稍候再試。'})
                 else:
-                    return JsonResponse({"result": True, "msg": "已成功將註冊認證信寄到你的信箱了哦！"})
+                    return JsonResponse({"result": True})
 
         else:
             user = signup_create_user(username, email, password2)
@@ -269,7 +269,7 @@ def signup(request):
             if isSent is False:
                 return JsonResponse({"result": False, "msg": '寄件失敗，請稍候再試。'})
             else:
-                return JsonResponse({"result": True, "msg": "已成功將註冊認證信寄到你的信箱了哦！"})
+                return JsonResponse({"result": True})
     else:
         print("error: it's not through ajax.")
 
@@ -344,8 +344,8 @@ def log_in(request):  # 帳號重複登入
         else:
             login(request, user)
             # 依據用戶的status 給予相對應的資料
-            loginData = get_loginData(user, user.profile)
-            return JsonResponse({"result": True, 'loginData': loginData, "msg": '帳號登入成功！'})
+            # loginData = get_loginData(user, user.profile)
+            return JsonResponse({"result": True})
 
     else:
         print("error: it's not through ajax.")
@@ -355,10 +355,7 @@ def log_out(request):
     if request.is_ajax and request.method == 'POST':
         if request.user.is_authenticated:
             logout(request)
-            # 登出後不能再修改後端player資料
-            # 在沒有帳號之前都不能建立player 只能操作前端互動而已
-
-            return JsonResponse({"result": True, "msg": '帳號已登出！'})
+            return JsonResponse({"result": True})
         else:
             print("error: user isn't authenticated.")
     else:
@@ -386,7 +383,7 @@ def change_pwd(request):
         user.set_password(password2)
         user.save()
         login(request, user)
-        return JsonResponse({"result": True, "msg": '變更密碼成功！'})
+        return JsonResponse({"result": True})
 
     else:
         print("error: it's not through ajax.")
@@ -428,7 +425,7 @@ def reset_pwd(request):
         if isSent is False:
             return JsonResponse({"result": False, "msg": '寄件失敗，請稍候再試。'})
         else:
-            return JsonResponse({"result": True, "msg": '已成功將重設密碼信寄到你的信箱了哦！'})
+            return JsonResponse({"result": True})
 
     else:
         print("error: it's not through ajax.")

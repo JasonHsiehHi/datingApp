@@ -1,11 +1,7 @@
 from channels.db import database_sync_to_async
 from django.db.models import Q, F
 from .models import Match, Room, Player, School, Dialogue
-import json
-from datetime import datetime, timezone
-from django.core.cache import cache
-from random import randint, sample
-from datingApp import settings
+
 
 
 @database_sync_to_async

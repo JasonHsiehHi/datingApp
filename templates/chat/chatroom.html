@@ -236,7 +236,7 @@
             </div>
         </div>
     </div>
-    <nav class="navbar a-div a-clr">
+    <nav class="navbar sticky-top a-div a-clr">
         <div class="container-fluid">
             <button class="navbar-toggler btn a-div a-clr" id='sidebar-btn' type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
                 <i class="material-icons-outlined md-28">ads_click</i>
@@ -272,6 +272,7 @@
                                 </span>
                             </span></li>
                             <li><span class="dropdown-item-text"><button class="d-none btn btn-dark" type="submit">確定</button></span></li>
+                            <li><span class="dropdown-item-text">測試版本只有一種劇本：(找異性)(成人模式)</span></li>
                         </form>
                     </ul>
                 </div>
@@ -284,7 +285,7 @@
                         <li><span class="dropdown-item-text a-point py-3" id="user-info"><span class='h5'>example@gmail.com</span><span class='h6 d-block mt-1 mb-0'>性別:男</span></span></li>
                         <li><button class="dropdown-item py-1" type="button" id="change-pwd-btn"><i class="material-icons-outlined md-18 align-text-top">build</i> 變更密碼</button></li>
                         <li><button class="dropdown-item py-1" type="button" id="logout-btn"><i class="material-icons-outlined md-18 align-text-top">logout</i> 登出Logout</button></li>
-                        <li><button class="dropdown-item a-point py-3" type="button" id="signup-btn"><i class="material-icons-outlined md-18 align-text-top">assignment_ind</i> 註冊Sign Up</button></li>
+                        <li><button class="dropdown-item py-1" type="button" id="signup-btn"><i class="material-icons-outlined md-18 align-text-top">assignment_ind</i> 註冊Sign Up</button></li>
                         <li><button class="dropdown-item py-1" type="button" id="login-btn"><i class="material-icons-outlined md-18 align-text-top">login</i> 登入Login</button></li>
                         <li><button class="dropdown-item py-1" type="button" id="reset-pwd-btn"><i class="material-icons-outlined md-18 align-text-top">email</i> 密碼遺失？</button></li>
                     </ul>
@@ -304,7 +305,7 @@
                     <div class='a-div a-sidebar'>
                         <div>目前所在城市：</div>
                         <div class='d-flex justify-content-between'>
-                            <span class='a-school a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='NTU 國立台灣大學' id='school'>NTU 國立台灣大學</span>
+                            <span id="school" class='a-school a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='NTU 國立台灣大學'>NTU 國立台灣大學</span>
                             <button id="goto-btn" class="btn btn-link a-sidebar" type="button">前往..</button>
                         </div>
                         
@@ -313,7 +314,7 @@
                         <div class='a-circle a-sidebar a-off' id="user-tag">取</div>
                         <div class='ps-1 flex-grow-1'>
                             <div class='d-flex justify-content-between'>
-                                <span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='取個暱稱吧' id="user-name">取個暱稱吧</span>
+                                <span id="user-name" class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='取個暱稱吧'>取個暱稱吧</span>
                                 <button class="btn btn-link a-sidebar" id="name-btn" type="button">更改..</button>
                             </div>
                             <div class='a-sub a-sidebar' id='user-role'></div>

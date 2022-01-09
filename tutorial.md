@@ -4591,10 +4591,28 @@ python3 manage.py flush 將還未migrate的數據刪除
 manage.py migrate myapp zero 則用於刪除myapp的所有data
 
 python manage.py runserver 
+等價於：python manage.py runserver 127.0.0.1:8000
+即直接以本地機做server在本地端回送 一般用於測試用
+python manage.py runserver 0.0.0.0:8000
+即直接以本地機做server但開公網 讓其他同一區域的機台裝置可以連線
+
+python manage.py runserver 0.0.0.0:0 --noreload
+--noreload表示不會啟動檢測程式
+
+此外0.0.0.0:8000等同開啟本地機的所有ip位置 可能有：
+ 192.168.1.1 (區域網路常用192開頭和172開頭兩種)
+ 61.1.2.3 (可能表示路由器的對外ip位址)
+ 202.202.202.202 (表示本地機向互聯網機構申請的對外ip位址)
+
+python manage.py runserver 192.168.1.1:8000
+只會開啟此ip位置的連線 不同於0.0.0.0:8000
+
 可用本地端查看localhost：http://127.0.0.1:8000/ (為根目錄)
 直接用CTRL+C 關閉terminal程式 即可終止runserver
+
 port:8000用於查看本地端 每一個port碼都是不同的協定服務 (port,埠)
-FTP:21Port DNS:53Port HTTP:80Port
+FTP:21Port DNS:53Port 
+HTTP:80Port HTTPS:443Port (8000和8080為http的替代端口 8443為https的替代端口)
 一般上網只需要輸入域名就行 因為瀏覽器會自動補足所對應的port碼
 而server端會針對所提供的服務來監聽所對應的port端口 如架網站就是提供80Port
 除了run server之後 也要一並run docker 開啟對應的container接口
@@ -4739,6 +4757,9 @@ docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有�
 docker ps -a 用來找目前正在執行的docker -a是all的意思 表示不只正在執行的
 docker stop <ContainerID> 找到id後便可直接關閉
 docker rm <ContainerID> 找到id後可做刪除
+
+docker只涉及連到本地機的port 與IP位址無關
+決定外界使否可連線或連到哪個ip位址則由django manage.py決定
 
 Docker Compose是docker的延伸工具 可組合多個功能的container來提供完整服務
 必須要使用YAML批次腳本 (docker-compose.yml) 此外許多指令也與docke相同
@@ -5732,11 +5753,11 @@ container通常放於body的下一層 會與彈出視窗modal或導覽選單nav�
 @import, @media, @font-face :at-rules
 "@"表示特殊說明 與其他html標籤類別都沒有關係
 
-xs:為手機直立的寬度  直接width:100%即可 不用設固定寬度
-xm:為手機橫放的寬度  @media (min-width: 576px)
-md:平板電腦的寬度  @media (min-width: 768px), 
-lg:一般電腦的寬度  @media (min-width: 992px), 
-xL:超大型電腦螢幕的寬度  @media (min-width: 1200px)
+xs:為手機直立的寬度  直接width:100%即可 不用設固定寬度 一般長度為372px => 120px * 3.1倍 
+xm:為手機橫放的寬度  @media (min-width: 576px)  => 120px * 4.8倍
+md:平板電腦的寬度  @media (min-width: 768px),  => 120px * 6.4倍
+lg:一般電腦的寬度  @media (min-width: 992px),  => 120px * 8.3倍
+xL:超大型電腦螢幕的寬度  @media (min-width: 1200px)  => 120px * 10倍
 
 full-scream就是1440px * 1080px 為4:3長寬比 (為應付全螢幕 瀏覽器背景要能有此大小)
 但一般瀏覽器會有上層UI介面 故為1440px * 900px 為8:7長寬比
@@ -5832,6 +5853,7 @@ rem的大小會直接比對瀏覽器的textContent字體大小(font-size)
 
 em則是rem的過期用法 會直接比對父元素的textContent字體大小
 但因為巢狀結構下過於複雜而被淘汰
+rem則是比對根元素的textContent字體大小 無論在哪個結構中都會是一樣的標準
 
 m-3也是同樣單位
 m：margin 沒特別指定 就是四邊都加寬
@@ -5870,6 +5892,19 @@ border-top-width:1px; 可直接指定其中一種
 同樣是<h1>標籤 但前者"display-1"比後者"display-2"大
 當已經決定所用字體大小<h1>時 在用display區分同等標籤<h1>的大小
 
+font-size大小：
+medium：預設值，等於 16px ( h4 預設值 )
+xx-small：medium 的 0.6 倍 ( h6 預設值 )
+x-small：medium 的 0.75 倍
+small：medium 的 0.8 倍 ( h5 預設值，W3C 定義為 0.89，實測約為 0.8 )
+large：medium 的 1.1 倍 ( h3 預設值，W3C 定義為 1.2，實測約為 1.1 )
+x-large：medium 的 1.5 倍 ( h2 預設值 )
+xx-large：medium 的 2 倍 ( h1 預設值 )
+(以上寫法如同使用rem單位)
+
+smaller：約為父層的 80% 比對基準不同
+larger：約為父層的 120%
+(smaller, larger如同使用em單位 等同%單位)
 
 - - -------------------------------------
 ## bootstrap_navbar:

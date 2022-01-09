@@ -16,6 +16,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.scope['user'].is_authenticated:
             self.player_data = await utils.get_player(self.scope['user'])
             self.uuid = str(self.player_data.uuid)  # 是否用user.id 取代 player.uuid
+
             if self.player_data.status == 1:  # in waiting
                 self.player_data = await utils.set_player_fields(
                     self.player_data, {'isPrepared': True, 'waiting_time': datetime.now(tz=timezone.utc), 'isOn': True})
@@ -27,19 +28,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 self.channel_name
             )
 
-            self.count = 0
             if self.player_data.status in [2, 3]:  # in room
                 self.room, game, room_players = await utils.get_room_players(self.player_data)
                 self.game_id = str(game.game_id)
+                self.room_id = 'room-'+str(self.room.id)
 
                 await utils.player_onoff_in_room(self.player_data, 1)
 
                 await self.channel_layer.group_add(
-                    'room-'+str(self.room.id),
+                    self.room_id,
                     self.channel_name
                 )
 
-                await self.channel_layer.group_send('room-'+str(self.room.id), {
+                await self.channel_layer.group_send(self.room_id, {
                     'type': 'is_on',
                     'boolean': True,
                     'from': self.uuid
@@ -47,17 +48,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
                 if self.player_data.status == 3:  # in match
                     self.match, player_list = await utils.get_match_players(self.player_data)
+                    self.match_id = 'match-'+str(self.match.id)
 
                     self.in_match = True  # to avoid multi-match
                     await self.channel_layer.group_add(
-                        'match-'+str(self.match.id),
+                        self.match_id,
                         self.channel_name
                     )
 
                     td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
                     seconds = td.total_seconds()
-                    call = {'call': 'leave_match', "isTimeout": True}
-                    await self.timer(seconds, **call)
+                    await self.timer_leave(seconds)
 
             await self.accept()
         else:
@@ -78,42 +79,46 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         if self.player_data.status in [2, 3]:  # in room
             self.room, game, room_players = await utils.get_room_players(self.player_data)
+            self.room_id = 'room-'+str(self.room.id)
 
             await utils.player_onoff_in_room(self.player_data, 0)
 
-            await self.channel_layer.group_send('room-'+str(self.room.id), {
+            await self.channel_layer.group_send(self.room_id, {
                 'type': 'is_on',
                 'boolean': False,
                 'from': self.uuid
             })
 
             await self.channel_layer.group_discard(
-                'room-'+str(self.room.id),
+                self.room_id,
                 self.channel_name
             )
 
             if self.player_data.status == 3:  # in match
                 self.match, player_list = await utils.get_match_players(self.player_data)
+                self.match_id = 'match-'+str(self.match.id)
 
                 self.in_match = False
                 await self.channel_layer.group_discard(
-                    'match-' + str(self.match.id),
+                    self.match_id,
                     self.channel_name
                 )
 
     # receive from client side first
     async def receive_json(self, content):
         self.start = time.time()  # 僅用於測試
-        self.player_data = await utils.refresh_player(self.player_data)
-        call = content.get('call', None)  # LARP
+
+        call = content.get('call', None)
         if call is None:
+
             match = getattr(self, 'match', None)
             if match is None:
-                self.match, player_list = await utils.get_match_players(self.player_data)
-            match_str = 'match-' + str(self.match.id)
+                print('{} send msg out of match.'.format(self.uuid))
+                return False
+
             if 'wn' in content:
                 print("wn - 執行時間：%f 秒" % (time.time() - self.start))
-                await self.channel_layer.group_send(match_str, {
+                await self.channel_layer.group_send(self.match_id, {
                     'type': 'is_writing',
                     'boolean': content['wn'],
                     'from': self.uuid,
@@ -121,7 +126,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
             elif 'st' in content:
                 print("st - 執行時間：%f 秒" % (time.time() - self.start))
-                await self.channel_layer.group_send(match_str, {
+                await self.channel_layer.group_send(self.match_id, {
                     'type': 'update_status',
                     'num': content['st'],
                     'backto': content['backto'],
@@ -129,7 +134,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 })
             elif 'msg' in content:
                 print("msg - 執行時間：%f 秒" % (time.time() - self.start))
-                await self.channel_layer.group_send(match_str, {
+                await self.channel_layer.group_send(self.match_id, {
                     'type': 'chat_message',
                     'message': content['msg'],
                     'isImg': content['isImg'],
@@ -139,7 +144,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             elif 'msgs' in content:
                 print("msgs - 執行時間：%f 秒" % (time.time() - self.start))
 
-                await self.channel_layer.group_send(match_str, {
+                await self.channel_layer.group_send(self.match_id, {
                     'type': 'chat_messageList',
                     'messages': content['msgs'],
                     'from': self.uuid,
@@ -167,22 +172,21 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     # functions called by receive_json to response client side
     async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'
-        # 驗證資料來堤防用戶console操作
+        # todo 驗證資料來堤防用戶console操作
         self.player_data = await utils.refresh_player(self.player_data)
         self.room, game, room_players = await utils.get_room_players(self.player_data)
+        self.room_id = 'room-'+str(self.room.id)
         self.game_id = str(game.game_id)
 
-        # self.room_playerNum = len(self.room.onoff_dict) 不需要
-
         await self.channel_layer.group_add(
-            'room-'+str(self.room.id),
+            self.room_id,
             self.channel_name
         )
         for player in room_players:
             await self.channel_layer.group_send(str(player.uuid), {
                 'type': 'start_game',
                 'game': self.game_id,
-                'room_id': 'room-' + str(self.room.id),
+                'room_id': self.room_id,
                 'player_dict': self.room.player_dict,
                 'onoff_dict': self.room.onoff_dict,
                 'from': self.uuid
@@ -191,20 +195,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def call_leave_game(self):
         self.player_data = await utils.refresh_player(self.player_data)
         self.room, game, room_players = await utils.get_room_players(self.player_data)
+        self.room_id = 'room-'+str(self.room.id)
 
-        # on_list = [i for i in list(self.room.onoff_dict.values()) if i == 1]
-        # self.room_playerNum = len(on_list)
-
-        await self.channel_layer.group_send('room-'+str(self.room.id), {
+        await self.channel_layer.group_send(self.room_id, {
             'type': 'leave_game',
             'from': self.uuid
         })
 
         await self.channel_layer.group_discard(
-            'room-'+str(self.room.id),
+            self.room_id,
             self.channel_name
         )
 
+        # on_list = [i for i in list(self.room.onoff_dict.values()) if i == 1]
         onoff_list = [i for i in list(self.room.onoff_dict.values()) if (i == 1 or i == 0)]
         if len(onoff_list) == 0:
             await utils.delete_room_by_player(self.player_data)
@@ -214,15 +217,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def call_make_out(self):
         self.player_data = await utils.refresh_player(self.player_data)
         self.room, game, room_players = await utils.get_room_players(self.player_data)
+        self.room_id = 'room-'+str(self.room.id)
+
         onoff_dict = dict(self.room.onoff_dict)
         if all(v == -1 for v in onoff_dict.values()) is True:  # game over
-            await self.channel_layer.group_send('room-'+str(self.room.id), {
+            await self.channel_layer.group_send(self.room_id, {
                 'type': 'game_over'
             })
             await utils.set_player_fields(self.player_data,
                                           {'status': 0, 'room': None, 'tag_int': None, 'tag_json': None})
         else:  # make someone out
-            await self.channel_layer.group_send('room-'+str(self.room.id), {
+            await self.channel_layer.group_send(self.room_id, {
                 'type': 'out_or_in',
                 'onoff': onoff_dict
             })
@@ -230,28 +235,32 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def call_enter_match(self):
         self.player_data = await utils.refresh_player(self.player_data)
         self.match, player_list = await utils.get_match_players(self.player_data)
+        self.match_id = 'match-'+str(self.match.id)
+
         self.in_match = True
         await self.channel_layer.group_add(
-            'match-'+str(self.match.id),
+            self.match_id,
             self.channel_name
         )
         for uuid in player_list:
             await self.channel_layer.group_send(uuid, {
                 'type': 'enter_match',
-                'match_id': 'match-'+str(self.match.id),
+                'match_id': self.match_id,
                 'player_list': player_list,
                 'from': self.uuid
             })
         td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
         seconds = td.total_seconds()
-        call = {"call": 'leave_match', "isTimeout": True}
-        await self.timer(seconds, **call)
+        await self.timer_leave(seconds)
 
     async def call_leave_match(self, isTimeout=False):
+        self.player_data = await utils.refresh_player(self.player_data)
         self.match, player_list = await utils.get_match_players(self.player_data)
-        await self.channel_layer.group_send('match-'+str(self.match.id), {
+        self.match_id = 'match-' + str(self.match.id)
+
+        await self.channel_layer.group_send(self.match_id, {
             'type': 'leave_match',
-            'match_id': 'match-' + str(self.match.id),
+            'match_id': self.match_id,
             'from': self.uuid,
             'player_list': player_list,
             'timeout': isTimeout
@@ -259,7 +268,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         self.in_match = False
         await self.channel_layer.group_discard(
-            'match-'+str(self.match.id),
+            self.match_id,
             self.channel_name
         )
         if len(player_list) == 0:
@@ -268,8 +277,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await utils.set_player_fields(self.player_data, {'match': None})
 
     async def call_make_leave(self):  # haven't been used
-        self.match = await utils.refresh_match(self.match)
-        # 在Match model中加上leaver_list 標記需要離開的人
+        # add leaver_list to Match model 標記需要離開的人
         pass
 
     async def call_inform(self, group_name, message):
@@ -292,6 +300,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'from': self.uuid,
             'toMe': True
         })
+
+    async def timer_leave(self, sleep_secs):
+        t = Timer(sleep_secs, async_to_sync(self.timeout_leave))
+        t.start()
+
+    async def timeout_leave(self):
+        self.player_data = await utils.set_player_fields(self.player_data, {'status': 2, 'waiting_time': None})
+        self.match, player_list = await utils.get_match_players(self.player_data)
+
+        player_list = self.match.player_list
+        player_list.remove(self.uuid)
+        self.match = await utils.set_match_fields(self.match, {'player_list': player_list})
+
+        await self.call_leave_match(True)
 
     async def timer(self, sleep_secs, **kwargs):
         t = Timer(sleep_secs, async_to_sync(self.execute_in_match), kwargs=kwargs)
@@ -320,6 +342,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "player_dict": self.room.player_dict,
                 "onoff_dict": self.room.onoff_dict
             })
+
         else:
             await self.channel_layer.group_add(
                 event['room_id'],
@@ -355,7 +378,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             if in_match is True:  # to avoid multi-match
                 self.in_match = False
                 await self.channel_layer.group_discard(
-                    'match-' + str(self.match.id),
+                    self.match_id,
                     self.channel_name
                 )
 
