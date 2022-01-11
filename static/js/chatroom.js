@@ -239,7 +239,8 @@ var WSManager = function(){
 function getLocalData(){
     var data = {
         name: '取個暱稱吧',
-        school: '',  // 改掉 school改成city
+        school: '',
+        city:'',
         lastSaid: 's',
         text_in_discon: [],
         elmt_for_status:[],
@@ -252,6 +253,7 @@ function getLocalData(){
         if ('true'===localStorage.isSaved){ 
             data.name = localStorage.name,
             data.school = localStorage.school,
+            data.city = localStorage.city,
             data.lastSaid = localStorage.lastSaid,
             data.text_in_discon = JSON.parse(localStorage.text_in_discon),
             data.elmt_for_status = JSON.parse(localStorage.elmt_for_status),
@@ -263,6 +265,7 @@ function getLocalData(){
             localStorage.isSaved = 'true',
             localStorage.name = '取個暱稱吧',
             localStorage.school = '',
+            localStorage.city = '',
             localStorage.lastSaid = 's',
             localStorage.text_in_discon = '[]',
             localStorage.elmt_for_status = '[]',
@@ -290,7 +293,7 @@ function getToggle(){
         writing:!1, // avoid duplicate entries in send-text
         uploading:!1, // avoid duplicate uploads in send-img
         focus:!1, // focus on send-text
-        scroll:!1, // web page is scrolling
+        scroll:!1, // web page is scrolling, it's only used in chatUI.
         discon:!1,  // at least one player disconnected in match
         first:!0,  // avoid duplicate greet when open websocket again
         problem:!1 // todo 表示自己網路出現問題 會跟開頭畫面一起使用
@@ -326,7 +329,7 @@ function loadLoginData(){ // login and logout will redirect, so loginData will b
         $('#user-info>span:eq(1)').text( '性別:' + ((loginData.gender === 'm')?'男':'女') );
         $('#user-tag').removeClass('a-off').addClass( ((loginData.gender === 'm')? 'a-male':'a-female') );
         localData.name = loginData.name, localStorage.name = loginData.name;
-        localData.school = loginData.school, localStorage.school = loginData.school;
+        localData.city = loginData.city, localStorage.city = loginData.city;
 
         refreshStatus(loginData.status), unavailableBtn();
     }else{
@@ -345,14 +348,21 @@ function unavailableBtn() {  // settings is unavailable
     disabledElmtCss('#adult-radio'), disabledElmtCss('#normal-radio');
 }
 
-function loadLocalData(){  // loadLocalData just handle theUI work 會跟loginData合併
-    refreshProfile(), theUI.gotoSchoolAsync();
+function loadLocalData(){  // loadLocalData just handle theUI work and it's called after loadLoginData
+    refreshProfile(), theUI.gotoPlaceAsync();
     $('#send-text').focus();
 }
 
 function refreshProfile(){  // handle text of navbar and sidebar
-    var school_name = localData.school+' '+schoolSet[localData.school];
-    $('#school').text(school_name).attr('data-bs-original-title', school_name);
+    var city_name = citySet[localData.city] + ' ' + localData.city;
+    $('#city').text(city_name).attr('data-bs-original-title', city_name);
+
+
+    if (0===loginData.status){
+        var sub_text = (0 === localData.city.length)?'':'('+citySet[localData.city]+')';
+        setNavTitle('A-LARP匿名劇本殺 ' + sub_text);
+    }
+    
     $('#user-tag').text(localData.name[0]);
     $('#user-name').text(localData.name).attr('data-bs-original-title', localData.name);
     $('#user-role').text('(還未進入遊戲)');
@@ -369,9 +379,6 @@ function refreshStatus(status){  // handle all UI work about status
             enabledElmtCss('#normal-radio'), enabledElmtCss('#adult-radio'), enabledElmtCss('#male-radio'), enabledElmtCss('#female-radio');
             enabledElmtCss('#start-btn'), $('#start-btn').text('開始遊戲');
             disabledElmtCss('#leave-btn');
-
-            var school_text = (0 === localData.school.length)?'':'('+localData.school+')';
-            setNavTitle('A-LARP匿名劇本殺 ' + school_text);
 
             (localData.gameLogs.length>0) && theUI.clearChatLogs('gameLogs');
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
@@ -485,7 +492,7 @@ function loginMethodSet(){
         // todo 驗證資料:email不符合標準, pwd不符合標準
 
         var formArray = $(this).serializeArray();
-        formArray.push({name:"goto-input",value: localData.school});
+        formArray.push({name:"goto-input",value: localData.city});
         formArray.push({name:"name-input",value: localData.name});
 
         $(this).find('.modal-footer button[type="submit"]').text('等待中...').attr('disabled', true);
@@ -519,14 +526,6 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    /*
-                    for (let prep in data['loginData']){  // 如果要重新導向 則資料不用傳入
-                        loginData[prep] = data['loginData'][prep];
-                        localStorage[prep] = data['loginData'][prep];
-                    }
-                    refreshProfile(), loginData.isLogin = !0, loadLoginData();
-                    */
-
                     showNotice('帳號登入成功！');
                     $('#notice-modal').on('hide.bs.modal', function(e) {
                         window.location.href = "/chat";
@@ -548,9 +547,7 @@ function loginMethodSet(){
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
-                if (!0 === data['result']){
-                    // loginData.isLogin = !1, loadLoginData();  // 如果要重新導向 則資料不用傳入
-                    
+                if (!0 === data['result']){                    
                     showNotice('帳號已登出！');
                     $('#notice-modal').on('hide.bs.modal', function(e) {
                         window.location.href = "/chat";
@@ -615,7 +612,7 @@ function loginMethodSet(){
 
 function profileMethodSet(){
     var modalName = {
-        'goto':'前往學校',
+        'goto':'前往城市',
         'name':'遊戲暱稱'
     }
     for (let prop in modalName){
@@ -636,7 +633,7 @@ function profileMethodSet(){
             $('#name-modal-form p.a-error').text('暱稱不能空白');
             return false
         }
-        // 不能傳'   ' (全為空) 不能傳html語法(轉譯問題) 
+        // 不能傳' '(全為空) 不能傳html語法(轉譯問題) 
 
         var formArray = $(this).serializeArray();
         $.ajax({
@@ -661,29 +658,33 @@ function profileMethodSet(){
 
     $('#goto-modal-form').on('submit', function(e) {
         e.preventDefault();
-        var schoolId = $(this).find('input[name="goto-input"]').val();
-        if (schoolId === localData.school){
-            $('#goto-modal-form p.a-error').text('你目前已經在'+schoolId +schoolSet[schoolId] +'了哦');
+        var cityOption = $(this).find('input[name="goto-input"]').val();
+        var cityId = (cityOption.includes(' '))? cityOption.split(' ')[1]: cityOption;
+
+        if (cityId === localData.city){
+            $('#goto-modal-form p.a-error').text('你目前已經在'+citySet[cityId] +'了哦');
             return false
-        }else if (!schoolImgSet.has(schoolId)){
-            $('#goto-modal-form p.a-error').text('抱歉，所在城市還未開放。');
+        }else if (!cityImgSet.has(cityId)){
+            $('#goto-modal-form p.a-error').text('抱歉，此城市還未開放。');
             return false
         }
         var formArray = $(this).serializeArray();
+        formArray[1] = ({name:"goto-input",value: cityId});
+
         $.ajax({
             type: 'POST',
-            url: '/chat/post_school',
+            url: '/chat/post_place',
             data: formArray,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    (!0 === loginData.isLogin) && (loginData.school = data['school']);
-                    localData.school = data['school'], localStorage.school = data['school'], refreshProfile();
-                    var school = localData.school;
+                    var city = data['city'];
+                    (!0 === loginData.isLogin) && (loginData.city = city);
+                    localData.city = city, localStorage.city = city, refreshProfile();
                     theUI.clearChatLogs();
-                    theUI.gotoSchoolAsync(function(){
+                    theUI.gotoPlaceAsync(function(){
                         var li = data['dialogs'];
-                        li.splice(0,0,['已抵達<span class="a-point">'+school + schoolSet[school] +'</span>了😎',!1]); // insert msg into data.dialog
+                        li.splice(0,0,['已抵達<span class="a-point">'+ citySet[city] +'</span>了😎',!1]); // insert msg into data.dialog
                         theUI.showMsgsAsync(li);
                     });
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
@@ -695,8 +696,11 @@ function profileMethodSet(){
             timeout: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
-    for (let school of schoolImgSet){
-        $('#school-options').append("<option value="+school+">");
+    var city_name, option_elmt;
+    for (let city of cityImgSet){
+        city_name = citySet[city] + ' ' + city;
+        option_elmt = $('<option>').val(city_name);
+        $('#city-options').append(option_elmt);
     }
 }
 
@@ -786,7 +790,7 @@ function startMethod(){
         else if (localData.name.length===0){
             showNotice('尚未取新的遊戲暱稱。');
             return false
-        }else if (localData.school.length===0){
+        }else if (localData.city.length===0){
             showNotice('尚未選擇所在城市。');
             return false
         }
@@ -814,27 +818,26 @@ function startMethod(){
 }
 
 var checkGate = function(){
-    function itr(isDirected=false){  // 不能用 需要改版
+    function itr(isDirected=false){
         var dialog;
         if (localData.name.length===0 && loginData.isLogin === !1){
-            dialog = ['歡迎來到Acard！😂 這是一個由學生新創團隊開發的校園交友平台，這裡的<span class="a-point">所有動作都以指令執行</span>', !1];
-        }
-        else{
+            dialog = ['歡迎來到A-LARP匿名劇本殺！😂 這是一個由台灣大專院校學生團隊開發的校園交友平台，目前仍處於測試版beta', !1];
+        }else{
             dialog = ['歡迎回來！',!1];
         }
         (!0 === isDirected) && theUI.showMsg(dialog[0]);
         return dialog
     }
-    function tut(isDirected=false){  // 改成 是否登入
+    function tut(isDirected=false){
         var dialog;
-        if (localData.school.length===0)
-            dialog = ['請先前往你想交友的<span class="a-point">學校</span>吧！ 輸入/go sch_id (學校縮寫例如:NTU, NCCU等)', !1];
+        if (localData.city.length===0)
+            dialog = ['請先點擊左上角圓圈圖示來開啟選單，前往你想交友的<span class="a-point">城市</span>！', !1];
         else if(localData.name.length===0)
-            dialog = ['接著請輸入你的<span class="a-point">暱稱</span>與<span class="a-point">配對類型</span>。 輸入/p name type (配對類型為:fm, mf, mm, ff 四種。 分別為女找男, 男找女, 男找男, 女找女)', !1];
+            dialog = ['同樣點擊左上角圓圈圖示來開啟選單，輸入你在遊戲中的<span class="a-point">暱稱</span>。 <span class="a-point">暱稱</span>不會綁定，每場遊戲開始前都能更改。', !1];
         else if(loginData.isLogin === !1)
-            dialog = ['朋友你還沒登入帳號哦', !1];
+            dialog = ['在開始劇本殺遊戲前，你必須登入帳號！請點選右上角人頭圖示<span class="a-point">註冊</span>或<span class="a-point">登入</span>帳號。', !1];
         else{
-            dialog = ['當前資料為：... 可以直接進行遊戲哦', !1];
+            dialog = ['當前所在城市：'+ citySet[localData.city]+'  你的暱稱為：'+ localData.name +'可以直接進行遊戲哦', !1];
         }
         (!0 === isDirected) && theUI.showMsg(dialog[0]);
         return dialog
@@ -849,7 +852,7 @@ var checkGate = function(){
                 if (!0 === data['result']){
                     var li = data['dialogs'];
                     if (0 === loginData.status)
-                        li.splice(1,0, itr(), tut()); // insert theGate into data['dialog']
+                        li.splice(1,0, itr(), tut()); // insert dialogs of theGate into data['dialog']
                     else if(1 === loginData.status)
                         li.splice(1,0, itr());
                     theUI.showMsgsAsync(li);
@@ -1059,9 +1062,9 @@ var chatUI = function(){
     }
     
     function go(callback=null){  // async function: callback after function has completed
-        if (''!==localData.school){
+        if (''!==localData.city){
             var extn = '.png';
-            var img_url = school_url+localData.school+extn;
+            var img_url = place_url+localData.city+extn;
             var time1, time2;
             $('#mark-after>img').attr('src', img_url);
             $('#circle').addClass('a-fadein');
@@ -1135,7 +1138,7 @@ var chatUI = function(){
         loadChatLogs:ll,
         loadChatLogsMore:llm,
         storeChatLogs:sl,
-        gotoSchoolAsync:go,
+        gotoPlaceAsync:go,
         showMsgsAsync:mgs,
         showStoryAsync:sty
     }
@@ -1185,10 +1188,7 @@ Array.prototype.remove = function(val) {
 var loginData = JSON.parse(document.getElementById('loginData').textContent),
     TITLE = "A-LARP - 匿名劇本殺 | 2022年台灣校園交友平台",
     unreadMsg = 0,
-    school_url = '/static/img/mark/',  // 換成city
-    schoolImgSet = new Set([  // 換成city
-        'NCCU', 'NTU', 'SCU', 'PCCU', 'FJU', 'TKU', 'NTHU', 'NCTU', 'NCKU'
-    ]), 
+    place_url = '/static/img/mark/',
     chatSocket = null,
     theWS = WSManager(),
     theUI = chatUI(), 

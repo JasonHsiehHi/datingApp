@@ -65,6 +65,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
 
     async def disconnect(self, close_code):
+        if not self.scope['user'].is_authenticated:
+            print("error: user isn't authenticated to connect.")
+            return False
+
         self.player_data = await utils.refresh_player(self.player_data)
         if self.player_data.status == 1:
             self.player_data = await utils.set_player_fields(

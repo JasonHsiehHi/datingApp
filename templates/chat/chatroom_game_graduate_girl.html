@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block background %}
-<img src="/static/img/myBg1.jpeg" alt="game-background">
+<img src="/static/img/barBg1.jpeg" alt="game-background">
 {% endblock %}
 
 {% block modalForm %}
@@ -19,10 +19,6 @@
                 <label for="player-{{i}}-deduce-input" class="col-form-label">name (role)：</label>
             </div>
             <div class="col-6">
-                <!--
-                <input type="text" class="form-control" id="player-{{i}}-deduce-input" name="player-{{i}}-deduce-input" list="player-{{i}}-gameevents" required>
-                <datalist class="gameevent-options" id="player-{{i}}-gameevents"></datalist>
-                -->
                 <select class="form-select gameevent-options" id="player-{{i}}-deduce-input" name="player-{{i}}-deduce-input" aria-label="Default Example" required>
                     <option disabled selected>昨晚幹的事...</option>
                 </select>

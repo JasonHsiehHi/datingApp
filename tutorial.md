@@ -1574,19 +1574,23 @@ from django.urls import reverse
 def renew(request, pk):
   return HttpResponseRedirect(reverse('all-borrowed') )
 
-通常用於post請求 以完成在網站頁面進行驗證等動作 Redirect用於重新連接到指定的URL
+redirect用於重新連接到指定的URL(重新走urls.py)
+render通常用於post請求 以完成在網站頁面進行驗證等動作 
+
 redirect()和render()都是django.shortcuts的方法 用於view中來返回網頁
-用法為：redirect(url) 和render(request,template_name,context_dict)
+用法為：redirect(url) 和render(request, template_name, context_dict)
 (template_name必須輸入從BASE_DIR之後的完整路徑 'chat/index.html')
 
 HttpResponseRedirect與redirect的差異：
-HttpResponseRedirect()參數只能是url  而redirect()參數除了url外仍可放入其他變數傳給視圖
+HttpResponseRedirect()參數只有一個且只能是url 
+redirect()則除url之外充許view的function當參數 且redirect('videos_view', video_id=video_id) 充許加入url字串作為參數
 
 reverse_lazy('all-borrowed'))
 lazy在程式語言當中通常表示不會馬上執行 以避免發生未加載錯誤
 即為延後執行的reverse('all-borrowed') 常用於刪除資料後的重整
 
 
+HttpResponse參數為html完整資料為字串形式 而HttpResponseRedirect參數為url也為字串形式
 ## 不同status的常見HttpResponse類別
 from django.shortcuts import get_object_or_404
 當資料庫中沒有record時 自動引發http404
@@ -6642,7 +6646,10 @@ $(物件).hide(); jQuery的hide就是採用display:none的方法
 }
 
 fit_cover{  
-  object-fit:cover; 通常用於圖片元素 可維持原比例但會把多出的部分直接切掉 
+  object-fit:cover; 通常用於圖片元素 可維持原比例但會把多於部分直接切掉 
+  object-fit:contain; 也為維持原比例 而少於部分則直接留黑底
+  object-fit:fill; 圖片會變形來塞滿所有畫面 不會切掉也不會留黑底
+  /* object-position: left top; */ 若為預設會以正中心為軸心來做縮放 可訂object-position改以左上角為軸心
 }
 
 fnt_250{

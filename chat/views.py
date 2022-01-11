@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
@@ -7,7 +7,7 @@ from datingApp import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
-from .models import Photo, Player, School, Room, Game, GameRole, GameEvent, Dialogue
+from .models import Photo, Player, School, City, Room, Game, GameRole, GameEvent, Dialogue
 from django.forms.models import model_to_dict
 from django.db.models import Q
 from random import randint, sample, shuffle
@@ -28,7 +28,7 @@ from django.db import connection
 
 def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
-        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'school'])
+        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'school', 'city'])
     room = player.room
     match = player.match
     if room is None:
@@ -77,7 +77,7 @@ def chatroom(request):
         # print('db_query: {}'.format(connection.queries))
 
     else:
-        login_dict = {  # 部分參數是登入後才會使用的 未登入前不設置
+        login_dict = {
             'isLogin': False,
             'email': '',
             'gender': '',
@@ -95,9 +95,6 @@ def in_game(request, game_name):
         # 遊戲中的ajax則要傳送到 views_game_{gamename}.py
         game = Game.objects.get(game_id=game_name)
         playerNum = game.best_ratio[0] + game.best_ratio[1]
-
-        # dialogs = game.story 移到db_{game_name}.js
-
         login_dict = get_loginData(user, user.profile)
 
         if settings.DEBUG is True:
@@ -105,8 +102,8 @@ def in_game(request, game_name):
         url = 'chat/chatroom_game_' + game_name + '.html'
         return render(request, url, {'login_dict': login_dict, 'range': range(1, playerNum)})
     else:
-        # 提醒玩家 沒登入帳號不能直接用in_game
-        print("error: user isn't authenticated.")
+        return redirect('/chat/')
+
 
 
 def greet(request):
@@ -114,16 +111,15 @@ def greet(request):
         dialogs = []
         t = int(datetime.now().strftime('%H'))
         sub_t = get_dialogue_greet_sub(t)
-        dialog_t = get_dialogue_dialog('GREET', sub_t)  # 是否可合併 不需要問兩次Dialogue
+        dialog_t = get_dialogue_dialog('GREET', sub_t)
         dialogs.append(dialog_t)
-        # sub.append(sub_t) sub應該用不到
 
-        school_id, roomNum = get_school_roomNum_max()  # 把學校school改成城市city
+        # city_name, roomNum = get_city_roomNum_max() # it's unavailable
+        city_name, roomNum = '', 0
         if roomNum > settings.PLENTY_ROOM_NUM:
-            dialog_sch = get_dialogue_dialog('GREET', 'sch')
-            dialog_sch = dialog_sch.format(school_id)
-            dialogs.append(dialog_sch)
-            # sub.append('sch') sub應該用不到
+            dialog_city = get_dialogue_dialog('GREET', 'city')
+            dialog_city = dialog_city.format(city_name)
+            dialogs.append(dialog_city)
 
         return JsonResponse({"result": True, "dialogs": dialogs})
     else:
@@ -131,7 +127,7 @@ def greet(request):
 
 
 def get_dialogue_greet_sub(time):
-    time_ranges = cache.get('GREET_TIME_RANGE')  # 刪除cache GREET_TIME_RANGE-3
+    time_ranges = cache.get('GREET_TIME_RANGE')
     if time_ranges is None:
         dialogues = Dialogue.objects.filter(Q(action='GREET') & Q(sub__startswith='t') & Q(number=1))
         time_ranges = [[dialogue.sub[1:3], dialogue.sub[4:6]] for dialogue in dialogues]
@@ -160,9 +156,14 @@ def get_dialogue_dialog(action, sub, n=None):
     return dialogue.dialog
 
 
-def get_school_roomNum_max():  # LARP school改為city 表示city正在進行的遊戲數量
+def get_school_roomNum_max():
     school = School.objects.order_by('-roomNum').first()
     return str(school.name), int(school.roomNum)
+
+
+def get_city_roomNum_max():
+    city = City.objects.order_by('-roomNum').first()
+    return str(city.name), int(city.roomNum)
 
 
 def upload_image(request):
@@ -179,22 +180,41 @@ def upload_image(request):
         print("error: it's not through ajax.")
 
 
-def post_school(request):
+def post_place(request):
+    if request.is_ajax and request.method == "POST":
+        city_name = request.POST['goto-input']
+        filter_result = City.objects.filter(name__exact=city_name)
+        if len(filter_result) == 0:
+            return JsonResponse({"result": False, "msg": "抱歉，該城市還未開放。"})
+
+        city = filter_result[0]
+        user = request.user
+        if user.is_authenticated and user.is_active:
+            self_player = user.profile
+            self_player.city = city
+            self_player.save()
+
+        dialogs = []  # todo dialog 動態資訊
+        return JsonResponse({"result": True, "city": city.name, "dialogs": dialogs})
+    else:
+        print("error: it's not through ajax.")
+
+
+def post_school(request):  # old version
     if request.is_ajax and request.method == "POST":
         school_name = request.POST['goto-input'].upper()
-        filter_result = School.objects.filter(name__exact=school_name)  # 改用get 和 DoesNotExist
+        filter_result = School.objects.filter(name__exact=school_name)
         if len(filter_result) == 0:
             return JsonResponse({"result": False, "msg": "抱歉，所在城市還未開放。"})
 
         school = filter_result[0]
-
         user = request.user
         if user.is_authenticated and user.is_active:
-            user = request.user
-            user.profile.school = school
-            user.profile.save()
+            self_player = user.profile
+            self_player.school = school
+            self_player.save()
 
-        dialogs = []  # todo dialog 動態資訊
+        dialogs = []
         return JsonResponse({"result": True, "school": school.name, "dialogs": dialogs})
     else:
         print("error: it's not through ajax.")
@@ -210,8 +230,9 @@ def post_name(request):  # todo 加上修改權限permission 用於替代self.pl
 
         user = request.user
         if user.is_authenticated and user.is_active:
-            user.profile.name = name
-            user.profile.save()
+            self_player = user.profile
+            self_player.name = name
+            self_player.save()
 
         return JsonResponse({"result": True, "name": name})
     else:
@@ -259,11 +280,11 @@ def signup(request):
         else:
             user = signup_create_user(username, email, password2)
             try:
-                school = School.objects.get(name=request.POST['goto-input'])
-            except School.DoesNotExist:  # localData.school = ''
-                school = None
+                city = City.objects.get(name=request.POST['goto-input'])
+            except city.DoesNotExist:  # localData.city = ''
+                city = None
             Player.objects.create(uuid=str(uuid4()), user=user, isRegistered=True, gender=gender,
-                                  name=request.POST['name-input'], school=school)
+                                  name=request.POST['name-input'], city=city)
 
             isSent = signup_send_mail(email)
             if isSent is False:
@@ -343,8 +364,6 @@ def log_in(request):  # 帳號重複登入
             return JsonResponse({"result": False, "msg": '登入失敗，密碼錯誤或信箱還未完成註冊驗證。'})
         else:
             login(request, user)
-            # 依據用戶的status 給予相對應的資料
-            # loginData = get_loginData(user, user.profile)
             return JsonResponse({"result": True})
 
     else:
@@ -357,7 +376,7 @@ def log_out(request):
             logout(request)
             return JsonResponse({"result": True})
         else:
-            print("error: user isn't authenticated.")
+            print("error: user isn't authenticated to log_out.")
     else:
         print("error: it's not through ajax.")
 
@@ -365,8 +384,7 @@ def log_out(request):
 def change_pwd(request):
     if request.is_ajax and request.method == 'POST':
         if not request.user.is_authenticated:
-            print("error: user isn't authenticated.")
-            return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
+            print("error: user isn't authenticated to change_pwd.")
 
         old_password = request.POST['change-pwd-input-old']
         password1 = request.POST['change-pwd-input-password']
@@ -448,13 +466,12 @@ def reset_pwd_send_mail(email, temp_pwd):
 def start_game(request):
     if request.is_ajax and request.method == 'GET':
         if not request.user.is_authenticated:
-            print("error: user isn't authenticated.")
             return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
 
         user = request.user
         self_player = user.profile
 
-        if self_player.school is None:
+        if self_player.city is None:
             return JsonResponse({"result": False, "msg": '尚未選擇所在城市'})
         if self_player.name is None:
             return JsonResponse({"result": False, "msg": '尚未取新的遊戲暱稱'})
@@ -468,7 +485,7 @@ def start_game(request):
         self_player.status = 1
         self_player.save()
 
-        # todo 更新 school的等待人數 utils.process_player_wait
+        # todo 更新city的等待人數
 
         # 判斷遊戲人數是否足夠
         players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))  # todo 創房者獲取資料後 其他人才離線 問題
@@ -480,7 +497,7 @@ def start_game(request):
 
         # 人數足夠 建立房間
         if len(male_players) >= maleNeeded and len(female_players) >= femaleNeeded:
-            room = Room.objects.create(game=game, school=self_player.school)
+            room = Room.objects.create(game=game, city=self_player.city)
             if self_player.gender == 'm':
                 players = list(female_players.order_by('waiting_time'))[:femaleNeeded] + \
                           [self_player] + list(male_players.order_by('waiting_time'))[:maleNeeded-1]
@@ -519,7 +536,7 @@ def start_game(request):
             room.answer = answer_dict
             room.save()
 
-            # todo 更新school的room數量
+            # todo 更新city的room數量
 
             return JsonResponse({"result": True, "start": True, "msg": '遊戲人數齊全，等待加載...'})
         # 人數不足 等待
@@ -586,8 +603,8 @@ def leave(request):
             player.save()
             return JsonResponse({"result": True})
         else:
-            print("error: user isn't authenticated.")
-            return JsonResponse({"result": False, "msg": '用戶沒有登入帳號。'})
+            print("error: user isn't authenticated to leave.")
+            return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
     else:
         print("error: it's not through ajax.")
 
@@ -604,12 +621,12 @@ def leave_game(request):
             player.status = 0
             player.save()
 
-            # todo 更新school的room數量
+            # todo 更新city的room數量
 
             return JsonResponse({"result": True})
         else:
-            print("error: user isn't authenticated.")
-            return JsonResponse({"result": False, "msg": '用戶還未登入帳號。'})
+            print("error: user isn't authenticated to leave_game.")
+            return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
     else:
         print("error: it's not through ajax.")
 
@@ -633,7 +650,7 @@ def leave_match(request):
 
             return JsonResponse({"result": True})
         else:
-            print("error: user isn't authenticated.")
-            return JsonResponse({"result": False, "msg": '用戶還未登入帳號。'})
+            print("error: user isn't authenticated to leave_match.")
+            return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
     else:
         print("error: it's not through ajax.")

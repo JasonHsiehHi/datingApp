@@ -25,9 +25,9 @@ selenium 4以上
 完成theGate.tutor教學
 完成隨機生成內容gameevent
 完成chatlog
-
-完成background 進入遊戲後可變更背景 增加由原顏色到淺色的css動畫
-將school改為city 且school不用刪掉
+完成遊戲background
+完成goto-place
+修改checkGate和gameCheckGate
 
 上限前JS必須進行防盜措施
 GCE上線部署
@@ -47,7 +47,7 @@ GCE上線部署
 
 
 未來完成：
-完成settings-form 之後換成start-game的選項
+完成 settings-form換成start-game的選項
 篩選不符合條件的瀏覽器 通知
 流量超載就自動斷線 通知
 

@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 class Room(models.Model):
     create_date = models.DateTimeField(default=timezone.now)
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
+    city = models.ForeignKey('City', null=True, on_delete=models.SET_NULL, default=None, to_field='name')
     game = models.ForeignKey('Game', null=True, on_delete=models.SET_NULL, default=None)
 
     player_dict = models.JSONField(max_length=200, null=True, default=dict)
@@ -38,6 +39,7 @@ class Player(models.Model):
     isBanned = models.BooleanField(default=False)
 
     school = models.ForeignKey('School', null=True, on_delete=models.SET_NULL, default=None)
+    city = models.ForeignKey('City', null=True, on_delete=models.SET_NULL, default=None, to_field='name')
     room = models.ForeignKey('Room', null=True, on_delete=models.SET_NULL, default=None)
     match = models.ForeignKey('Match', null=True, on_delete=models.SET_NULL, default=None)
 
