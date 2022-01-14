@@ -224,8 +224,9 @@ function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'
     for (let uuid in position)
         css_id = position[uuid], disabledElmtCss(css_id+'-btn');
     disabledElmtCss('#start-btn');
+
     $('body').off('click', "#leave-btn");
-    $("#leave-btn").on('click',function(a){ 
+    $("#leave-btn").on('click',function(a){  // status is still 2 on front-end until redirect to /chat  
         window.location.href = "/chat"; 
     })
 }

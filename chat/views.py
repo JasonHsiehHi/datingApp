@@ -6,8 +6,9 @@ from django.core.mail import send_mail
 from datingApp import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.sessions.models import Session
 from django.core.cache import cache
-from .models import Photo, Player, School, City, Room, Game, GameRole, GameEvent, Dialogue
+from .models import Player, City, Room, Game, GameRole, GameEvent, Dialogue
 from django.forms.models import model_to_dict
 from django.db.models import Q
 from random import randint, sample, shuffle
@@ -28,7 +29,7 @@ from django.db import connection
 
 def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
-        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'school', 'city'])
+        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'city'])
     room = player.room
     match = player.match
     if room is None:
@@ -40,7 +41,7 @@ def get_loginData(user, player):
         player_dict['event_name'] = []
         player_dict['event_content'] = []
     else:
-        player_dict['game'] = room.game.game_id
+        player_dict['game'] = str(room.game)
         player_dict['player_dict'] = room.player_dict
         player_dict['onoff_dict'] = room.onoff_dict
         player_dict['tag_int'] = player.tag_int
@@ -72,9 +73,9 @@ def chatroom(request):
     user = request.user
     if user.is_authenticated:
         login_dict = get_loginData(user, user.profile)
-
-        # reverse_foreignkey 是否會多次存取
         # print('db_query: {}'.format(connection.queries))
+        if user.profile.status in [2, 3]:
+            return redirect('/chat/start_game/{}'.format(login_dict['game']))
 
     else:
         login_dict = {
@@ -90,20 +91,18 @@ def chatroom(request):
 
 def in_game(request, game_name):
     user = request.user
-    if user.is_authenticated:
-        # 先查看request.user 是否資料完全符合 遊戲房間必須正確 是否真的在遊戲進行中
-        # 遊戲中的ajax則要傳送到 views_game_{gamename}.py
-        game = Game.objects.get(game_id=game_name)
-        playerNum = game.best_ratio[0] + game.best_ratio[1]
-        login_dict = get_loginData(user, user.profile)
-
-        if settings.DEBUG is True:
-            game_name = game_name[5:] if game_name.startswith("test_") else game_name
-        url = 'chat/chatroom_game_' + game_name + '.html'
-        return render(request, url, {'login_dict': login_dict, 'range': range(1, playerNum)})
+    if user.is_authenticated and user.profile.status in [2, 3]:
+        player = user.profile
+        if str(player.game) == game_name:
+            game = Game.objects.get(game_id=game_name)
+            playerNum = game.best_ratio[0] + game.best_ratio[1]
+            login_dict = get_loginData(user, user.profile)
+            url = 'chat/chatroom_game_' + game_name + '.html'
+            return render(request, url, {'login_dict': login_dict, 'range': range(1, playerNum)})
+        else:
+            return redirect('/chat/start_game/{}'.format(str(player.game)))
     else:
         return redirect('/chat/')
-
 
 
 def greet(request):
@@ -114,7 +113,7 @@ def greet(request):
         dialog_t = get_dialogue_dialog('GREET', sub_t)
         dialogs.append(dialog_t)
 
-        # city_name, roomNum = get_city_roomNum_max() # it's unavailable
+        # city_name, roomNum = get_city_roomNum_max() # the func is unavailable
         city_name, roomNum = '', 0
         if roomNum > settings.PLENTY_ROOM_NUM:
             dialog_city = get_dialogue_dialog('GREET', 'city')
@@ -123,7 +122,7 @@ def greet(request):
 
         return JsonResponse({"result": True, "dialogs": dialogs})
     else:
-        print("error: it's not through ajax.")  # log查看系統
+        print("error: it's not through ajax.")
 
 
 def get_dialogue_greet_sub(time):
@@ -156,16 +155,12 @@ def get_dialogue_dialog(action, sub, n=None):
     return dialogue.dialog
 
 
-def get_school_roomNum_max():
-    school = School.objects.order_by('-roomNum').first()
-    return str(school.name), int(school.roomNum)
-
-
 def get_city_roomNum_max():
     city = City.objects.order_by('-roomNum').first()
     return str(city.name), int(city.roomNum)
 
 
+'''  # upload_image haven't been available.
 def upload_image(request):
     if request.is_ajax and request.method == "POST":
         photo = Photo.objects.create(image=request.FILES['send-img'], uploader=str(request.user.id),
@@ -178,59 +173,43 @@ def upload_image(request):
         return JsonResponse({'img_url': photo.image.url})
     else:
         print("error: it's not through ajax.")
+'''
 
 
 def post_place(request):
     if request.is_ajax and request.method == "POST":
-        city_name = request.POST['goto-input']
-        filter_result = City.objects.filter(name__exact=city_name)
-        if len(filter_result) == 0:
+        try:
+            city = City.objects.get(name=request.POST['goto-input'])
+        except city.DoesNotExist:
             return JsonResponse({"result": False, "msg": "抱歉，該城市還未開放。"})
 
-        city = filter_result[0]
         user = request.user
         if user.is_authenticated and user.is_active:
             self_player = user.profile
+            if self_player.status != 0:
+                return JsonResponse({"result": False, "msg": "你現在不能前往其他城市！"})
             self_player.city = city
             self_player.save()
 
-        dialogs = []  # todo dialog 動態資訊
+        dialogs = []  # todo dialog place動態資訊
         return JsonResponse({"result": True, "city": city.name, "dialogs": dialogs})
     else:
         print("error: it's not through ajax.")
 
 
-def post_school(request):  # old version
-    if request.is_ajax and request.method == "POST":
-        school_name = request.POST['goto-input'].upper()
-        filter_result = School.objects.filter(name__exact=school_name)
-        if len(filter_result) == 0:
-            return JsonResponse({"result": False, "msg": "抱歉，所在城市還未開放。"})
-
-        school = filter_result[0]
-        user = request.user
-        if user.is_authenticated and user.is_active:
-            self_player = user.profile
-            self_player.school = school
-            self_player.save()
-
-        dialogs = []
-        return JsonResponse({"result": True, "school": school.name, "dialogs": dialogs})
-    else:
-        print("error: it's not through ajax.")
-
-
-def post_name(request):  # todo 加上修改權限permission 用於替代self.player_data.status
+def post_name(request):
     if request.is_ajax and request.method == "POST":
         name = request.POST['name-input']
         if len(name) > 20:
             return JsonResponse({"result": False, "msg": "暱稱太長了，不能超過20個字元"})
-        elif len(name) == 0:
+        elif len(name.strip()) == 0:
             return JsonResponse({"result": False, "msg": "暱稱不能空白"})
 
         user = request.user
         if user.is_authenticated and user.is_active:
             self_player = user.profile
+            if self_player.status != 0:
+                return JsonResponse({"result": False, "msg": "你現在不能變更名字！"})
             self_player.name = name
             self_player.save()
 
@@ -239,6 +218,7 @@ def post_name(request):  # todo 加上修改權限permission 用於替代self.pl
         print("error: it's not through ajax.")
 
 
+# account function
 def signup(request):
     if request.is_ajax and request.method == "POST":
         email = request.POST['signup-input-email']
@@ -250,20 +230,18 @@ def signup(request):
             valid_email(email)
         except ValidationError:
             return JsonResponse({"result": False, "msg": '電子信箱不符合格式！'})
+        try:
+            validate_pwd(password1, password2)
+        except ValidationError as e:
+            return JsonResponse({"result": False, "msg": e.message})
 
-        error_msg = validate_pwd(password1, password2)  # 密碼不符合條件
-        if error_msg is not None:
-            return JsonResponse({"result": False, "msg": error_msg})
-
-        # todo 用戶已被登入時 問題
-
-        if settings.DEBUG is True:
+        if settings.DEBUG is True:  # test mode: single email can apply for multiple accounts
             filter_result = User.objects.filter(email=email)
             username = email + str(len(filter_result))
         else:
             username = email
 
-        filter_result = User.objects.filter(username__exact=username)  # 改用get和 User.DoesNotExist
+        filter_result = User.objects.filter(username__exact=username)
         if len(filter_result) == 1:
             if filter_result[0].is_active:
                 return JsonResponse({"result": False, "msg": '此電子信箱已經註冊過了！如果您的密碼遺失可選擇重設密碼。'})
@@ -281,9 +259,9 @@ def signup(request):
             user = signup_create_user(username, email, password2)
             try:
                 city = City.objects.get(name=request.POST['goto-input'])
-            except city.DoesNotExist:  # localData.city = ''
+            except city.DoesNotExist:  # localData.city is ''(empty_string) until user haven't updated the field.
                 city = None
-            Player.objects.create(uuid=str(uuid4()), user=user, isRegistered=True, gender=gender,
+            Player.objects.create(uuid=str(uuid4()), user=user, gender=gender,
                                   name=request.POST['name-input'], city=city)
 
             isSent = signup_send_mail(email)
@@ -333,23 +311,22 @@ def activate(request, token):
         return render(request, 'chat/chatroom_activate.html', {"title": '啟用失敗',
                                                                "msg": '驗證連結可能已過期或已完成，或所驗證的帳號不存在，請重新註冊。'})
     else:
-        if settings.DEBUG is True:
+        if settings.DEBUG is True:  # test mode: single email can apply for multiple accounts
             users = User.objects.filter(email=email)
-            for user in users:
-                user.is_active = True
-                user.save()
+            users.update(is_active=True)
             user = list(users)[-1]
         else:
             user = User.objects.get(username=email)
             user.is_active = True
             user.save()
         login(request, user)
+        retain_last_login(request.session)
         cache.delete(token)
         return render(request, 'chat/chatroom_activate.html', {"title": '啟用成功',
                                                                "msg": '信箱註冊成功，現在可以開始遊戲了哦！'})
 
 
-def log_in(request):  # 帳號重複登入
+def log_in(request):
     if request.is_ajax and request.method == 'POST':
         email = request.POST['login-input-email']
         password = request.POST['login-input-password']
@@ -364,8 +341,8 @@ def log_in(request):  # 帳號重複登入
             return JsonResponse({"result": False, "msg": '登入失敗，密碼錯誤或信箱還未完成註冊驗證。'})
         else:
             login(request, user)
+            retain_last_login(request.session)
             return JsonResponse({"result": True})
-
     else:
         print("error: it's not through ajax.")
 
@@ -374,6 +351,7 @@ def log_out(request):
     if request.is_ajax and request.method == 'POST':
         if request.user.is_authenticated:
             logout(request)
+            request.session.flush()
             return JsonResponse({"result": True})
         else:
             print("error: user isn't authenticated to log_out.")
@@ -381,43 +359,47 @@ def log_out(request):
         print("error: it's not through ajax.")
 
 
+def retain_last_login(session):
+    sid = session.session_key
+    data = session.encode(dict(session))
+    Session.objects.filter(session_data__startswith=str(data)[0:50]).exclude(pk=sid).delete()
+
+
 def change_pwd(request):
     if request.is_ajax and request.method == 'POST':
-        if not request.user.is_authenticated:
-            print("error: user isn't authenticated to change_pwd.")
-
-        old_password = request.POST['change-pwd-input-old']
-        password1 = request.POST['change-pwd-input-password']
-        password2 = request.POST['change-pwd-input-confirm']
-
         user = request.user
-        if user.check_password(old_password) is False:
-            return JsonResponse({"result": False, "msg": '原密碼錯誤！'})
+        if user.is_authenticated:
+            old_password = request.POST['change-pwd-input-old']
+            password1 = request.POST['change-pwd-input-password']
+            password2 = request.POST['change-pwd-input-confirm']
 
-        error_msg = validate_pwd(password1, password2)  # 密碼不符合條件
-        if error_msg is not None:
-            return JsonResponse({"result": False, "msg": error_msg})
+            if user.check_password(old_password) is False:
+                return JsonResponse({"result": False, "msg": '原密碼錯誤！'})
+            try:
+                validate_pwd(password1, password2)
+            except ValidationError as e:
+                return JsonResponse({"result": False, "msg": e.message})
 
-        user.set_password(password2)
-        user.save()
-        login(request, user)
-        return JsonResponse({"result": True})
-
+            user.set_password(password2)
+            user.save()
+            login(request, user)
+            retain_last_login(request.session)
+            return JsonResponse({"result": True})
+        else:
+            print("error: user isn't authenticated to change_pwd.")
     else:
         print("error: it's not through ajax.")
 
 
 def validate_pwd(password1, password2):
-    error_msg = None
     if len(password1) < 8:
-        error_msg = '密碼至少8個字元！'
-    if len(password1) > 30:
-        error_msg = '密碼太長！'
-    if re.match(r'^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$', password1) is None:
-        error_msg = '至少一個數字與至少一個英文字母'
-    if password1 != password2:
-        error_msg = '確認密碼不ㄧ致！'
-    return error_msg
+        raise ValidationError('密碼至少8個字元！')
+    elif len(password1) > 30:
+        raise ValidationError('密碼太長了！不能超過30字元')
+    elif re.match(r'^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$', password1) is None:
+        raise ValidationError('密碼至少一個數字與至少一個英文字母')
+    elif password1 != password2:
+        raise ValidationError('密碼與確認密碼不ㄧ致！')
 
 
 def reset_pwd(request):
@@ -432,19 +414,19 @@ def reset_pwd(request):
         filter_result = User.objects.filter(username__exact=email)
         if len(filter_result) != 1:
             return JsonResponse({"result": False, "msg": '此電子信箱尚未註冊哦！'})
-        if cache.get('reset_pwd_'+email) is True:
-            return JsonResponse({"result": False, "msg": '已經寄到此電子信箱了哦！如果需要再寄一次則需等待10分鐘。'})
-
-        user = filter_result[0]
-        temp_pwd = str(get_random_str())[:7]+'a'+'1'
-        user.set_password(temp_pwd)
-        user.save()
-        isSent = reset_pwd_send_mail(email, temp_pwd)
-        if isSent is False:
-            return JsonResponse({"result": False, "msg": '寄件失敗，請稍候再試。'})
         else:
-            return JsonResponse({"result": True})
+            if cache.get('reset_pwd_'+email) is True:
+                return JsonResponse({"result": False, "msg": '已經寄到此電子信箱了哦！如果需要再寄一次則需等待10分鐘。'})
 
+            user = filter_result[0]
+            temp_pwd = str(get_random_str())[:7]+'a'+'1'
+            user.set_password(temp_pwd)
+            user.save()
+            isSent = reset_pwd_send_mail(email, temp_pwd)
+            if isSent is False:
+                return JsonResponse({"result": False, "msg": '寄件失敗，請稍候再試。'})
+            else:
+                return JsonResponse({"result": True})
     else:
         print("error: it's not through ajax.")
 
@@ -463,14 +445,13 @@ def reset_pwd_send_mail(email, temp_pwd):
     return isSent
 
 
+# game function
 def start_game(request):
     if request.is_ajax and request.method == 'GET':
         if not request.user.is_authenticated:
             return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
 
-        user = request.user
-        self_player = user.profile
-
+        self_player = request.user.profile
         if self_player.city is None:
             return JsonResponse({"result": False, "msg": '尚未選擇所在城市'})
         if self_player.name is None:

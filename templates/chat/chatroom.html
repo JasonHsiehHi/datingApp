@@ -67,12 +67,12 @@
                         </div>
                         <div class="mb-3">
                             <label for="signup-input-password" class="form-label">密碼Password:</label>
-                            <input type="password" class="form-control" id="signup-input-password" name="signup-input-password" required>
+                            <input type="password" class="form-control" id="signup-input-password" name="signup-input-password" pattern="^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$" required>
                             <span class="form-text">* 密碼至少包含8個字元，且由至少一個數字和至少一個英文字母組成。</span>
                         </div>
                         <div class="mb-3">
                             <label for="signup-input-confirm" class="form-label">確認密碼:</label>
-                            <input type="password" class="form-control" id="signup-input-confirm" name="signup-input-confirm" required>
+                            <input type="password" class="form-control" id="signup-input-confirm" name="signup-input-confirm" pattern="^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$" required>
                         </div>
                         <p class='border border-3 border-warning'>
                         提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會像其他玩家透露個人電子信箱。<br>
@@ -126,12 +126,12 @@
 
                         <div class="mb-3">
                             <label for="change-pwd-input-password" class="form-label">密碼Password:</label>
-                            <input type="password" class="form-control" id="change-pwd-input-password" name="change-pwd-input-password" required>
+                            <input type="password" class="form-control" id="change-pwd-input-password" name="change-pwd-input-password" pattern="^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$" required>
                             <span class="form-text">* 密碼至少包含8個字元，且由至少一個數字和至少一個英文字母組成。</span>
                         </div>
                         <div class="mb-3">
                             <label for="change-pwd-input-confirm" class="form-label">確認密碼:</label>
-                            <input type="password" class="form-control" id="change-pwd-input-confirm" name="change-pwd-input-confirm" required>
+                            <input type="password" class="form-control" id="change-pwd-input-confirm" name="change-pwd-input-confirm" pattern="^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$" required>
                         </div>
                         <p class='text-danger p-1 a-error'></p>
                     </div>

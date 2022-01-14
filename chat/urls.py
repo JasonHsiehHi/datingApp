@@ -4,7 +4,6 @@ from . import views, views_game_graduate_girl
 urlpatterns = [
     path('', views.chatroom, name='chatroom'),
     path('greet', views.greet, name='greet'),
-    path('upload_photo', views.upload_image, name='upload_photo'),
     path('post_place', views.post_place, name='post_place'),
     path('post_name', views.post_name, name='post_name'),
     path('signup', views.signup, name='signup'),
@@ -18,6 +17,7 @@ urlpatterns = [
     path('leave', views.leave, name='leave'),
     path('leave_game', views.leave_game, name='leave_game'),
     path('leave_match', views.leave_match, name='leave_match')
+    # path('upload_photo', views.upload_image, name='upload_photo'),
 ]
 
 # game_graduate_girl

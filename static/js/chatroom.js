@@ -318,8 +318,6 @@ function enabledElmtCss(elmt_css){
 
 function loadLoginData(){ // login and logout will redirect, so loginData will be loaded then.
     if (!0 === loginData.isLogin){
-        var url = (loginData.game.length > 0)? ('/chat/start_game/' + loginData.game) : '/chat/';
-        (url !== window.location.pathname) && (window.location.href = url);
         setTimeout(chatroomWS, 500);
 
         appearElmtCss('#user-info'), appearElmtCss('#logout-btn'), appearElmtCss('#change-pwd-btn');
@@ -356,8 +354,6 @@ function loadLocalData(){  // loadLocalData just handle theUI work and it's call
 function refreshProfile(){  // handle text of navbar and sidebar
     var city_name = citySet[localData.city] + ' ' + localData.city;
     $('#city').text(city_name).attr('data-bs-original-title', city_name);
-
-
     if (0===loginData.status){
         var sub_text = (0 === localData.city.length)?'':'('+citySet[localData.city]+')';
         setNavTitle('A-LARP匿名劇本殺 ' + sub_text);
@@ -489,7 +485,12 @@ function loginMethodSet(){
 
     $('#signup-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // todo 驗證資料:email不符合標準, pwd不符合標準
+        var pwd1 = $(this).find('input[name="signup-input-password"]').val(),
+            pwd2 = $(this).find('input[name="signup-input-confirm"]').val();
+        if (pwd1 !== pwd2){
+            $('#nsignup-modal-form p.a-error').text('密碼與確認密碼不ㄧ致！');
+            return false
+        }
 
         var formArray = $(this).serializeArray();
         formArray.push({name:"goto-input",value: localData.city});
@@ -528,7 +529,7 @@ function loginMethodSet(){
                 if (!0 === data['result']){
                     showNotice('帳號登入成功！');
                     $('#notice-modal').on('hide.bs.modal', function(e) {
-                        window.location.href = "/chat";
+                        window.location.assign(window.location.href);
                     });
                 }else{
                     $('#login-modal-form p.a-error').text(data['msg']);
@@ -550,7 +551,7 @@ function loginMethodSet(){
                 if (!0 === data['result']){                    
                     showNotice('帳號已登出！');
                     $('#notice-modal').on('hide.bs.modal', function(e) {
-                        window.location.href = "/chat";
+                        window.location.assign(window.location.href);
                     });
                 }else{
                     $('#logout-modal-form p.a-error').text(data['msg']);
@@ -563,8 +564,12 @@ function loginMethodSet(){
 
     $('#change-pwd-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // 資料驗證
-
+        var pwd1 = $(this).find('input[name="change-pwd-input-password"]').val(),
+            pwd2 = $(this).find('input[name="change-pwd-input-confirm"]').val();
+    if (pwd1 !== pwd2){
+        $('#change-pwd-modal-form p.a-error').text('新密碼與確認密碼不ㄧ致！');
+        return false
+    }
         $.ajax({
             type: 'POST',
             url: '/chat/change_pwd',
@@ -572,10 +577,9 @@ function loginMethodSet(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-
                     showNotice('變更密碼成功！');
                     $('#notice-modal').on('hide.bs.modal', function(e) {
-                        window.location.href = "/chat";
+                        window.location.assign(window.location.href);
                     });
                 }else{
                     $('#change-pwd-modal-form p.a-error').text(data['msg'])
@@ -629,11 +633,10 @@ function profileMethodSet(){
         if (name.length>20){
             $('#name-modal-form p.a-error').text('暱稱太長了，不能超過20個字元');
             return false
-        }else if (name.length === 0){
+        }else if (name.trim().length === 0){
             $('#name-modal-form p.a-error').text('暱稱不能空白');
             return false
-        }
-        // 不能傳' '(全為空) 不能傳html語法(轉譯問題) 
+        } 
 
         var formArray = $(this).serializeArray();
         $.ajax({
@@ -645,7 +648,9 @@ function profileMethodSet(){
                 if (!0 === data['result']){
                     (!0 === loginData.isLogin) && (loginData.name = data['name']);
                     localData.name = data['name'], localStorage.name = data['name'], refreshProfile();
-                    theUI.showSys('名稱：<span class="a-point">'+localData.name+'</span> 已修改完畢');
+                    var text_only = $('#snippet').html(localData.name).text();
+                    theUI.showSys('名稱：<span class="a-point">'+text_only+'</span> 已修改完畢');
+                    theGate.tutor(true);
                     $('#modal').modal('hide');
                 }else{
                     $('#name-modal-form p.a-error').text(data['msg']);
@@ -684,7 +689,7 @@ function profileMethodSet(){
                     theUI.clearChatLogs();
                     theUI.gotoPlaceAsync(function(){
                         var li = data['dialogs'];
-                        li.splice(0,0,['已抵達<span class="a-point">'+ citySet[city] +'</span>了😎',!1]); // insert msg into data.dialog
+                        li.splice(0,0,['已抵達<span class="a-point">'+ citySet[city] +'</span>了😎',!1], theGate.tutor()); // insert msg into data.dialog
                         theUI.showMsgsAsync(li);
                     });
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
@@ -835,9 +840,9 @@ var checkGate = function(){
         else if(localData.name.length===0)
             dialog = ['同樣點擊左上角圓圈圖示來開啟選單，輸入你在遊戲中的<span class="a-point">暱稱</span>。 <span class="a-point">暱稱</span>不會綁定，每場遊戲開始前都能更改。', !1];
         else if(loginData.isLogin === !1)
-            dialog = ['在開始劇本殺遊戲前，你必須登入帳號！請點選右上角人頭圖示<span class="a-point">註冊</span>或<span class="a-point">登入</span>帳號。', !1];
+            dialog = ['在開始劇本殺遊戲前，必須先登入帳號！請點選右上角人頭圖示<span class="a-point">註冊</span>或<span class="a-point">登入</span>帳號。', !1];
         else{
-            dialog = ['當前所在城市：'+ citySet[localData.city]+'  你的暱稱為：'+ localData.name +'可以直接進行遊戲哦', !1];
+            dialog = ['當前所在城市：'+ citySet[localData.city]+'  你的暱稱為：'+ localData.name +'  請點擊左上角圓圈圖示來開啟選單來<span class="a-point">進行遊戲</span>吧！', !1];
         }
         (!0 === isDirected) && theUI.showMsg(dialog[0]);
         return dialog

@@ -54,8 +54,8 @@ def deduce(request):
         for uuid, name in deduce_dict.items():
             self_player.tag_json[uuid] = 0
 
-            if name == answer_dict[uuid]:  # everyone are out
-                if name == '與偵探發生關係':
+            if name == answer_dict[uuid]:
+                if name == '與偵探發生關係':  # everyone are out
                     room.onoff_dict = {key: -1 for key in dict(room.onoff_dict)}
                     players.exclude(uuid=self_player.uuid).update(status=0, room=None, tag_int=None, tag_json=None)
                     out_list = list(deduce_dict.keys())
@@ -79,7 +79,6 @@ def deduce(request):
         self_player.save()
         room.save()
         return JsonResponse({"result": True, "over": False, "out_players": out_list})
-
     else:
         print("error: it's not through ajax.")
 
@@ -178,6 +177,3 @@ def report(request):  # 檢舉功能 : make people leave match
         return JsonResponse({"result": True, "leave_players": leave_players})
     else:
         print("error: it's not through ajax.")
-
-
-

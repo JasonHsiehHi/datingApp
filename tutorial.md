@@ -700,7 +700,7 @@ def getCookie(request,key=None):
       return HttpResponse('Cookie 不存在!')
 
 def setSession(request):
-  request.session['is_login'] = True  # session像是一個dict 可讓用戶透過view將資料存在其中
+  request.session['is_login'] = True  # session為dict資料類別 可讓用戶透過view將資料存在其中
   response = HttpResponse('session 儲存完畢')
   return response
 
@@ -710,6 +710,37 @@ def getSession(request):
   response = HttpResponse('You have been login' + status)
 return response
 
+request.session.get('fav_color', 'red') 'red'為預設值
+request.session.pop('fav_color', 'blue') 'blue'為預設值 如果沒有資料則為'blue'
+request.session.set_expiry(300) 用於設置過期時間 參數以秒為單位：300秒
+
+request.session.clear() 只清除當前request物件的session屬性 不會變更資料庫
+request.session.flush() 做完clear()後再進行delete() 此時才會清掉資料庫的instance
+
+request.session.clear_expired() 一次清除所有過期session
+request.session.cycle_key()指的是當key過期時直接換一個新key
+
+for key in request.session.keys(): 可以用 keys()或items()來進行session的遍及操作
+  del request.session[key]
+
+使用SessionStore：
+from django.contrib.sessions.backends.db import SessionStore
+SessionStore 用於將用戶的session_dict以encode()的方式 轉成 session_data 以方便傳入db中
+
+s = SessionStore()
+s['last_login'] = '2019/1/1'  # 將資料以dict的形式存入
+s.create()  # 將session_dict轉成session_data 並生成session_id 
+
+s = SessionStore(session_key='2b1189a188b44ad18c35e113ac6ceead')  # 可用SessionStore()類別來提取session_dict
+
+使用Session model：
+from django.contrib.sessions.models import Session
+s = Session.objects.get(pk='2b1189a188b44ad18c35e113ac6ceead')
+session_data = s.session_data  # 若直接由Session model中提取資料 則只會有session_data
+s.get_decoded()  # 必須再用get_decode()轉成session_dict 
+
+修改session[key]後必須手動變更request.session.modified = True
+當view結束後才會再存入db之中
 
 messages APP：
 用於網頁的一次性彈出訊息(notification message) 針對使用者行為來給予相對應的訊息(success,info,warning,error等) 
@@ -1840,7 +1871,12 @@ Content-Type: text/plain
 202 accepted （ex:DELETE 成功請求但還未執行)
 204 no content (ex:POST 當使用者並未更改資料但仍發送請求時 此時伺服器只會確認此要求但不做更動)
 
-301 目標網頁移到新網址
+301 redirect 即重新整理當前網頁 (仍與原本用戶輸入的url相同)
+(由 /chat 轉為 /chat/ (多加'/') 也是301的的導向功能)
+
+302 redirect 後端urls.py重新導向到新網頁 (其結果會與原本用戶輸入的url不同)
+以上兩者都是redirect 但301會影響SEO排名 會導致被轉移的原網頁降名 (但都同一個url故其結果不變)
+
 304 瀏覽器已讀取了所有Data 即目前無更新資料
 
 401 需身分驗證 (SSL key...)
@@ -2345,7 +2381,7 @@ style="background:whitesmoke!important"
 $('li.class_name') 即為jQuery對象
 一般用於處理Ajax與element過場效果
 同理也能使用:作為過濾篩選條件
-$(“li:first”) 等同$(“li”).first() (jquery_fliter的舊版用法)
+$(“li:first”) 等同$(“li”).first() (jquery_filter的舊版用法)
 $(“li:even”)或$(“li:odd”) 即為偶數筆與奇數筆
 $(“li:eq(n)”) 第n筆對象 初始為n=0
 $("li:not(.intro)") 只扣除.intro該項
@@ -3744,7 +3780,7 @@ value為"Joel\nis a slug"
 {{ value|linebreaksbr }}  //output: Joel<br>is a slug 只轉成text
 
 {{ body|linebreaks|force_escape }}
-|force_escape 用於將其他fliter的結果在做轉譯
+|force_escape 用於將其他filter的結果在做轉譯
 |linebreaks後會有<p></p>  |force_escape可將其留下來輸出
 
 {% autoescape on %}
@@ -5060,6 +5096,9 @@ message = dict_data['message']
 同理 針對物件亦有getattr(object,'message', None)取值 當不存在attr時回傳None
 python中當屬性可能為undefined時 必須用getattr(), setattr(), hasattr()取代直接存取
 
+message = dict_data['message']  等同：__getitem__(key)
+dict_data['message'] = message  等同：__setitem__(key, value)
+
 tuple()不能只存放單一元素 此時可以用(elmt,)來表示
 
 model常用的set集合:
@@ -5500,7 +5539,7 @@ document.cookie與django的request.COOKIE之差異：
 cookie:存放資料大小約4kb左右 且最多只能有20個 (依瀏覽器而異)
 故較適合存取session標籤 通常有時間週期 過期後便無法在使用此session
 sid在cookie中便可直接用key/value來找 此外session需有資料庫才能用
-sid =request.COOKIE['sessioid'] 
+sid =request.COOKIE['sessioid']
 s = Session.objects.get(pk=sid)
 
 此外若遇到用戶瀏覽器禁用cookie時也會失效
