@@ -8,536 +8,6 @@ pfx = ["webkit", "moz", "MS", "o", ""] 因此有些css也需要有對應的前�
 -o-{屬性}： Opera 瀏覽器
 -ms-{屬性}： IE 瀏覽器
 
-
-
-- - - ---------------------------------------
-
-# design_pattern 設計模式
-指的是眾人匯集的程式碼設計經驗 讓程式碼符合大眾普遍的規範
-大部分的設計模式來自於"Gang of Four"的Design Patterns這本書
-《Design Patterns:Elements of Reusable Object-Oriented Software》
-實作時可能會用到多個設計模式 彼此之間並沒有明確的排他性
-
-UML (Unified Modeling Language) UML圖
-使用各種箭頭符號 來用於表達物件與物件之間的關係 
-
-將23種設計模式分為三群：
-Creational Patterns 規範新物件的創建方式
-Structural Patterns 規範物件內部的屬性及方法以達成目的
-Behavioural Patterns 規範執行單一行為時多物件間的互動和職責ㄕ
-
-## 1.Creational Patterns
-Factory Method Pattern 特別強定method 是因為factory method需用來建構子
-將創建方法從物件獨立出來 只有工廠能進行生產
-所有物件的生產都必定是由一個唯一性的工廠產生 物件之間的繼承關係會跟工廠之間的繼承關係一致
-其中涉及到物件導向的基礎 即繼承的優點：
-用於生產物件的子類工廠 能更有效的擴張不同屬性的物件
-而被繼承的父類工廠 則能一次性地修改基本方法 減少子類工廠重寫的浪費
-存在一個function 能夠大量生產屬性相似的物件 
-也就是用Factory Method來取代傳統的Constructor
-var response = responseFactory.create_response()  # responseFactory物件或其子類物件可決定不同屬性
-var responseJson = responseJsonFactory.create_response() # responseJsonFactory 繼承自responseFactory
-
-Abstract Factory Pattern 用於處理不同環境變數的client需求 (不同環境變數就如同不同風格)
-為改進factory method模式而來 不需要為每一種物件都獨立設置類別
-抽象工廠旗下有多種風格的實體工廠 而所有產品品項都會有一個抽象產品 
-實體工廠所生產的實體產品 則要實作抽象產品的介面 
-如此只需要實體工廠類別*3與抽象產品類別*3 就能取代9實體工廠類別*9 當然最後生成的產品類別仍是9個
-邏輯與bridge模式類似 但abstract factory模式用於創建多樣化物件 而bridge模式則用於差異化方法
-若client希望能獲得新的風格 則會多新增實體工廠與相對應的實體產品：
-class ClassicFurnitureFactory(FurnitureFactory): # 實體工廠實作抽象工廠
-  def create_table(self): # 仍使用factory method模式
-    return ClassicTable()
-  def create_chair(self):
-    return ClassicChair()
-class ClassicTable(Table): # 生產出來的實體產品類別也會實作抽象產品
-  def put_stuff_on(self):  # 產品的屬性與方法則在實體產品類別中定義
-    return "Client puts stuff on a classic table"
-  def showcase_style(self, collaborator: Chair):
-    return "{}, and then {}".format(self.put_stuff_on(), collaborator.sit_on())  
-
-
-Builder Pattern 當產品的屬性數量不一致時使用
-存在director跟builder director永遠只能有一個 builder則對每種物件種類具唯一生產的資格
-director負責決定物件所需的屬性種類 而builder負責設置屬性值與最後的創建物件
-buider pattern好處：則物件不需要的屬性不再需要想辦法處理 早期則大多填入空值
-director.builder = car_builder  # 將builder存入director的屬性之中
-car = car_builder.get_product()
-
-Prototype Pattern 通常只用在資料相關的物件上(data object) 尤其是有多重巢狀結構的物件
-適用的情況會有一個根節點物件 即物件內部的屬性可能會是其他物件 因而往下延伸
-而prototype則是一個讓 其根節點延伸出來的物件 都需實作的介面
-利用prototype模式的deep_copy()來創建新物件：
-根節點物件實作deep_copy() 內部屬性的物件都要進行deep_copy()
-
-Singleton Pattern 單例模式
-一個類別只能有一個實體 也就是不需要多個物件來實現功能 常用於database的接口或用戶資料狀態
-剛好是factory method模式那種大量生產物件的反向
-關鍵在於此物件不能存在兩個以上 會導致資料不一致的狀況
-通常會用DBHelper.getInstance() 作為創建實體的唯一辦法 並隱藏物件建構子 即沒有__init__()
-並且不會一開始就建立 而是有需求時才做建立 又稱lazy initialization
-if self.instance == null:  # 在DBHelper.getInstance()加上判別式 表示只能有一個
-  self.instance = DBHelper()
-
-
-## 2.Structural Patterns
-Adapter Pattern 
-創建一個抽象類別Adapter 負責處理第三方套件
-當引用第三方套件時 不應該直接在主程式調用其方法或類別 而是需要透過配飾器的adapter
-如此當第三方套件更動時才不會導致影響主程式 我們只要修改adapter就好
-adapter = new ThirdPckageAdapterAdapter()
-adapter.execuate()  # client不用知道第三方套件的任何使用方法 只要會用adapter即可
-
-Bridge Pattern 多人協作時最常用到的概念
-將一件事分離成Abstraction抽象及Implementor實作 使兩者可以獨立發展
-Implementor物件比較接近方法集 本身不會實例化
-Abstraction物件則可實例化 且引入Implementor物件作為參數
-在用Abstraction物件的方法來調用Implementor的方法集 且Abstraction可搭配不同的Implementor來達成不同的目的
-order1 = GoogleOrder(PrinterUsual())  # PrinterUsual()是Implementor GoogleOrder()是Abstraction
-order1.printOrderA()  # printOrderA() 會調用self._printer.orderA()
-
-Composite Pattern 結構：Composite物件的內部可包含其他 Composite物件和個體物件
-讓 個體物件 與 由個體整合而成的組成物件 都能使用相同的操作介面 常用於繪圖軟體的架構設計
-而這個組成物件就是Composite物件 實作與個體物件相同的介面 此外可做add()和remove()來繼續整合其他個體物件
-
-Decorator Pattern 結構：物件內部可用oprate()做遞迴呼叫
-採用動態新增或覆蓋原方法的方式 來改善物件繼承之間的靜態關係 
-若只是針對某個特定情況而擴展一個新的子類別的話 會導致最後子類別過多而難以維護
-物件之間相似性太高：可直接用一種類別來修飾另一種類別 來取代擴展一個新的子類別
-原物件類別 和 decorator類別都會有oprate() 且operate()內部再調用 self.other_maker.operate()
-decorator類別的屬性都能存放decorator類別的變數(self.other_maker) 如此來做遞迴直到沒有為止
-
-class Worker:
-  def operate(self, card_maker):
-    card_maker.operater
-
-class CardMaker:
-  def __init__(self, other_maker=None):
-    self.other_maker = other_maker if other_maker else None
-  def operate(self)
-    if self.other_maker:
-      printf('plain-')
-      self.other_maker.operate()
-    else:
-      printf('card')
-
-class DottedCardMaker(CardMaker):
-  def __init__(self, other_maker=None):
-    super.__init__(other_maker)
-  def operate(self)
-    if self.other_maker:
-      printf('dotted-')
-      self.other_maker.operate()
-    else:
-      printf('card')
-
-card_maker = DottedCardMaker(CardMaker())
-worker.operate(card_maker)
-
-Proxy Pattern 會有一個proxy物件其內部結構需有原物件相同
-分為虛擬代理與快取代理 通常是為改善執行效能或使用者體驗而存在
-若修正為proxy物件 則必須要跟原物件實作相同的介面 如此才不會因為proxy而發生問題
-虛擬代理為占位placeholder而實行 與網路應用的代理主要針對分流routing
-const proxyImage = (() => {
-  const img = new Image();
-  img.onload = function() {  // 在成功載入後才會觸發 此時才將img.src放入setSrc()
-    myImage.setSrc(this.src);
-  };
-  return {
-    setSrc(src) {
-      img.src = src;  # 此時只是作為屬性先存在img中(img.src)
-      myImage.setSrc("/image/placeholder.png");
-    }
-  }
-})();
-
-快取代理則為更好的效能而實行 不浪費運算資源在相同的結果上
-const proxySum = (() => {
-  const cache = {};  // 當作cache的dict
-  return (...numbers) => {  // 等同於python的*args 用於實現不限定數量的參數引用
-    const key = numbers.join("+"); 
-
-    if (cache[key] !== undefined) {  // 若已經存在key 則直接回傳value即可
-      return cache[key];
-    }
-
-    const result = sum(...numbers);
-    cache[key] = result;
-
-    return result;
-  };
-})();
-
-Flyweight Pattern 結構：多個物件共有相同的屬性
-多個物件共享同一個狀態 以此達到節省RAM的效果 常用在同時有大量用戶上線的遊戲軟體上
-在Database中有點像是foreignKey的應用
-將原本的物件分成內存狀態(Intrinsic State)和外存狀態(Extrinsic State)
-前者為存放共同狀態的Flyweight物件 可用class variable來產生 後者則是物件之間差異較大的部分
-Flyweight不能影響原物件的屬性與方法 也就是外界使用者不用知道內部如何組合物件 
-class Chicken  # Ruby語言
-  def initialize(color, is_cute, name) # 物件在創建時會存入Flyweight物件
-    @name = name
-    @chicken_type = ChickenType.for(color, is_cute) # Flyweight物件通常會用Type做後綴詞
-  end
-
-class ChickenType
-  @@types = {}  # @變數表示物件自己的屬性 @@變數表示整個類別共有的屬性
-  def self.for(color, is_cute) # self.method 為ruby的classmethod
-    if type = @@types[key(color, is_cute)] 
-      type  # 當此組合已經創建過會存放在 @@types 中
-    else
-      @@types[key(olor, is_cute)] = self.new(color, is_cute)
-    end
-  end
-  def self.key(color, is_cute)  #將字串存入 @@types 中
-    if is_cute
-      "cute_#{color}_chicken"
-    else
-      "#{color}_chicken"
-  end
-end
-
-Facade Pattern 門面 結構：facade介面內部有子系統物件做屬性
-當系統過於複雜時 facade可作為整合的工具 提供client方便操作
-系統可切分為多個子系統 facade可將其子系統轉為一層層的架構 以降低子系統之間的耦合程度 
-與mediator模式有點類似 都用一個抽象物件來隔離依賴
-但facade主要減少不同職能物件之間的依賴性 mediator則為減少相同用戶物件之間的依賴性
-執行過程則類似command模式 都有一個統一的介面提供client端操作
-但facade在於整合多職能物件(結構性) command則為將單一行為分工獨立出命令者與執行者(行為性)
-
-而facade也能將小系統的facade作為物件整合進去
-最後完整系統的facade由於過於厚重 必須避免變成god class(職權過於承重的類別)
-
-class HomeTheaterFacade {  # 作為智能家居遙控器
-  let amplifier: Amplifier
-  let dvdPlayer: DvdPlayer
-  let cdPlayer: CdPlayer
-  let projector: Projector
-  let lights: TheaterLights
-  let screen: Screen
-  let popper: PopcornPopper
-  init(Amplifier, DvdPlayer, CdPlayer){
-    //.......
-  }
-
-## 3.Behavioural Patterns
-Chain of Responsibility Pattern (CoR) 責任鍊
-常用來與Decorator Pattern比較 因為兩者都是透過遞迴來處理
-用於製作軟體內部各個領域職能的交流池(event stream)
-每個接受者handlers都會實作相同的介面 
-並能夠判別是否應該接受訊息和控制多個handlers的順序 來提升訊息處理的效能
-當加入新訊息時不需要特別去指派給哪個handlers 直接丟入event stream即可
-
-class SushiMaker  # event stream接受外界的事件訊息後 依據順序或其他條件分派給handler
-  attr_reader :sushi_lover # 只依賴於第一個人 第二個人由第一個人依賴 以此建立順序關係
-  def initialize  
-    h1 = SalmonSushiLover.new
-    h2 = TunaSushiLover.new  
-    sushi_lover = h1
-    h1.next_sushi_lover = h2  # 不一定要在event stream將其相連 可以在外界做這件事
-  end
-  def start
-    sushi = make_susshi_with_random_material
-    sushi_lover.eat(sushi)
-  end
-end
-class SushiLover  
-  attr_reader :next_sushi_lover # handler之間單向依賴 第一人依賴第二人, 第二人依賴第三人...以此類推
-  def next_sushi_lover=(next_lover)
-    self.next_sushi_lover
-  end
-  def eat(sushi)
-    if next_sushi_lover  # 若有下一個則往下傳 若沒有則不做動作
-      next_sushi_lover.eat(sushi)
-    end
-  end
-end
-
-Command Pattern
-分為命令發起者client和命令接收者receiver 將兩者的行為彼此獨立 
-client只要能拿到結果就好 不需要知道執行過程或由執行的物件 如何實現命令由receiver負責
-CoR模式是相同訊息給多人排序流水性處理 command模式則是將行為分成不同的兩部分給二人處理
-類似簡易的Visitor模式：Command模式獨立出來的方法只能用於單一類別 Visitor模式則就是為了處理多個類別
-cmd就是這個連接兩者的抽象介面 
-const methodSet = {  // 會有一個方法集 放單獨不可再分割的方法 
-  prepare() {
-    console.log("炸雞排");
-    return Promise.resolve(this);
-  },
-  cut() {
-    console.log("剪雞排");
-    return Promise.resolve(this);
-  },
-  putSeasoning() {
-    console.log("調味");
-    return Promise.resolve(this);
-  },
-  deliver() {
-    console.log("銀貨兩訖");
-    return Promise.resolve(this);
-  }
-};
-const createCommand = receiver => ({  // receiver用於決定如何組合各個方法
-  execute_entire_service() { 
-    return receiver
-      .prepare()
-      .cut()
-      .putSeasoning()
-      .deliver();
-  },
-  execute_without_cut() {
-    return receiver
-      .prepare()
-      .putSeasoning()
-      .deliver();
-  },
-});
-
-Command = createCommand(methodSet);  // 這種組合方式為Bridge Pattern
-Command.execute_entire_service()  // 外界就是clint 只要能拿到結果就好
-
-
-Strategy Pattern
-定義整族的function 藉由可互換使用概念 來達成在不影響外界的情況下抽換成不同的function
-FatbookPrintStg類別 通常類別命名後綴詞加上Stg
-class PrinterCustom(Printer):
-  _printStg=None
-  def __init__(self, printStg=PrintStg):  # 將stg類別作為參數引入物件中 如此就能使用在stg定義好的function
-    if printStg is None:
-      raise TypeError
-    else:     
-      self._printStg = printStg 
-  def orderA(self):  # 對於外界而言仍是調用PrinterCustom.orderA 而實際上透過stg類別可以抽換不同的function
-    self._printStg.printA()
-  def orderB(self):
-    self._printStg.printB()
-
-stg = FatbookPrintStg()
-printerMethod = PrinterCustom(stg)
-
-State Pattern
-對於物件所處的狀態 可能會有多種可能的state 
-將state各自抽出來 建議多個state物件 並找出state物件之間的共通點 來實作state介面 
-其餘部分則為物件的context 外界只能使用context 並不會直接接觸到state 
-將與state相關的方法委託給state object來進行 更有利於程式的擴展性
-當有新的狀態時不用在原物件增加if-else做辨別 可直接將新的state物件當成參數引用 
-
-state pattern和strategy pattern都是把部分邏輯交給其他物件來實作(state object和 stg object)
-但state pattern跟物件的狀態處理相關 而strategy pattern主要為創建不同物件 
-
-self.state='Open' 或 self.state='Close' 兩種可能
-轉成stateOpen和stateClose兩種物件 並實作共同的介面
-
-class Ticket {  # java語言
-  constructor(seatId: number) {
-    this.seatId = seatId;
-    this.state = new OpenState(this);
-  }
-  public addToCart(userId: number): boolean {  # delegate:與state相關的方法委託給state object
-    return this.state.addToCart(userId);
-  }
-}
-class OpenState implements State {  # OpenState和CloseState都會實做State介面
-  context: Ticket;
-  constructor(ticket: Ticket) {
-    this.context = ticket;
-  }
-  public addToCart(userId: number): boolean {
-    this.context.userId = userId;
-    this.context.setState(new CloseState(this.context));
-    return true;
-  }
-}
-ticket.addToCart(user0) # 外界不會知道原物件是否有委託或委託給誰
-
-
-Visitor Pattern(或稱 Visit Pattern)
-由於每次介面新增方法時 就要讓連動所有實作的類別新增此方法
-而有些太瑣碎的方法不適合放在介面上 不符合接口遠離原則
-將太瑣碎的方法移到visitor介面上 在此介面會有visit()方法 而原介面要用accept()方法來接受visitor介面
-不同於原介面由不同的實體來實作 像是Gilr, Man, Womon...等
-visitor介面則由不同的方法來實作 像是RunVisitor, WalkVisitor...等
-如此一來要加入新方法只要新增類別來實作visitor介面即可
-
-將物件作為參數引入 有點像strategy模式和stage模式 但三者的目的都大不相同
-strategy模式再創件的時候就引入物件 initialize() 用於多樣化創建新物件
-stage模式則是在更改狀態時引入物件 setState() 用於處理不同狀態的方法
-visitor模式則是直到要用時才引入 且不會存在物件中 accept() 用於降低物件實作太瑣碎的方法
-
-class Girl < People # Ruby語言
-  def accept(visitor)  # 原物件只要實作accept就好 不用像原本的方法一直新增下去
-    visitor.visit_girl(self) # 將visitor作為參數引入 就能使用其方法來替代
-  end
-end
-class Man < People
-  def accept(visitor)  # 其方法的參數要使用介面才能引入物件
-    visitor.visit_man(self)
-  end
-end
-
-Template Method Pattern
-適合用於多個相似的物件 部分功能重疊性太高只有些微差異
-此時可將大功能拆成多個小功能 針對小功能做變更即可
-變更方法是建立base class父類別並用sub class子類別來繼承改寫 如此才可避免影響到原功能
-猶如在已制定好的模板上挖洞替換一樣
-
-Observer Pattern
-存在事件發佈者Publisher與事件觀察者Observer兩種角色 常用於社交軟體
-一個帳號是Publisher 來決定其他帳號是否能看到相關訊息
-也同樣是Observer 則決定能看到哪些帳號的相關訊息
-好處是降低帳號之間的耦合關係 publisher並不需要知道observer是誰 只負責上傳訊息即可
-observer用於社群軟體 mediator用於聊天室軟體 兩者接近
-
-Mediator Pattern
-任兩位以上用戶要互相溝通時都必須透過中間者 常用於聊天軟體 
-存在mediator物件來封裝一組物件的互動過程 好處在於用戶之間不會相互依賴 所有用戶都只會依賴mediator物件
-class ChatRoomMediator{  # room可以加入user 也可以傳訊息給user
-  private val userList = mutableListOf<ChatRoomUser>()
-  fun addUser(user: ChatRoomUser) {
-     userList.add(user)
-  }
-  fun sendMessage(user: ChatRoomUser, msg: String) {
-    // 把user發送的訊息傳給聊天室中的其他人
-    userList.filter { it.name != user.name }
-      .forEach { it.receive(msg) }
-  }
-}
-class ChatRoomUser(val name: String, val mediator: ChatRoomMediator){ # 每位user都會直接綁定一個mediator
-  fun send(msg: String) {  # 不用指定其他用戶 因為只會傳給mediator 其餘則看mediator之中的userList
-    // 呼叫Mediator來幫它送訊息給別人
-    mediator.sendMessage(this, msg)
-  }
-  fun receive(msg: String) {
-    println("$name received: $msg")
-  }
-}
-val mediator = ChatRoomMediator()
-val bob = ChatRoomUser("Bob", mediator)
-val alice = ChatRoomUser("Alice", mediator) 
-
-mediator.addUser(bob)  # mediator跟user是相互依賴的 user創建時要指定mediator mediator也必須用addUser()
-mediator.addUser(alice)
-
-
-Iterator Pattern 迭代器
-存在iterator和iteratable(又稱aggregate聚合器)
-iterator專注於尋訪triversal的邏輯(是否要跳過特定元素等) iteratable則專注於如何使用元素的邏輯
-Iterator模式目的就是將其功能獨立分開
-
-class Iterator(ABC):  # python要用interface就會變得特別麻煩
-  @abstractethod
-  def hasNext():  # 需要知道是否有下一個 
-  @abstractethod
-  def nextOne():  # 存取資料的下一個聚合物
-  @abstractethod
-  def toNext():  # 存取完後將指標指到下一個
-  
-class StudentIterator(Iterator):
-  def __init__(self, students)
-    self.students = students
-  def hasNext(self):
-    return index < self.students.size 
-  def nextOne(self):
-    return self.students[index]
-  def toNext():  # 針對需求來修改尋訪的邏輯
-    index ++
-    while (hasNext() && (self.students[index].isSick || self.students[index].isDropout))
-      index ++
-
-class ClassRoom:
-  self.students = students_list  # 不一定要是有編號的list或有鍵值的key 任何一種資料的聚合體都行
-  def getIterator(self):
-    return StudentIterator(self.students)
-  def start(self):
-    iterator = self.getIterator()
-    while (iterator.hasNext()) {
-      student = iterator.nextOne()
-      process(student)
-      iterator.toNext()
-    }
-  def process(self,student):  # 專注於如何使用元素的邏輯
-    printf('student.name')
-
-
-Interpreter Pattern 解讀器
-用於將client輸入的特定字串轉換成程式語言 用於製作計算機的input輸入欄
-需將特定字串轉換成抽象語法樹Syntax Tree 分為TerminalExpression和NonterminalExpression 
-解讀器需要使用for循環與recursion遞迴呼叫 當字串過於複雜 會導致效能急遽下滑
-每個規則都需要新的物件類別 當字串涉及太多規則 將難以維護 
-protocol IntegerExpression { # sfift語言 以下的Expression都實作此介面
-    func evaluate(_ context: IntegerContext) -> Int
-    func replace(character name: Character, integerExpression: IntegerExpression) -> IntegerExpression
-}
-let context = IntegerContext() # context為所有字元的查詢依據
-
-let a = IntegerVariableExpression(name: "a")  # 代表字元'a'運算元
-let b = IntegerVariableExpression(name: "b")
-let c = IntegerVariableExpression(name: "c")
-
-let expression = PlusExpression(op1: a, op2: PlusExpression(op1: b, op2: c)) # 代表字元'+'運算子
-
-context.assign(expression: a, value: 4)  # 將字元'a'設值為4 也可使用不同的context則其結果不同
-context.assign(expression: b, value: 1)
-context.assign(expression: c, value: 2)
-
-print(expression.evaluate(context)) # context只需要解讀運算元 因為運算子的邏輯已寫入evaluate()
-
-Memento Pattern 備忘錄
-不違反封裝性的前提下 將物件內部的狀態訊息呈現出來 用於遊戲軟體的存讀系統或編輯軟體的上一步功能
-存在originator也就是需要被儲存裝態的物件 可針對狀態來生成memento 也可引用memento來回溯物件狀態
-而caretaker則為編輯器 只用於儲存多個memento和命令originator進行回溯 本身不參與回溯過程
-因為唯一可以改變物件狀態的是originator 如此才能確保兩者職權獨立
-memento為data object 本身不會有任何方法 且必須非常輕 才適合用於儲存大量的狀態 
-public class Caretaker {
-  private Originator originator;
-  private Stack<Memento> history;
-  public Caretaker(Origniator originator) {
-    this.originator = originator;  # 創建時要引入originator物件 和 memento_list
-    history = new Stack<Memento>();
-  }
-  private void doSomething() {  # 每進行一步都會自動儲存 也就是讓originator生成memento
-    Memento m = originator.save();
-    history.push(m);
-  }
-  private void undo() {  # 當進行回溯時 要把原本儲存的memento拿出來以避免錯亂
-    Memento m = history.pop();
-    originator.restore(m);
-  }
-}
-public class Memento{  # originator的狀態被隱藏至memento之中 外界caretaker不會知道  
-  private State state;
-  public Memento(State state) {  # originator.save()會生成memento並將state包裝在其中
-    this.state = state;
-  }
-  public State getState() {
-    return state;
-  }
-}
-
-## 其他 Patterns
-Special Case Pattern 用於思考各種可能的例外狀況
-除了一般情況之外 建立一個secial case的物件來做例外處理
-
-Null Object Pattern 就是一種special case pattern
-專門傳遞null物件來解決例外狀況 此時調用方法就不需要額外寫判別式來把None排除在外
-class AbstractCustomer(ABC):  # ABC指的是AbstractClass 用於使不同的類別能有共同的父輩類別
-  @abstractmethod  
-  def get_name(self):
-    pass  # 不實作任何方法 等同是Java的interface 
-
-class RealCustomer(AbstractCustomer):
-  def __init__(self, name):
-    self.name = name
-
-  def get_name(self):  # 真正的物件才會實作方法
-    return self.name
-
-class NullCustomer(AbstractCustomer):  # 最後多加一個NullObject 並繼承AbstractCustomer
-  def get_name(self):
-    return "Not Available in Customer Database"
-    #如此的好處是不會因為None沒有相關的method而導致error 
-    #故調用方法也不需要額外寫判別式 直接回傳NullCustomer即可
-
 - - - -------------------------------------------------------
 # 程式原則
 
@@ -4125,11 +3595,13 @@ FaaS(Function as a Service)
 主要思考網站的所需流量的多寡以及如何满足该需求？
 必須要能支持Django框架
 
-channels的tutorial使用的是Docker作為container
+channels的tutorial使用的是Docker的container
 container的目的是為解決 本地端開發環境與實際放到server端時的生產環境 有差異的問題
 container取代傳統的virtual machine運用在hostOS上架設guestOS的方法
+
 但因為virtual machine需要啟動guestOS因而導致啟動較慢且佔較大記憶體等問題
 container以應用程式為中心 virtual machine以作業系統為中心
+
 Anaconda過程中並沒有涉及其他的OS 因此Anaconda是container的概念
 VMware可用來在mac中安裝windows 故屬於virtual machine的相關應用
 
@@ -4157,7 +3629,9 @@ Microsoft的Azure本身就包含了Paas和Iaas兩種服務
 而Elastic Computer Cloud(EC2) 則讓用戶在上面自行建置伺服器 為AWS的雲端空間(IaaS)
 
 其中Google App Engine(GAE)是GCP的快速部署與管理平台(Paas) 
-而Google Compute Engine(GCE)是GCP的雲端空間(Iaas)
+Google Compute Engine(GCE)是GCP的雲端空間(Iaas)
+而Google Kubernetes Engine(GKE)則介於兩者之間 屬於比較新的服務(Iaas)
+此外gke可以進行load-balancing 如此一來就不需要自架nginx
 GCP的好處是台灣有機房 AWS則最近的建在香港
 GCP較多新創公司使用 AWS是適合大型公司的專業後端使用
 GCP價格最便宜 而AWS支援服務最齊全
@@ -4169,6 +3643,14 @@ VM常用的作業系統Ubuntu 18.04 LTS 相關指令:
 sudo apt-get update  // 進行更新
 sudo curl -O http://vestacp.com/pub/vst-install.sh  // curl透過http協定存取網路資源
 sudo bash vst-install.sh --force // bash用以執行sh腳本檔
+
+三大常用linux作業系統：
+centos 後端常用java或perl 已經不再維護 若要架設web_server 則常採用Apache
+debian 後端常用python或php 若要架設web_server 則常採用Nginx
+ubuntu 後端常用ruby或js 最早為debian的桌面系統 用戶介面漂亮且具有完整的包管理系統(apt) 比起伺服器應用更適合用於桌面系統
+
+以上為各個作業系統'常用的'後端語言 並不是不能使用其他的
+因此一般認為ubuntu更適合初學者使用 相對操作更為簡單 且開源軟體最多
 
 VPC網路(Virtual Private Cloud)
 最大單位為'網路名稱'即為獨立存在的LAN 而旗下的'子網路'可想像成一個 VLAN
@@ -4189,6 +3671,7 @@ gcloud config list project  // 列出專案ID名稱
 gcloud compute instances create gcelab --zone us-central1-c // 建立個體 gcelab是個體名稱 --zone是配置參數
 gcloud compute disks create mydisk --size=200GB --zone us-centrall-c  // 建立永久性磁碟 mydisk是磁碟名稱
 gcloud compute instances attach-disk gcelab --disk mydisk --zone us-central1-c // 在運轉中的個體中新增永久性磁碟
+gcloud compute addresses list  // 當前靜態ip
 
 persistent disks永久性磁碟 分為一般磁碟(HDD)和SSD磁諜
 可決定使用哪個磁碟做為開機磁碟boot disk
@@ -4197,7 +3680,8 @@ Service Account服務帳號
 專門用來給應用程式做身份識別 目的是為避免用戶將真實的google帳號寫入主機設定中
 
 Access Scope決定服務帳號所能涉及的權限 
-default access基本都是唯讀  full access則權限最大 
+default access基本都是唯讀  
+full access則權限最大 
 set access for each API 則交給每一個API由人工設定
 
 Management主機管理：
@@ -4276,7 +3760,7 @@ Github-Flow與Git-Flow最大的差異：
 在於Github-Flow是以CI/CD為目的 強調上線部署後仍能不中斷開發
 
 常見資料庫系統：
-MySQL和SQLite都是關聯式資料庫(RDBMS) 追求一致性與準確性且能處理大量資料
+MySQL, SQLite,postgreSQL 都是關聯式資料庫(RDBMS) 追求一致性與準確性且能處理大量資料
 MySQL則適合高流量大規模的網站 接受多個客戶同時訪問同一資料庫
 SQLite屬於輕量型資料庫 適合中低流量的網站 且會有資料庫需單個寫入的侷限性
 
@@ -4673,6 +4157,9 @@ python manage.py shell 可用於手動操作database (CTRL+D離開)
 如同在網頁上操作資料或呈現view.py裡面的訊息 可按CTRL+D離開
 SSH(secure shell)在terminal與遠端伺服器之間建立安全通道 github或gcp都需要使用SSH
 
+ssh-keygen -f .ssh/id_rsa 此指令用於產出符合規範的SSH Key並存放在特定檔案中
+cat ~/.ssh/id_rsa.pub SSH Key
+
 ## redis-server指令
 redis-server用於架設django緩沖系統  (CTRL+D離開)
 pip django-redis 必須安裝django-redis (不同於channel內建的redis庫)
@@ -4700,7 +4187,10 @@ loadtest -n 100 -k  http://localhost:8000/index/ 用於做網站載入速度測
 
 ## pip指令
 pip套件管理工具的名稱為python package index(pypi) 本身就是以python寫成的工具
-pip freeze | tee requirements.txt 輸出本地包環境至文件
+pip freeze 查看當前環境的程式包
+pip freeze > requirements.txt 將當前環境的程式包寫入檔案
+pip freeze | tee requirements.txt 查看當前環境且輸出程式包環境至文件
+('>'寫入檔案和'|'同時執行多條指令 皆是linux用法)
 pip install -r requirements.txt 根據文件來安裝環境
 
 **pipenv可取代pip和virtualenv:**
@@ -4721,7 +4211,7 @@ CTRL+D 離開當前的shell
 CTRL+S CTRL+Q 兩個一組： CTRL+S用於看目前所花時間 CTRL+Q則跳回compile狀態
 CTRL+R (reverse-i-search) 用於輸入關鍵字收尋過去的指令
 
-**vim為terminal中的文字編輯器**
+## vim為terminal中的文字編輯器
 vim中常見模式為NORMAL, INSERT, REPLACE:
 --NORMAL--: 加上:w存檔, :q離開, :wq存檔後離開
 此模式下無法新增內容但能做複製剪下貼上 或進入其他模式
@@ -4773,38 +4263,6 @@ echo $PATH 檢查目前的環境變量
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
 source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機
-
-## docker指令
-docker version 檢查版本
-docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上名稱
-docker images 列出目前所有的images
-
-docker run -p 3000:3000 -it 733776b1db0a 有了id之後便能開始生成container
--p表示publish 將容器發布到端口port上 另外-P則表示隨機生成port 如此就不用指定3000:3000
-3000:3000是因為要先連到host實體機的port 再連到實體機內container的port
-因為一台host機可以有多個container 故需要用兩個一組的port
-Container可被視為一台獨立的電腦 -it：-i是interactive可由鍵盤輸入 -t是terminal即可由螢幕輸出
-
-docker run -p 3000:3000 -d 733776b1db0a
--d是daemonized 表示在背景中執行 運行時不做任何操作
-或用-idt表示在背景中執行但仍保有基本輸入輸出的能力
-docker pull [Image 名稱]:[Image 版本] 取得一個指定版本的image
-(一般來說不用自己build一個映像檔 只要用pull就好)
-docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有一個類似的6380)
-使用channels框架需要在settings.py設置redis端口
-(也可以直接略過pull步驟 docker會幫我們檢查本地端 若沒有會自動pull image)
-
-docker ps -a 用來找目前正在執行的docker -a是all的意思 表示不只正在執行的
-docker stop <ContainerID> 找到id後便可直接關閉
-docker rm <ContainerID> 找到id後可做刪除
-
-docker只涉及連到本地機的port 與IP位址無關
-決定外界使否可連線或連到哪個ip位址則由django manage.py決定
-
-Docker Compose是docker的延伸工具 可組合多個功能的container來提供完整服務
-必須要使用YAML批次腳本 (docker-compose.yml) 此外許多指令也與docke相同
-
-
 
 ## git指令
 git config --global user.name "<Your Name>" 先將這台電腦連結到github上的使用者
@@ -5005,6 +4463,546 @@ git merge upstream/master 同理fetch完後來做merge合併
 
 README.md 為使用markdown語法撰寫
 
+- - ---------------------------------------------------
+# containerized app使用 (docker和kubernetes)
+
+## docker指令
+docker version 檢查版本
+docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上名稱
+(在設置好的包含Dockerfile的資料夾中進行 不同於pod物件使用yaml建立)
+docker tag 59f3e3615488 docker-demo-app 用於建立完後再改名
+docker images 列出目前所有的images
+
+Dockerfile中的內容：(Dockerfile不用加副檔名)
+FROM: python:3.8.3-alpine 所用程式版本(從Docker Hub抓base image)
+WORKDIR: /usr/src/app 在開啟container的機台中設置work directory
+(/usr/src/app 約定俗成 大部分的server都是linux作業系統 也大都在此使用container)
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1  建立機台的環境變數 若有多項可以分開書寫
+RUN: directive executes commands in the container.
+RUN pip install --upgrade pip 
+COPY ./requirements.txt /usr/src/app
+RUN pip install -r requirements.txt  用pip對requirments.txt進行安裝
+COPY . /usr/src/app  複製當前專案 (專案的根目錄 會與Dockerfile同一層)
+EXPOSE 8000  container所接受的port
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]  最後用cmd執行runserver即可
+
+requirment.txt可用pip freeze > requirments.txt導出
+conda clean -a 先做淨化 再轉成requirments.txt前可先做清除
+
+此外settings.py中部分設定必須放到env中
+並使用secret物件和configMap物件來存取資料
+
+docker run -p 3000:3000 -it 733776b1db0a 有了id之後便能開始生成container
+-p表示publish 將容器發布到端口port上 另外-P則表示隨機生成port 如此就不用指定3000:3000
+3000:3000是因為要先連到host實體機的port 再連到實體機內container的port
+因為一台host機可以有多個container 故需要用兩個一組的port
+Container可被視為一台獨立的電腦 -it：-i是interactive可由鍵盤輸入 -t是terminal即可由螢幕輸出
+
+docker run -p 3000:3000 -d 733776b1db0a
+-d是daemonized 表示在背景中執行 運行時不做任何操作
+或用-idt表示在背景中執行但仍保有基本輸入輸出的能力
+docker pull [Image 名稱]:[Image 版本] 取得一個指定版本的image
+等同 docker pull registry.hub.docker.com/ubuntu:latest 會在Docker Hub中找此image
+(一般來說不用自己build一個映像檔 只要用pull就好)
+docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有一個類似的6380)
+使用channels框架需要在settings.py設置redis端口
+(也可以直接略過pull步驟 docker會幫我們檢查本地端 若沒有會自動pull image)
+
+
+docker ps -a 用來找目前正在執行的docker -a是all的意思 表示不只正在執行的
+docker stop <ContainerID> 找到id後便可直接關閉
+docker rm <ContainerID> 找到id後可做刪除
+
+docker login  登入後才可以上傳到docker hub中
+docker tag django_todo:latest <Docker Hub username>/django_todo:latest
+docker push <Docker Hub username>/django_todo:latest
+
+docker只涉及連到本地機的port 與IP位址無關
+決定外界使否可連線或連到哪個ip位址則由django manage.py決定
+
+containerized app是具有RESTful風格的管理系統 可使用標準HTTP方法進行操作
+所有container都會有一個用於連接的端口 用以接收外部的request請求
+每個container只進行一種服務 one process in one container
+container中的data不會保存下來 All data in the container is not preserved
+只要能使用request的方式訪問的資源或應用 都適合包裝成container
+
+不能使用container來儲存資料 也正因為如此更能確保容器化的運作機制 
+(如果要保留資料則要使用Volumes Component)
+
+Docker Compose是docker的延伸工具 可組合多個功能的container來提供完整服務
+Kubernetes也是container的集中管理工具 並由google進行維護
+兩者都必須要使用YAML批次腳本 (docker-compose.yml) 此外許多指令也與docker相同
+
+# kubernetes指令
+使用minikube作為本機端的操作工具 用於建設Kubernetes Cluster 
+每一個VM都是一個node 而minikube運行的VM本身就是master node
+另外必須使用kubectl和kubectx用於操作指令
+kubectl get all 可以取得所有k8s物件的資料
+kubectl get svc,deploy 可以指定多種物件
+
+minikube ssh 進入minikube的shell
+
+minikube dashboard 開啟kubenetes的圖形介面
+minikube dashboard --url 查看url並由browser做開啟
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml  用於透過yaml檔安裝插件(dashboard)
+kubectl proxy 一樣是連線到dashboard
+
+由於只會有唯一個實體資源管理中心Kubernetes Cluster 
+但此時難以對不同物件歸類劃分 因此增加virtual cluster(即為Namespaces)負責做抽象管理 
+
+當namespaces被刪除時 該namespace中的所有物件都會被刪除
+可透過resource.requests和resource.limits來做限制
+
+kubectl create namespace namespace 建立namespace
+kubectl config view 可查看目前所在的namespace
+
+一般物件在創建時可在metadata中指定所在namespace
+metadata:
+  name: compute-quotas
+  namespace: hellospace
+
+創建 Namespace：
+並加上compute-quotas和object-quotas兩個ResourceQuota物件來資源分配：
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hellospace
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quotas
+  namespace: hellospace
+spec:
+  hard:  # 限制運算資源
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "1"
+    requests.memory: 10Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: object-quotas
+  namespace: hellospace
+spec:
+  hard:  # 限制物件數量
+    services: "2"
+    services.loadbalancers: "1"
+    secrets: "1"
+    configmaps: "1"
+    replicationcontrollers: "10"
+
+### kubenete進行雲端化(Kops)：
+Kops用於部署到aws或gcp上 可以使用本地端的aws指令或gcloud指令
+AWS的S3等同GCP的GKE 都是架設containerized app
+kops create cluster\  用於創建cluster
+> --name=k8sdemo.zxcvbnius.com \
+> --state=s3://k8s-demo-qwer \
+> --zones=us-west-2a \
+> --master-size=t2.micro \
+> --node-size=t2.micro \
+> --node-count=2 \
+> --dns-zone=k8sdemo.zxcvbnius.com
+
+kops edit cluster k8sdemo.zxcvbnius.com --state=s3://k8s-demo-qwer  用於修改cluster的相關設定
+kops update cluster k8sdemo.zxcvbnius.com --yes --state=s3://k8s-demo-qwer
+
+kops delete cluster \  用於刪除cluster
+> --name=k8sdemo.zxcvbnius.com \ 
+> --state=s3://k8s-demo-qwer \ 
+
+### 建立k8s的service物件：
+kubectl run hello-minikube --image=gcr.io/google_containers/echoserver:1.8 --port=8080  
+跑docker-image並設置port 其中hello-minikube為我們自己決定的物件名稱 用於之後的操作
+
+$ kubectl run -i --tty alpine --image=alpine --restart=Never -- sh
+執行alpine並開啟shell --tty(Teletype) 指的是unix系統的終端機
+
+一樣可以使用yaml建立service物件(kind: Service) 但一般都直接使用kubectl expose
+kubectl expose deployment hello-minikube --type=NodePort 建立service物件 使deploy物件讓本機端可以連線到cluster
+kubectl expose pod mypod --type=NodePort --name=my-pod-service --port=3000 一樣建立service物件 使pod物件可以讓本機端連線到cluster
+(不同於port-forward直接映射到本機端 而expose為映射到cluster上的port供外部使用)
+
+selector:
+  app: my-pod  # service只會找尋第一個pod
+type: NodePort
+
+type:ClusterIP用於供cluster內部使用者訪問 (此ip不會固定 當service物件被刪除即釋放)
+type:NodePort用於供同個node但不在cluster中的使用者訪問 (比如實體機的瀏覽器 kubectl expose在做的事)
+kubectl delete svc/hello-service 使用完後記得做刪除
+
+service物件的三種埠號
+spec.ports.port 用於設置cluster內部溝通使用之ClusterIP的port
+spec.ports.nodePort 用於設置外部連接到此node(實體機或虛擬機)之IP的port
+spec.ports.targetPort 用於pod內部的port(pod物件通常是3000) 以上兩者以不同連線方法最終都要對應到targetPort
+
+二種顯示方式：
+使用alpine開啟shell 輸入curl 10.104.188.91:3000 (ClusterIP:port)
+用minikube查看url位址 minikube service hello-service --url  用browser輸入http://192.168.99.100:30390 (nodeIP:nodePort)
+
+另外可用service來做LoadBalancer：
+對於同樣是label為(app:webserver)的pod物件 會依據pod的不同load多寡 將工作丟給正在空閒的pod
+selector: 
+  app: webserver  # 決定會丟到哪些pod
+type: LoadBalancer
+
+
+
+### 建立k8s的node物件：
+node可能只一個實體機或虛擬機 當node被加入時會在k8s上建立node物件
+再將node物件加入cluster 此時k8s會依據pod的設定檔來決定部署到哪個node上 如此可以避免vm中流量資源無法互通的問題 (有些vm超載有些vm閒置) 此時k8s就能完成負載平衡的工作(load balancing)
+可想像成node就是一個獨立的VM 此時可以開多個功能相同的node來達成備用與平衡負載的工作
+
+每個node都會有一個iptables 即是linux上的防火墻用於限制連線與分配負載 用於與master node進行溝通
+每個node也都有唯一的kube-proxy 用於將內部所有pods的資訊傳給iptables 用以確保node上所有pod都是即時狀態
+
+kubectl get nodes 查看正在運行的node物件
+kubectl describe nodes minikube 查看nodes中minikube的物件訊息
+
+kubectl get svc 查看當前所有service物件 (必須由kubectl expose deployment)
+minikube status 可查看當前VM使用的內網網址
+minikube service hello-minikube --url 使用minikube查看此物件所使用的url
+minikube service mypod-service --url 如果pod沒有指定port 則會由k8s做分配
+minikube stop 當前是開啟狀態的話必須先暫停
+minikube start --extra-config=apiserver.ServiceNodePortRange=1-50000 修改minikube的設定檔
+
+kubectl drain {node_name} 用於將node的狀態變更為維護模式 原先在node上的pod會轉向其他node (但必須由deployment創建的pod 而不能應用在直接創立的pod)
+kubectl uncordon {node_name} 則將node的狀態回到開放排程
+
+kubectl get deploy,pods -o wide 可查看當前物件在哪個node上排程
+
+
+### 建立k8s的pod物件：
+kubectl create -f mypod.yaml 用於建立pod物件 -f為--file (kind:Pod)
+kubectl get pods --show-all 查看當前所有pod物件 預設為只查看正在運行的pod物件 
+kubectl describe pods mypod 查看pods中mypod的物件訊息
+kubectl port-forward mypod 8000:3000 表示將pod內部的3000port 映射到本機端的8000port
+
+每個pod都會有一個專屬的ClusterIP 只有再同一個cluster中才能透過此ip做訪問
+每個pod內部可能有多個container 設置不同的containerPort 用於區分在pod中的container
+同一個pod通常會存放功能相近的container 或 多個需要頻繁進行溝通的container 應使用pod內部溝通
+當需要分成不同的pod並進行負載平衡 則使用不同pod彼此訪問
+pod內部溝通：等同 localhost/port_number 即在同一個本地端作業
+不同pod彼此訪問：等同 clusterIP/port_number 即在內網中互相溝通
+
+而且pod物件會透過deployment部署多pod備用：
+此時如果相同功能分成不同pod時 就必須整組pod一起部署
+
+pod是k8s的基本單位 每個pod都應該能透過request溝通來滿足使用需求
+pod內部會有多個container用於安裝虛擬環境所需的程式包
+這些container如果是從docker hub下載的 會需要設定環境變數Environment Variables
+這些環境變數會放在secret中供其他pod取用 (spec.containers.env)
+
+env:  # 不同pod必須使用環境變數來找尋host 來取代localhost/port
+- name: WORDPRESS_DB_HOST
+  value: mysql-server-service
+env檔在k8s的yaml中設定 而不是存放在docker的Dockerfile
+
+通常會選擇放在不同pod是因為此應用服務的功能並不常使用等同有點類似於cluster中的api的概念
+資料庫必須與container分開 因為container規定是不保留資料的
+
+metadata.name和metadata.labels方便k8s針對pod取名與分類管理
+metadata.annotations等同使用者的註解 不會被k8s系統解讀
+
+spec中可以定義多個container：
+由container.name(container的名稱), 
+container.image(Docker Registry中的下載途徑), 
+container.port(用於溝通的埠號)所組成 
+container.port.name 可以在埠號上設置名稱 如此一來可供service物件使用
+container.port.containerPort: 3000 表示此container使用3000溝通(只用於container之間溝通) 
+ports:
+- name: wordpress-port
+  containerPort: 80
+
+spec.nodeSelector用於設置pod要部署的node
+nodeSelector: 
+  hardware:high-memory
+
+kubectl label node minikube hardware=high-memory node也可以設置label且用於nodeSelector label名稱通常會跟VM性質相關
+
+kubectl attach mypod -i 查看pod內部的log
+kubectl exec mypod -- ls /app 下一個pod的內部ahell指令 表示查看container中的/app資料夾
+kubectl exec -it mypod -- /bin/bash  查看pod內部的bash檔
+
+kubectl label pods mypod app=webserver 對pod新增label
+kubectl label pods mypod version=latest 常用的兩種label app和version
+kubectl get pods  --show-labels 查看labels訊息
+常用的label名稱：
+"release" : "stable"，"release" : "qa"
+"enviroment": "dev"，"enviroment": "production"
+"tier": "backend", "tier": "frontend"
+"app": "database", "app": "cache", "app": "webserver"
+
+annotations: (僅用於創建者註解)
+  version: latest
+  release_date: 2017/12/28
+  contact: zxcvbnius@gmail.com
+
+
+### Stateless 與 Stateful:
+stateless表示該服務不會因為時間或新資料寫入貨任何狀態而改變回傳資料
+stateful表示會因為寫入資料的不同而改變回傳資料 SQL都屬於stateful的應用 因為db會紀錄每筆資料 即使重開db仍會保留數據
+
+function int sum(int a, int b) {  // stateless function
+    return a + b;
+}
+
+int count = 0;  // 等同紀錄當前狀態
+function int counter() {  // stateful function
+	count++;
+	return count;
+}
+
+Horizontal scaling 為新增更多節點node來分擔負載
+Vertical scaling 為新增更多的CPU,RAM來獲得更多運作資源
+
+### 建立k8s的deployment物件：
+每個cluster中會有一個Replication Controller用於管理內部的pod物件
+(rc不是node的子物件：因為node是被cluster分配資源的對象 rc則是負責進行此操作的物件)
+Replication Controller由yaml設定檔創建(kind: ReplicationController)
+當發生pod的crush時會自行創建新的pod來達到設定檔所洩的數量
+
+spec.replicas決定pod數量 和 spec.selector決定pod的label 
+這也是為何label重要的原因 因為pod的label必須提供給後續物件做使用
+spec.template則決定pod內部要運行的container(spec.template.spec)
+
+kubectl get rc 可查看Replication Controller目前狀態
+kubectl scale --replicas=4 -f ./my-replication-controller.yaml 可用指令來讓rc進行水平擴張
+kubectl delete rc my-replication-controller --cascade=false 刪除rc但由rc使用的pod則照常運作
+kubectl delete pods mypod --grace-period=0 --force 強制停止pod並做刪除
+
+ReplicationController(rc)的改進版本為ReplicaSet(rs) (kind: ReplicaSet)
+差別在於能用matchLabels和matchExpressions
+但一般不直接創建rs 而是用kubectl create -f ./my-deployment.yaml 創建deployment物件
+kubectl get rs 創建完deployment後可查看ReplicaSet狀態
+
+strategy.type = rollingUpdate
+strategy.rollingUpdate.maxSurge 用於決定更新版本為多產出的pod 100%則會產出原本數量的pod
+strategy.rollingUpdate.maxUnavailable 表示最多可容忍不能使用的pod數量
+
+kubectl set image deploy/hello-deployment mypod=zxcvbnius/docker-demo:v2.0.0 --record
+在deployment物件中可以完成直接變更container 更新版本(rollout)
+寫好的後端應用先包成新版container 之後在用kubectl set image對pod物件做版本更新
+deploy進行更新後會生成新的pod但不會取代舊的pod 其目的是為了之後做rollback
+
+kubectl edit deploy hello-deployment
+除了用kubectl set image進行更新外 也可透過kubectl edit deploy修改yaml檔來進行更新
+
+kubectl rollout status deploy <deployment-name>
+kubectl rollout history deploy <deployment-name>
+kubectl rollout undo deploy <deployment-name>
+kubectl rollout undo deploy <deployment-name> --to-revision=n
+也因為deploy提供update container的方法 即升級版本的方法 故也可以用rollout進行整個deploy的版本回溯
+使用kubectl rollout undo一樣會在history中產生紀錄
+
+livenessProbe用於設置health check
+httpGet.path和httpGet.port 用於決定要訪問的url和port
+initialDelaySeconds 重開機到第一次訪問間隔時間
+periodSeconds 每次訪問間隔時間
+successThreshold和failureThreshold 表示連續幾次來代表失敗或成功
+如果達成failure k8s會重開一個container
+
+此外deployment還具備 Horizontal Pod Autoscaling功能：
+也就是依據當前pod的工作量來判斷是否增減pod數量 (必須先安裝heapster用以抓取pod使用量)
+在yaml中新增containers.resources欄位
+其中requests.cpu: 200m  表示要求最少總CPU20%的資源給此container (200m同等於200milicpu(milicore))
+另外limits.cpu: 400m 則限制最多能給予運算資源到此container
+同理也可用在內存上 requests.memory: 1Gi和 limits.memory: 10Gi
+
+建立HPA物件(kind=HorizontalPodAutoscaler)
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: helloworld-hpa
+spec:
+  scaleTargetRef:  # HPA的對象
+    apiVersion: apps/v1beta2
+    kind: Deployment
+    name: helloworld-deployment
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50
+
+
+
+### k8s的secrets物件：
+用於存放敏感資料 container需要用到卻又不能顯示的資料 (訪問不同server的access token, SSH Key, database帳密, env環境變數等)
+sensitive data必須放在獨立的pod中 提供其他pod使用
+kubectl create secret generic mysecret \--from-file=./username.txt \--from-file=./password.txt  generic可用於合併多個file來建立特定物件
+
+\--from-literal=username=root \--from-literal=password=rootpass --from-file也可改成--from-literal 則可直接輸入字串
+
+secret物件也能透過yaml建立(kind=Secret)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wordpress-secret
+type: Opaque
+data:
+  db-password: cm9vdHBhc3M=    # echo -n "rootpass" | base64
+
+在pod的yaml中設定：  (spec.containers.env)
+env:
+- name: SECRET_USERNAME  # 同理可設置多組環境變數
+  valueFrom:
+    secretKeyRef:
+      name: mysecret  # 從secret物件中抓取
+      key: username
+- name: SECRET_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: mysecret
+      key: password
+
+### 使用volumes:
+取代env 改在pod的volumes設定：
+volumes:
+- name: secret-volume
+  secret:
+    secretName: mysecret  # 將env當成db的資料來處理
+
+volumes除了存放secret之外 也可以存放configMap
+volumes:
+- name: nginx-conf-volume
+  configMap:
+    name: nginx-conf
+    items:
+    - key: my-nginx.conf
+      path: my-nginx.conf
+
+並記得要在container中進行volumeMounts掛載 (containers.name.volumeMounts)
+volumeMounts:
+- name: secret-volume
+  mountPath: /etc/creds
+  readOnly: true
+
+volumeMounts:
+- name: nginx-conf-volume
+  mountPath: /etc/nginx/conf.d
+
+emptyDir用於做pod中所有container的共享資料夾
+volumes:
+  - name: cache-volume
+    emptyDir: {}
+
+hostPath則將該實體機(node)的資料夾掛載上去
+volumes:
+  - name: tmp-volume
+    hostPath:
+      path: /tmp
+      type: Directory
+
+PersistentVolumeClaim:
+用於動態管理volume 能夠依據pod需求動態生成相對應的volume
+reclaimPolicy有兩個參數能選Delete 與 Retain：當綁定的pod物件消失時應如何處理對應的volume (預設為Retain)
+
+必須先創建模板StorageClass:
+由kubectl get sc 查看相關資訊
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: standard
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  zone: us-west-2
+reclaimPolicy: Delete  
+
+再創建以此StorageClass為模板的VolumeClaim (類似於class之於instance的概念):
+因為claim物件可以針對狀況充許多個並存 而StorageClass則只需要一個
+accessModes有三種參數 ReadWriteOnce, ReadOnlyMany, ReadWriteMany：
+ReadWriteOnce: Volume 同時只可以掛載在同一個 Node 上提供讀寫功能
+ReadOnlyMany: Volume 同時可以在多個 Node 上提供讀取功能
+ReadWriteMany: Volume 同時可以在多個 Node 上提供讀寫功能
+
+apiVersion: v1
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi  # volume儲存空間大小
+  storageClassName: standard
+最後一樣要在pod上綁定並做掛載
+volumes:
+- name: my-pvc
+  persistentVolumeClaim:
+    claimName: myclaim
+
+
+### k8s的ingress物件：
+kubectl get ing 查看ingress資訊
+用於處理LoadBalancer：雲端空間上VM只需要對一個ingress即可 ingress會將流入的request分配到不同的service上 (GCP本身也有LoadBalancer服務)
+
+ingress的LoadBalancer則可以設置rule來決定不同功能的pod物件如何使用
+直接架在service的LoadBalancer只會處理同功能的pod物件 兩者的應用層級不同
+一般request會先經由ingress做分類再交由service處理
+
+spec:
+  rules:
+  - host: helloworld-v1.example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: hellworld-v1
+          servicePort: 80
+      - path: /chat
+        backend:
+          serviceName: hellworld-v1
+          servicePort: 80
+  - host: helloworld-v2.example.com  # 分到不同的pod上
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: helloworld-v2
+          servicePort: 80
+
+另外可以使用Nginx Ingress Controller插件：
+可以將不符合ingress的rule條件的request都導向特定的結果
+創建default-backend：則當ingress找不到rule時 導向default backend - 404
+
+### Cronjob 
+用於進行server的例行性工作 像是更新網站流量報表, 更新玩家最新數據等
+早期直接使用linux的crontab進行 但像在可以改用k8s操作
+但如果log分散在多個VM中 則難以集中管理log 因此改採cronjob直接綁在cluster上
+
+linux的操作方式：
+crontab -e 進入crontab模式
+*/1 * * * * echo "Hi, current time is $(date)" >> ~/cronjob.log
+表示每隔1分鐘進行指令
+
+建立CronJob物件：(kind=CronJob)
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: hello
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello
+            image: apline
+            args:
+            - /bin/sh
+            - -c
+            - echo "Hi, current time is $(date)"
+          restartPolicy: OnFailure
+
+kubectl get jobs --watch 查看cronjob的操作狀況
+
+
+- - ---------------------------------------------------
 # npm套件管理工具: 
 同理npm的指令都必須在專案資料夾中執行
 使用webpack就一定要用到nodeJS 另外npm也是nodeJS的應用

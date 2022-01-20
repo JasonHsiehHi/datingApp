@@ -1,0 +1,4 @@
+uuid,name,create_date,isBanned,room_id,waiting_time,status,imgUrl_adult,user_id,gender,tag_int,isAdult,isHetero,game_id,isPrepared,tag_json,isOn,match_id,city_id
+e2abf309688e4fd3b82572fdb8a83d44,"森林@#$%!~()<>?:""{}+*_",2021-12-02 07:29:08,0,29,,2,,26,f,-1,1,1,graduate_girl,0,"{""e2abf309-688e-4fd3-b825-72fdb8a83d44"": 0, ""2fa45349-a749-4ccc-843a-bf690fa544ee"": 1, ""f873ae91-4c2a-4fe0-a5d5-c4555525714a"": 0, ""message"": []}",1,,
+f873ae914c2a4fe0a5d5c4555525714a,好的,2021-12-02 09:30:56,0,29,,2,,28,m,0,1,1,graduate_girl,0,{},1,1,
+2fa45349a7494ccc843abf690fa544ee,"!@#$%^&*()_+}:Q""WMDO",2021-12-02 10:02:31,0,29,2022-01-01 11:36:24,2,,29,m,0,1,1,graduate_girl,0,{},0,,
