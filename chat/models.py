@@ -8,8 +8,8 @@ class Room(models.Model):
     city = models.ForeignKey('City', null=True, blank=True, on_delete=models.SET_NULL, default=None, to_field='name')
     game = models.ForeignKey('Game', null=True, blank=True, on_delete=models.SET_NULL, default=None)
 
-    player_dict = models.JSONField(max_length=200, null=True, blank=True, default=dict)
-    onoff_dict = models.JSONField(max_length=25, null=True, blank=True, default=dict)
+    player_dict = models.JSONField(null=True, blank=True, default=dict)
+    onoff_dict = models.JSONField(null=True, blank=True, default=dict)
     answer = models.JSONField(null=True, blank=True, default=dict)
 
     def __str__(self):
@@ -18,7 +18,7 @@ class Room(models.Model):
 
 class Match(models.Model):
     room = models.ForeignKey('Room', null=True, blank=True, on_delete=models.SET_NULL, default=None)
-    player_list = models.JSONField(max_length=25, null=True, blank=True, default=list)
+    player_list = models.JSONField(null=True, blank=True, default=list)
 
     def __str__(self):
         return "match-%s" % self.id
@@ -53,15 +53,15 @@ class Player(models.Model):
     isOn = models.BooleanField(default=False)
 
     tag_int = models.IntegerField(null=True, blank=True)
-    tag_json = models.JSONField(max_length=25, null=True, blank=True)
+    tag_json = models.JSONField(null=True, blank=True)
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.uuid)
 
 
 class Game(models.Model):
-    name = models.CharField(max_length=20)
-    game_id = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=30)
+    game_id = models.CharField(max_length=25, unique=True)
     isAdult = models.BooleanField()
     isHetero = models.BooleanField()
     best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要 異性為[5,1] 同性為[5:0]
@@ -73,7 +73,7 @@ class Game(models.Model):
 
 
 class GameRole(models.Model):  # 角色數量一定要多過遊戲人數 才不會抽不到人
-    name = models.CharField(max_length=10)
+    name = models.CharField(max_length=25)
     gender = models.CharField(max_length=1, null=True, blank=True)
     game = models.ForeignKey('Game', null=True, blank=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)
@@ -83,7 +83,7 @@ class GameRole(models.Model):  # 角色數量一定要多過遊戲人數 才不�
 
 
 class GameEvent(models.Model):
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=30)
     content = models.TextField(null=True, blank=True)
     game = models.ForeignKey('Game', null=True, blank=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)
@@ -96,7 +96,7 @@ class Dialogue(models.Model):
     dialog = models.JSONField(null=True, blank=True)  # list: sentences
     game = models.ForeignKey('Game', null=True, blank=True, on_delete=models.SET_NULL, default=None)
     action = models.CharField(max_length=10)
-    sub = models.CharField(max_length=20, null=True, blank=True)
+    sub = models.CharField(max_length=10, null=True, blank=True)
     number = models.IntegerField()
 
     def __str__(self):
@@ -104,7 +104,7 @@ class Dialogue(models.Model):
 
 
 class City(models.Model):
-    name = models.CharField(max_length=10, unique=True)  # to_field:name
+    name = models.CharField(max_length=25, unique=True)  # to_field:name
 
     roomNum = models.IntegerField(default=0)
     femaleNumForMale = models.IntegerField(default=0)
@@ -133,7 +133,7 @@ class School(models.Model):
 
 class Photo(models.Model):
     image = models.ImageField(upload_to='photo/', blank=False, null=False)
-    uploader = models.CharField(max_length=8, null=True, blank=True)  # 同一位上傳者禁止連續上傳 且相同match應限制上傳數量
+    uploader = models.CharField(max_length=32, null=True, blank=True)  # 同一位上傳者禁止連續上傳 且相同match應限制上傳數量
     isForAdult = models.BooleanField(default=False)
     upload_date = models.DateTimeField(default=timezone.now)
 

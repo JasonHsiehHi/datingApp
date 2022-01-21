@@ -253,7 +253,6 @@ class SchoolPerson(models.Model):
 當兩個模型很相近 如Teacher和Student 並要進行同樣的方法 如打卡點名
 此時可以用這種泛型model類別 便不需要特別針對這兩個類別而寫兩次相似的方法
 
-
 t1 = Teacher.objects.get(username='Jason')
 s1 = Student.objects.get(username='Smith')
 g1 = SchoolPerson(content_object=t1, tag='teacher1')  # 將物件變數存入generic中 並加上tag
@@ -3663,8 +3662,9 @@ VPC不同於固定的外部IP位置 需要透過GCP的公有端點來做通訊 G
 server的防火牆為控制執行個體instance的流量和封鎖不被信任的連入流量
 
 必須安裝Google Cloud SDK 才能做gcloud指令:
+## gcp指令
 gcloud docker -- push  // 上傳container到GCS上 或可用Google Cloud Container Builder
-
+gcloud auth login  // 登入GCP帳號
 gcloud auth list  // 列出有效帳戶名稱
 gcloud config list project  // 列出專案ID名稱
 
@@ -3672,6 +3672,10 @@ gcloud compute instances create gcelab --zone us-central1-c // 建立個體 gcel
 gcloud compute disks create mydisk --size=200GB --zone us-centrall-c  // 建立永久性磁碟 mydisk是磁碟名稱
 gcloud compute instances attach-disk gcelab --disk mydisk --zone us-central1-c // 在運轉中的個體中新增永久性磁碟
 gcloud compute addresses list  // 當前靜態ip
+
+gsutil ls 查看專案目前的googlestorage值區
+gsutil cp data gs://gs-bucket-name/
+
 
 persistent disks永久性磁碟 分為一般磁碟(HDD)和SSD磁諜
 可決定使用哪個磁碟做為開機磁碟boot disk
@@ -3788,14 +3792,13 @@ Django為實現application server功能之框架:
 application server負責business logic的執行和database的存取 
 (application server無法直接與client端溝通 只能接受web server的request並回傳response)
 
-nginx也是一種web server: 
+Nginx也是一種web server: 
 但無法自行實現WSGI服務 主要功能皆與效能有關
 可暫存靜態資源static 讓重複請求不用到appication server(django)
 或針對高流量請求時緩存request
 可以從nginx判斷 不同Domain或不同pathname已提供不同服務
 在nginx層處理HTTPS連線
 具多台伺服器時 可針對單一url的request做反向代理或將不同url的request做分流
-
 
 WSGI為python語言針對CGI另外定義的網路接口
 ASGI是由WSGI做改良而得 因為近年有許多協定不使用原始的http規範(WebSocket)
@@ -4111,6 +4114,17 @@ python3 manage.py migrate myapp 指定特定app創建table
 python3 manage.py makemigrations myapp 指定特定app創建SQL指令
 python3 manage.py sqlmigrate myapp 0001 查看myapp中makemigrations所生成的0001遷移文件
 
+可以用此方法刪除創建過程中多餘的SQL指令：
+find . -path '*/migrations/*.py' -not -name '__init__.py' -delete
+find . -path '*/migrations/*.pyc' -delete
+python manage.py makemigrations 如此一來就會重新由0001_initial.py開始創建
+
+如果要做資料庫遷移到不同系統(sqlite->pqsql) 則可用fixture幫忙
+fixture指的是被內容被序列化的資料庫檔案 可能為json或xml
+python manage.py dumpdata > whole.json 將sqlite的內容寫入whole.json
+python manage.py loaddata whole.json 在由whole.json匯入pqsql
+如果db太大會導致無法順利轉換成fixture 故sqlite只適用於開發階段db較小的時候
+
 python3 manage.py flush 將還未migrate的數據刪除
 manage.py migrate myapp zero 則用於刪除myapp的所有data
 
@@ -4148,6 +4162,14 @@ python manage.py collectstatic
 將STATICFILES_DIRS路徑中所收集到的static檔 收集放入STATIC_ROOT中
 故不應該把static檔放入STATIC_ROOT中 不然會被蓋掉
 
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'templates'),
+    os.path.join(BASE_DIR, "yourapp1", "templates"),
+    os.path.join(BASE_DIR, "yourapp2", "static"),
+    os.path.join(BASE_DIR, "watever"),
+    "/home/me/Music/TaylorSwift/",
+    "/home/me/Videos/notNsfw/",  # STATICFILES_DIRS可以找專案之外的資源 許多影音資源可能不會放在專案中
+]
 python manage.py validate
 用於驗證model
 
@@ -4185,6 +4207,13 @@ redis-cli set key_name value 設置key的value (但一般都使用django的shell
 
 loadtest -n 100 -k  http://localhost:8000/index/ 用於做網站載入速度測試 用來測試cache的實用性
 
+## postgresql 指令
+psql -U postgres -d postgres -h 127.0.0.1 -p 5432 登入pgsql資料庫
+-U 指定用戶, -d 指定資料庫, -h 資料庫服務器IP, -p 端口
+或用pg sql shell輸入相關資料登入 登入資料庫後可以直接使用sql指令進行操作
+
+
+
 ## pip指令
 pip套件管理工具的名稱為python package index(pypi) 本身就是以python寫成的工具
 pip freeze 查看當前環境的程式包
@@ -4212,6 +4241,8 @@ CTRL+S CTRL+Q 兩個一組： CTRL+S用於看目前所花時間 CTRL+Q則跳回c
 CTRL+R (reverse-i-search) 用於輸入關鍵字收尋過去的指令
 
 ## vim為terminal中的文字編輯器
+open ~/.bash_profile 另外可用open取代 就變成用文字編輯器打開
+
 vim中常見模式為NORMAL, INSERT, REPLACE:
 --NORMAL--: 加上:w存檔, :q離開, :wq存檔後離開
 此模式下無法新增內容但能做複製剪下貼上 或進入其他模式
@@ -4254,15 +4285,19 @@ echo "hello world" 為在terminal上顯示文本
 echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文件
 
 echo {ASCII字串} | base64 -D > image.png 亦可用於建立圖檔
+echo $SHELL 查看當前的shell 目前使用:/bin/zsh
 
 export -p 列出當前所有的環境變量
 export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原先$PATH之外新增$HOME/bin/)
 切換到conda的虛擬環境中 也就是把$PATH加上/Users/jason_mac/opt/anaconda3/envs/datingApp/bin
 echo $PATH 檢查目前的環境變量
 
+ls -a 才能看到所有隱藏的檔案(.bash_profile)
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
 source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機
+修改的文件必須是目前所使用的殼層 可用echo $SHELL查看
+bash:bash_profile , zsh: zshrc
 
 ## git指令
 git config --global user.name "<Your Name>" 先將這台電腦連結到github上的使用者
@@ -4651,7 +4686,6 @@ selector:
 type: LoadBalancer
 
 
-
 ### 建立k8s的node物件：
 node可能只一個實體機或虛擬機 當node被加入時會在k8s上建立node物件
 再將node物件加入cluster 此時k8s會依據pod的設定檔來決定部署到哪個node上 如此可以避免vm中流量資源無法互通的問題 (有些vm超載有些vm閒置) 此時k8s就能完成負載平衡的工作(load balancing)
@@ -4874,6 +4908,8 @@ volumes:
     - key: my-nginx.conf
       path: my-nginx.conf
 
+
+configMap和secret直接用yaml建立即可 之後都直接放進volume做volumemount較為方便
 並記得要在container中進行volumeMounts掛載 (containers.name.volumeMounts)
 volumeMounts:
 - name: secret-volume

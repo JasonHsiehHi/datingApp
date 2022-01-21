@@ -1,7 +1,6 @@
 from django.http import JsonResponse
 
 from datingApp import settings
-from django.contrib.auth.models import User
 from .models import Match, Player
 from random import randint
 from datetime import datetime, timezone, timedelta

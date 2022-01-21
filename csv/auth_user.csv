@@ -1,5 +1,0 @@
-id,password,last_login,is_superuser,username,last_name,email,is_staff,is_active,date_joined,first_name
-26,pbkdf2_sha256$260000$LQ4GjUpStbRqaBJnCloNkI$Iw1dfnc4Z2+KY0z4dLqRuhPRvT6/J+B4bzNSLb0UwQ0=,2021-12-27 01:28:28.604492,0,kfc9594@yahoo.com.tw0,,kfc9594@yahoo.com.tw,0,1,2021-12-02 07:29:08.775830,
-28,pbkdf2_sha256$260000$Mu95YA4zUSPLU6GcNwBcoD$jVHXVIqsEw95ulRp1r9cFX26KcPFfvU3uBHrcsqaWfU=,2022-01-14 12:14:21.605112,0,kfc9594@yahoo.com.tw1,,kfc9594@yahoo.com.tw,0,1,2021-12-02 09:30:56.592291,
-29,pbkdf2_sha256$260000$cWlDBo5jfUqMU3zxv2Pq71$ey5Ldzs8nT4ykzt00+VzPMtB7LDSudjUFmw60CXiQO0=,2022-01-01 13:27:36.733064,0,kfc9594@yahoo.com.tw2,,kfc9594@yahoo.com.tw,0,1,2021-12-02 10:02:31.256668,
-30,pbkdf2_sha256$260000$MCnZ5UMsZpgmmBJaTeucjI$oZieq/46zTWdvrjqCWdEESEIoX0MV8zHuacsfEwtwpk=,2022-01-14 02:11:03.843503,1,jason959493@gmail.com,,jason959493@gmail.com,1,1,2021-12-10 05:56:02.880177,

@@ -22,7 +22,6 @@ from uuid import uuid4
 from hashlib import md5
 
 import re
-import os
 
 from django.db import connection
 
@@ -130,7 +129,7 @@ def get_dialogue_greet_sub(time):
     if time_ranges is None:
         dialogues = Dialogue.objects.filter(Q(action='GREET') & Q(sub__startswith='t') & Q(number=1))
         time_ranges = [[dialogue.sub[1:3], dialogue.sub[4:6]] for dialogue in dialogues]
-        cache.set('GREET_TIME_RANGE', time_ranges, None)
+        cache.set('GREET_TIME_RANGE', time_ranges, settings.SECONDS_FOR_CACHE_GREET)
 
     true_list = []
     for r in time_ranges:

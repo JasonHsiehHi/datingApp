@@ -1,10 +1,8 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from . import utils
-from django.core.cache import cache
 from datetime import datetime, timezone
 import time
 from threading import Timer
-from datingApp import settings
 from asgiref.sync import async_to_sync
 
 
