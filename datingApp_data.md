@@ -11,11 +11,12 @@ ADMIN_ENABLED = False
 
 # 版本
 macOS 11.4 intel x86-64(關於這台電腦)
-anaconda 4.9.2 (conda -V)
+conda 4.9.2 (conda -V)
 python 3.8.8 (python)
 django 3.2 (python -m django --version)
 channel 3.0.3 (conda list)
 channel-redis 3.2.0 (conda list)
+redis 3.5.3
 jquery 3.6.0 (查看JS檔)
 bootstrap 5.0.2 (查看JS檔)
 postgreSQL 13.5 

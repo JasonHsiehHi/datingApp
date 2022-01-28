@@ -20,10 +20,11 @@ hyperlink==21.0.0
 idna==3.1
 incremental==21.3.0
 msgpack==1.0.2
-olefile @ file:///home/conda/feedstock_root/build_artifacts/olefile_1602866521163/work
+olefile==0.46
 outcome==1.1.0
-Pillow @ file:///Users/runner/miniforge3/conda-bld/pillow_1625678024115/work
-psycopg2 @ file:///Users/runner/miniforge3/conda-bld/psycopg2-split_1623909996789/work
+Pillow==8.3.1
+pip==21.0.1
+psycopg2==2.9.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20
@@ -33,6 +34,7 @@ pytz==2021.1
 redis==3.5.3
 selenium==4.0.0
 service-identity==18.1.0
+setuptools==49.6.0
 six==1.15.0
 sniffio==1.2.0
 sortedcontainers==2.4.0
@@ -42,5 +44,6 @@ trio-websocket==0.9.2
 Twisted==21.2.0
 txaio==21.2.1
 urllib3==1.26.7
+wheel==0.36.2
 wsproto==1.0.0
 zope.interface==5.4.0

@@ -1,19 +1,19 @@
 # Default ignored files
 
-.vscode/
-.idea/
-.env
 .DS_Store
-
-node_modules/
-tutorial/
-
-term/
-term-chatroom.js
-term-chatroom.html
-term.py
-
+.idea/
+.vscode/
 jsconfig.json
 
-backup.sql
+.env
+gae.env
+local.env
+
+#for GAE
+app.yaml
+main.py
+
+term/
+
+pgdb.sql
 whole.json

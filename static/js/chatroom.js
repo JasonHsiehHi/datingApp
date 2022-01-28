@@ -356,7 +356,8 @@ function refreshProfile(){  // handle text of navbar and sidebar
     $('#city').text(city_name).attr('data-bs-original-title', city_name);
     if (0===loginData.status){
         var sub_text = (0 === localData.city.length)?'':'('+citySet[localData.city]+')';
-        setNavTitle('A-LARP匿名劇本殺 ' + sub_text);
+        // setNavTitle('A-LARP匿名劇本殺 ' + sub_text);
+        setNavTitle('A-LARP匿名劇本殺');
     }
     
     $('#user-tag').text(localData.name[0]);

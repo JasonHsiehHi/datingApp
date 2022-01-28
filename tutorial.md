@@ -1,5 +1,3 @@
-
-
 # 五大瀏覽器：GC,FF,SF,IE,OP
 一般會忽略opera 因為使用人數太少
 pfx = ["webkit", "moz", "MS", "o", ""] 因此有些css也需要有對應的前綴詞
@@ -314,31 +312,6 @@ django自身的模板語言(in-HTML Templates):
 js,py都是直譯式語言 一行一行動態編譯
 但C語言家族為編譯式語言 在執行前會先做編譯 前置時間較長但效率較高
 
-- - - -----------------------------------------
-# notation 常見符號的英文 (用於google查尋):
-!:exclamation mark
-%:percent sign
-#:number sign
-@:at sign
-$:dollar sign
-^:XOR operator
-
-+:addition
--:subtraction or dash or hyphen
-*:multiplication or asterisk
-/:division or forward slash
-\:back slash
-~:tilde
-
-<>:angle brackets
-[]:square brackets
-{}:curly brackets
-():parentheses
-'':quotes
-; :semicolon
-: :colon
-
-- - - -------------------------------------------
 # regex正則表示法
 正則表示法使用'\' 是為了避免與http格式的'/'混淆
 re.match(pattern, string) 每一個re都是一組pattern 並放入要驗證的string
@@ -1126,6 +1099,7 @@ msg ='thank you the registration!' 直接在郵件中傳送text訊息
 template = loader.get_template('email.html')
 html_msg = template.render({"msg": "123456"}) 或可在郵件中做html渲染
 
+gmail要由帳號開啟SMTP授權才能使用
 
 - - - ---------------------------------------------------
 # forms.py
@@ -1311,7 +1285,7 @@ ex: 其中 DELETE request 每次做的事都相同 請求內容不會因次數�
 'application/x-www-form-urlencoded' 傳送前編碼所有字元 因此不能用於檔案上傳 可用request.POST取得上傳的資料
 'text/plain' 不能有任何特殊字元或控制字元 (只充許空格)
 
-POST的content內容：
+POST的content內容(放於header檔中)：
 POST /test.html HTTP/1.1
 Content-Length: 68137
 Content-Type: multipart/form-data; boundary=---------------------------974767299852498929531610575
@@ -3159,6 +3133,12 @@ token = token 需檢驗使否為正確的token
 
 - - ---------------------------------------
 # django_template:
+Client-side Render(CSR,前端渲染)和Server-side Render(SSR,後端渲染)之差異：
+django的template語言就是屬於SSR 在後端生成後傳給前端
+若先用JSON傳給前端在用JS做生成則為CSR 後端直接傳給前端資料
+如果著重在SSR 也較記得放一些描述網站的資訊給搜尋引擎來做SEO
+另外資料驗證應該前端與後端都做：前端驗證是最節省效能的方式 後端驗證可以避免有人硬改JS
+
 共有4種組成元件：variable, tags, filter, comment
 
 django template variable {{...}}:
@@ -3577,7 +3557,7 @@ apt-get與pipㄧ樣都是套件管理工具 Linux系統較常使用apt-get
 且通常伺服器接受git做版本控制與上傳方式
 
 IaaS(Infrastructure as a Service)
-主要包含：虛擬伺服器VPS,虛擬雲端VPC兩大功能
+主要包含：虛擬伺服器VPS, 虛擬雲端VPC兩大功能
 VPS只用於個人 而VPC用於公司或開發團隊 提供分配或調整各項運算資源
 IaaS即提供伺服器,貯存與機房等硬體設備 使用者可以自行架設作業系統與主要應用程式
 
@@ -3630,18 +3610,24 @@ Microsoft的Azure本身就包含了Paas和Iaas兩種服務
 其中Google App Engine(GAE)是GCP的快速部署與管理平台(Paas) 
 Google Compute Engine(GCE)是GCP的雲端空間(Iaas)
 而Google Kubernetes Engine(GKE)則介於兩者之間 屬於比較新的服務(Iaas)
-此外gke可以進行load-balancing 如此一來就不需要自架nginx
 GCP的好處是台灣有機房 AWS則最近的建在香港
 GCP較多新創公司使用 AWS是適合大型公司的專業後端使用
 GCP價格最便宜 而AWS支援服務最齊全
 GCP發展最晚 全球覆蓋率最低 而AWS則最早發展 有最多的可用區域
 
 - - ---------------------------------------------
-# gcp操作:
+# GCP操作:
 VM常用的作業系統Ubuntu 18.04 LTS 相關指令:
-sudo apt-get update  // 進行更新
-sudo curl -O http://vestacp.com/pub/vst-install.sh  // curl透過http協定存取網路資源
-sudo bash vst-install.sh --force // bash用以執行sh腳本檔
+sudo apt-get update 進行更新
+sudo curl http://vestacp.com/pub/readme.md 只會在terminal上顯示
+sudo curl -O http://vestacp.com/pub/vst-install.sh curl透過http協定存取網路資源 -o表示使用同檔名存在本地端 
+sudo bash vst-install.sh --force bash用以執行sh腳本檔
+
+curl原名為cURL 與wget相同都是做檔案下載 兩者都有很多參數指令可用
+wget -m -p -k -P ./  https://example.com/ 備份網站 -m表示鏡像下載(等同-r -N:遞迴下載且只下載更新檔案) -p下載所有檔案 -k表示更換成本地連接 -P表示存到本地端位置
+
+wget僅用來下載遠端資料 不會做後續的安裝或部署
+tar -c 用於壓縮檔案 和 tar -x 用於解壓縮檔案
 
 三大常用linux作業系統：
 centos 後端常用java或perl 已經不再維護 若要架設web_server 則常採用Apache
@@ -3651,94 +3637,262 @@ ubuntu 後端常用ruby或js 最早為debian的桌面系統 用戶介面漂亮�
 以上為各個作業系統'常用的'後端語言 並不是不能使用其他的
 因此一般認為ubuntu更適合初學者使用 相對操作更為簡單 且開源軟體最多
 
-VPC網路(Virtual Private Cloud)
-最大單位為'網路名稱'即為獨立存在的LAN 而旗下的'子網路'可想像成一個 VLAN
-'名稱'之間不能互通 但建立在同一名稱下'子網路'的app則可透過資料庫互通
-VPC不同於固定的外部IP位置 需要透過GCP的公有端點來做通訊 GCP會提供DNS來做轉換
-
-子網路遮罩(subnet mask) 用來標示單一網路IP位址內的主機所在位址
-表示方法與IP位址相同 如:255.128.0.0 或 192.0.2.96/28 
-
-server的防火牆為控制執行個體instance的流量和封鎖不被信任的連入流量
-
-必須安裝Google Cloud SDK 才能做gcloud指令:
-## gcp指令
-gcloud docker -- push  // 上傳container到GCS上 或可用Google Cloud Container Builder
-gcloud auth login  // 登入GCP帳號
-gcloud auth list  // 列出有效帳戶名稱
-gcloud config list project  // 列出專案ID名稱
-
-gcloud compute instances create gcelab --zone us-central1-c // 建立個體 gcelab是個體名稱 --zone是配置參數
-gcloud compute disks create mydisk --size=200GB --zone us-centrall-c  // 建立永久性磁碟 mydisk是磁碟名稱
-gcloud compute instances attach-disk gcelab --disk mydisk --zone us-central1-c // 在運轉中的個體中新增永久性磁碟
-gcloud compute addresses list  // 當前靜態ip
-
-gsutil ls 查看專案目前的googlestorage值區
-gsutil cp data gs://gs-bucket-name/
-
-
-persistent disks永久性磁碟 分為一般磁碟(HDD)和SSD磁諜
-可決定使用哪個磁碟做為開機磁碟boot disk
-
-Service Account服務帳號 
-專門用來給應用程式做身份識別 目的是為避免用戶將真實的google帳號寫入主機設定中
-
-Access Scope決定服務帳號所能涉及的權限 
-default access基本都是唯讀  
-full access則權限最大 
-set access for each API 則交給每一個API由人工設定
-
-Management主機管理：
-Reservations: 預定VM的擴張空間
-Startup scipts: VM開機時所執行的腳本
-On host maintenance: 機台定期維護時是否直接關機或將服務做遷移
-Automatic restart: 機台硬體出現突發狀況是否直接重開機 
-Preemptible VM 搶佔式主機: 用比原價便宜的價格來使用閒置主機 此為臨時性 不能保存資料
-
-Security主機安全性設定：
-Shielded VM: 主機開機時的安全檢查機制
-SSH key: 除了用GCP登入外 用SSH需要有固定的key
-
-Disks主機磁碟設定：
-Deletion rule: 刪除VM個體後會順便把boot disk刪除
-Encryption: 存取資料庫時所使用的加密方式 用google-managed就好
-Additional disk: 通常會再加上data disk 為與boot disk分開
-
-Network主機網路設定：
-Network tag: 設定所要套用的防火牆 通常會將firewall分為web應用和dbf資料庫二種
-Network: 設定所在GCP中的哪個網路名稱
-External IP: 外部IP預設為epermeral揮發性 表示為動態IP 可改為靜態IP
-
-Sole Tenency用戶群節點：
-一般來說VM會隨機開在資料中心中不同的實體機上
-此設定可用於將VM開在同一個機台上 但並不會影響VM表現 僅為符合部分企業的需求
-
-設定GCP Console到chrome的常用頁面
-Billing Alert 提醒用戶目前的收費費用 為避免有未關閉的測試機台或未關閉的固定IP
-Stackdriver Alert 超過原先收費範圍的流量時會自動警告
+GCP所有的設定都能透過REST-request或gcloud指令來呼叫
+所以每次變更設定時都可儲存REST-request或gcloud指令 可供之後的設定使用
 
 帳單的產品與SKU指的是google所提供的API: 該API為產品 其中的功能則為SKU
 無論是GCE或GAE都算是google的API 而GCE的固定IP申請則為SKU
 
-GCP所有的設定都能透過REST-request或gcloud指令來呼叫
-所以每次變更設定時都可儲存REST-request或gcloud指令 可供其後的主機使用
-因為要進行負載平衡 相同功能的主機不可能只開一台
+IAM(Identity and Access Management)
+針對不同的資源項目(GCE, GKE, GAE, SQL, GCS...)將權限分成多個Permission
+Roles就是對個Permission的集合 目的是方便分類管理 (直接看Permission項目有數千條... 故一定要用Role處理)
+預設的Roles有三種：Owner, Editor 跟 Viewer 
+Owner有全部的權限, Editor只能修改已存在的資源不能創建, Viewer只能檢視讀取資源不能修改
+除了以上三者之外 還有針對不同資源項目的Role:
+Storage Object Creator：只能創建 但不同修改也不能刪除 (適合給非專案所有人的其他團隊成員)
 
-Load Balancer(Instance Group) 
-當流量過大無法負荷時 Instance Group可自動加開相同設定的主機 將流量導引到新主機上
-新主機的參數設定可透過以建立的模板來建立 這種instance group以功能來區分又稱auto-scaling group
-auto-scaling group可設定最多開幾台或最少開幾台 或流量維持多久才進行擴張或縮減
-Health Check設定流量檢查的閘道 HTTP Port 80 
-Check interval每次檢查的間隔秒數 Timeout每次檢查所需持續秒數 避免突發性的爆量流量
-Health threshold/ Unhealth threshold 連續判定幾次成功才執行auto-scaling
-Initial delay 為使開機時間不做health check 
+Policy是集合性單位 整個專案就只會有一個Policy作為規範
+Policy是一至多個Binding的集合 所謂Binding就是將不同identity身份的帳號與role做綁定 
+可針對專案Project設置Policy 此時旗下所有的資源項目Resource都會遵守此Policy 方便團隊管理
+同理可針對公司Organization(最上層根目錄)設置Policy 則旗下所有專案Project都會遵守
+ 
 
-最後防火牆不能阻擋health check 必須設定firewall rule
-將health check的IP請求設為allow即可
+必須安裝Google Cloud SDK 才能做gcloud指令:
+gcloud init 在本地端與google cloud連線 設定登入帳號, 專案, 網域等 
+
+gcloud docker --push 上傳container到GCS上 或可用Container Builder
+gcloud auth login 登入GCP帳號
+gcloud auth list 列出有效帳戶名稱
+gcloud config list project 列出專案ID名稱
 
 siege指令 用於做server的壓力測試： (用於測試autoscaling是否正常)
 sudo apt-get -y install siege
 siege -c 250 http://34.120.153.46
+
+## GAE:
+gcloud app deploy 用gae直接架設網站
+gcloud app browse 並用瀏覽器瀏覽
+
+## GCS:
+gsutil ls 查看專案目前的googlestorage值區
+gsutil cp data gs://gs-bucket-name/
+gsutil defacl set public-read gs://gs-bucket-name 將特定bucket設為公開讀取
+gsutil rsync -R static/ gs://gs-bucket-name/static 上傳整個資料夾到bucket上
+
+curl -X GET \ 用於download 存在於GCS的檔案
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -o "SAVE_TO_LOCATION" \
+  "https://storage.googleapis.com/storage/v1/b/BUCKET_NAME/o/OBJECT_NAME?alt=media"
+
+## GSQL:
+gcloud sql instances describe pgsql 查看當前的SQL執行個體
+gcloud sql instances create django-sql 直接創建一份 一般也可以直接由GCP上執行
+gcloud sql databases describe postgres --instance=pgsql 也可直接查看SQL個體內部的資料庫
+
+## GKE:
+gcloud container clusters create-auto autopilot-cluster-1-clone-1 \ 創建autopilot模式的pod單位
+--region "asia-east1" \
+--release-channel "regular" \
+
+gcloud container clusters get-credentials autopilot-cluster-1-clone-1 \ 連結專案
+--project projectname 
+
+## GVPC and network:
+虛擬私有雲服務(Virtual Private Cloud)
+最大單位為網域 即為獨立存在的LAN 而旗下的子網路可想像成一個VLAN
+網域之間不能直接互通 而建立在同一網域下子網路的app則可互通
+VPC不同於固定的外部IP位置 需要透過GCP的公有端點來做通訊 GCP會提供DNS來做轉換
+
+VPC能讓不同的專案使用共同的內網資源:
+gcloud compute shared-vpc enable sharedvpc-1 將sharedvpc-1專案設為host project
+gcloud compute shared-vpc associated-projects add sharedvpc-2 \
+--host-project sharedvpc-1 將sharedvpc-2轉案設為連結至host project的service project 
+gcloud compute shared-vpc list-associated-resources sharedvpc-1 列出所有連結至host project的專案
+
+創建VPC時同需再同一個專案具有唯一性的名稱
+gcloud compute networks create NETWORK \
+--subnet-mode=custom \ 可設置auto或custom (auto會自動在所有地區添加子網 custom則手動添加 後者較合理)
+--bgp-routing-mode=regional \  可設置global或regional (單一地區用regional 當需要在多個地區架設VM時才會用到global)
+
+當使用GCP的default網路 就是在所有地區都添加子網(auto mode)
+asia-east1:110.140.0.0/20, us-central1:10.128.0.0/20, europe-west1:10.132.0.0/20... 實際上根本用不到
+
+gcloud compute networks list 查看當前網路
+gcloud compute networks subnets list 表示當前所有的子網路
+gcloud compute networks subnets list-usable 表示當前專案可用的子網路
+
+建立負載平衡器：需要接上backend-services和backend-buckets 並設定fronted-config
+gcloud compute addresses create shared-vpcip \
+--subnet projects/sharedvpc-1/regions/asia-east1/subnetworks/default 在子網路中取得一組靜態IP
+
+gcloud compute backend-services create web-backend-service \ 創建後端服務 為使loadBalancer 可已將流量引入後端(不引入後端而直接讀取靜態資料為backend-buckets )
+--protocol=HTTP \
+--port-name=http \
+--health-checks=http-basic-check \
+--global
+
+gcloud compute backend-services add-backend web-backend-service \ 將後端服務加在instance-group上
+--instance-group=lb-backend-example \
+--instance-group-zone=us-east1-b \
+--global
+
+(!)gcloud compute load-balancer create loadbalancer-1 \ 最後再將後端與前端接在loadbalancer-1即可
+--backend-services=web-backend-service \
+--fronted-addresses=shared-vpcip \ 表示這隻loadbalancer的IP位置
+--fronted-port=80 \
+
+子網路遮罩(subnet mask) 用來標示單一網路IP位址內的主機所在位址
+表示方法與IP位址相同 如:255.128.0.0 或 192.0.2.96/28 
+相同的IP位址和子網路的CIDR表示法為192.168.2.1/24 
+最後的/24：用來表示前24位數固定 只有後面8位數表示不同的連入主機 
+同理/16：192.168.0.0/16 前16位固定 其後表示不同主機
+不一定要是8的倍數 可能為20/： 10.128.0.0/20
+而 0.0.0.0 表示為所有ip的集合 用於表示默認所有ip連入
+
+Classless Inter-Domain Routing 簡稱：CIDR 
+無類別域間路由 網路上用於將ip封包進行歸類的方法
+
+domain name申請:
+FQDN（fully qualified domain name)指的是到特定主機host的完整網域名稱 
+mymail.somecollege.edu host為mymail，位於somecollege.edu網域中
+同理www.indiana.edu也是FQDN www為host_name 而indiana.edu則為域名 只是大部分時使用www主機做為網域的入口host 久而久之後就自動省略
+每台host都有至少一個IP位址 但大多數只供內網使用 
+而連接外網的入口host會架設web server用於分流到內網的host(反向代理) 瀏覽器中輸入的domain name就是找這台連接外網的入口host 
+
+## GCE：
+gcloud compute instances create gcelab \ instance執行個體名稱 及 VM機台名稱  (instances指的是執行個體 相當於建立管理物件 並不單指目前建立的VM機台)
+--zone asia-east1-b \ VM所在區域
+--machine-type=n1-standard-1 \ 決定所需VM機台規格 
+
+vCPU:被實現為計劃按需運行的線程 指的是虛擬CPU 直到有工作負載時才會分配到可運行的真正物理CPU 對使用VM的用戶來說vCPU就等同真的CPU
+運算最佳化：用於遊戲類型應用 需要大量突現即時性顯示的功能
+記憶體最佳化：用於專業雲計算應用服務 所需內存較大的功能
+
+三種VM機台的開機設定方式： (無論用哪一種方式都會至少需要一個開機硬碟)
+--image debian-10-buster-v20200309 或 --image-family debian-10 \ 作業系統的映像檔 前者可決定版本 後者為直接用最新版
+--image-project debian-cloud \ 通常會與image一起安裝 即雲端操作指令套件 (image相當於server的開機設定 用以減少每次新開一台機台的工作量)
+--source-snapshot=https://compute.googleapis.com/compute/v1/projects/myproject/global/snapshots/instance-snapshot \ 複製已創建過的instance之機台內部系統與資料 (snapshot則是server的備份資料 可用於還原之前機台的資料)
+--boot-disk-name=disk0 \ 若不使用image或snapshot(這兩種方法是用新的disk) 則可用已創建過的disk name為disk0
+--disk-name=disk1 \ 仍可放入其他disk 通常會把data-disk和boot-disk分開 當需要使用備用機台時則直接將data-disk掛上去
+
+gcloud compute instances create gcelab-1 gcelab-2 充許一次創建多個相同設定的VM機台
+gcloud compute instances create gcepreempt \  建立搶佔式VM機台 (用比原價便宜的價格來使用閒置主機 此為臨時性 不能保存資料：通常是為讓臨時性的大量運算可以移轉到非主要機台上)
+--preemptible \
+--no-restart-on-failure \ 
+--maintenance-policy=terminate
+
+gcloud compute instances update-container VM_NAME \ 事後需要更新容器時可以使用
+--container-image gcr.io/cloud-marketplace/google/nginx1:latest
+GCE設計就是一隻VM只部署一種container 反之GKE則適合同時部署多個container
+
+gcloud compute instances list 顯示目前所有VM機台
+gcloud compute instances update gcelab \ 
+--update-labels environment=production 設置label標籤的目的是為了幫多個VM做分類 以方便過濾搜尋
+gcloud compute instances remove-labels gcelab \  移除label標籤 
+--remove-labels environment
+
+gcloud compute instances list \  label最大的用處在於幫助過濾搜尋
+--filter labels.environment=test
+
+gcloud compute instances describe gcelab 查看此VM機台的詳細訊息
+gcloud compute instances add-tags gcelab \ 設置tag標記的主要目的是為了管理防火牆規則 (標記tag和標籤label的功能不同)
+--tags http-server 
+gcloud compute instances remove-tags gcelab \
+--tags http-server
+
+network：設定所在GCP中的哪個VPC網路名稱 (如果未設置 則直接用預設的default網路)
+network tag：設定所要套用的防火牆 防火牆會放在VPC網路之下 通常會將防火牆分為web應用和db資料庫二種
+
+VM創建完畢都會自動生成一組在該區域region中的內部IP與外部IP
+內部IP創建時會連同內部VPC一起創建 而外部IP的相關設定可由GVPC調整 
+內部VPC中會有多個預設的防火牆firewall 當要使用時在目標上加標記即可 (或可用VPC內部所有個體全部套用)
+VM最常加上的標記:http-server和 https-server(分別為預設防火墻的標記：default-allow-http和 default-allow-https) 
+防火牆也可決定充許IP範圍：但通常針對外網輸入則會設為0.0.0.0 只有內網輸入才會另外訂出IP範圍
+
+default-allow-internal(預設防火牆)
+限定內網IP範圍10.128.0.0/9 (前9位固定 則第二組只要大於128即可 即第九位為1)
+但放寬通訊協定tcp:0-65535, udp:0-65535, icmp
+
+default-allow-ssh(預設防火牆) 
+為port22 通常為全部套用的防火墻 因為這樣才能由本地端透過gcloud連接到VM的SSH
+
+default-allow-rdp(預設防火牆)
+為port3389 為遠端桌面協定(Remote Desktop Protocol) 類似於SSH 但專用於微軟系統
+
+當application server有使用uWSGI做unix socket時 就需要用自製的防火墻開放port8003,port8004... 此時不能只用http-server和 https-server
+
+gcloud compute instances start gcelab 啟動VM機台
+gcloud compute instances stop gcelab 停止VM機台 (並不是所有GCP服務都能停止 有些必須直接刪除)
+gcloud compute ssh gcelab 直接開啟VM機台的SSH
+
+gcloud compute disks create mydisk --size=200GB --zone us-centrall-c 建立永久性磁碟 mydisk是磁碟名稱
+當需要更多儲存空間來架設環境, 存放資料庫或運行主程式時 則需要再多一個硬碟
+永久性磁碟(PD)分為四種：
+pd-standard傳統硬碟, pd-ssd固態硬碟, pd-balanced平衡性能與費用的SSD(此為disk預設選項), pd-extreme高性能的SSD
+針對所在位置分為：
+區域磁碟(zone) 費用較低 就是在一個區域(zone)物理性架設安裝的磁碟
+地區磁碟(region) 費用較高 可在同地區的兩個區域(zone)實現存儲與複製 等同是多了一個即時備份的磁碟
+
+其餘設定參數：
+deletion protection: 可防止VM被不小心刪除(預設)
+deletion rule: 刪除VM個體後會順便把boot disk刪除(預設)
+encryption: 存取資料庫時所使用的加密方式 用google-managed即可(預設)
+additional disk: 通常會再加上data disk 為與boot disk分開
+
+gcloud compute instances attach-disk gcelab --disk mydisk --zone us-central1-c 在運轉中的個體中新增永久性磁碟
+
+gcloud compute addresses list 當前所有VM機台的內部ip與外部ip 
+
+gcloud compute firewall-rules create "new-http-server" \
+--allow=tcp:80 \ 充許經過防火牆的協定 (預設port80就是http 故可理解為充許以tcp為基底的http流量通過)
+--source-ranges="10.0.0.0/22,10.0.0.0/14" \ ()
+--description="Narrowing TCP traffic"
+gcloud compute firewall-rules list 查看當前所有已設定的防火牆規則
+
+Service Account服務帳號：(除了所有者帳號之外 其餘都是系統隨所用應用程式創建的服務帳號)
+專門用來給不同應用程式在GCP上的身份權限 目的是為避免用戶將真實的google帳號寫入主機設定中
+GCE的服務帳號為Compute Engine default service account
+access scope決定服務帳號所能涉及的權限:
+default access基本都是唯讀  full access則權限最大 set access for each API 則交給每一個API由人工設定 (一般都由人工設定API)
+如果事後需要修改設定 可在IAM處理
+
+Management主機管理：
+reservations: 預定VM的擴張空間 以防機台需要額外空間時使用 (原則上不設置 因為可直接由instance group來處理)
+startup scipts: VM開機時所執行的腳本
+
+VM可用性政策：(直接用預設即可)
+on host maintenance:機台定期維護時直接關機 或 將服務做遷移(預設)
+automatic restart:機台硬體出現突發狀況則直接重開機(預設) 與否
+
+Security主機安全性設定：
+shielded VM: 主機開機時的安全檢查機制
+SSH key: 除了用GCP登入外 當用本地端連上SSH時需要有固定的key
+
+Sole Tenency用戶群節點： (node一般就是指host)
+一般來說VM會隨機開在資料中心中不同的實體機上
+此設定可用於將VM開在同一個機台上 但並不會影響VM表現 僅為符合部分企業的需求
+
+
+Instance Group (用於進行負載平衡)
+當流量過大無法負荷時 Instance Group可自動加開相同設定的主機 將流量導引到新主機上
+新主機的參數設定可透過以建立的模板來建立 
+這種instance group以功能來區分又稱auto-scaling group(為instance group的一種) 可設定最多開幾台或最少開幾台 或流量維持多久才進行擴張或縮減 
+設定參數：
+health check設定流量檢查的閘道 HTTP Port 80 (其他參數:check interval每次檢查的間隔秒數 timeout每次檢查所需持續秒數 避免突發性的爆量流量 initial delay 為使開機時間不做流量檢查)
+health threshold/ unhealth threshold 連續判定幾次成功才執行auto-scaling
+(防火牆不能阻擋health check 故必須設定firewall rule 將health check的IP請求設為allow即可)
+
+gcloud compute instance-templates create example-template-custom \ 設置instance group的模板 建立模板後就能讓instance group使用此模板
+--machine-type=e2-standard-4 \  大部分參數都跟創建VM時相同
+--image-family=debian-10 \
+--image-project=debian-cloud \
+--boot-disk-size=250GB 
+
+內部有DB時 需建立stateful group 此時因為內部有固定資料 不能直接用autoscaling 
+如果DB使用於不同的host 則可用stateless group 方便做autoscaling 
+gcloud compute instance-group create example-group \ 
+--instance-template=example-template-custom \ 
+--zone us-central-1
 
 
 - - ---------------------------------------------
@@ -3776,29 +3930,13 @@ redis 全名為remote diction server 同樣是資料庫的一種
 
 - - ---------------------------------------------
 # asgi.py and wsgi.py
+皆由CGI而來（Common Gateway Interface,通用網路接口）
+就如同使用者介面UI是針對人與機器之間的連接 CGI則是用戶電腦請求到伺服器處理之間的連接
+而更正確來講：CGI是web server和application server的連接 有CGI才能提供動態資料
 
 (1) a production-grade WSGI server like Gunicorn+Django for ordinary HTTP requests.
 (2) a production-grade ASGI server like Daphne+Channels for WebSocket requests.
-Gunicorn和Daphne都是常見網路接口 屬於底層處理應用
-但只有較大型的網站才會需要用兩個不同的server做導流 一般小網站都同時以Daphne處理HTTP和WS兩種request
-
-皆由CGI而來（Common Gateway Interface,通用網路接口）
-就如同使用者介面UI是針對人與機器之間的連接 CGI則是用戶電腦的指令與伺服器之間的連接
-而更正確來講：CGI是web server和application server的連接 有CGI才能提供動態資料
-
-Gunicorn為實現web server協議之服務器:
-web server只能用來處理靜態資料 接受http_request和回傳http_response
-Django為實現application server功能之框架:
-application server負責business logic的執行和database的存取 
-(application server無法直接與client端溝通 只能接受web server的request並回傳response)
-
-Nginx也是一種web server: 
-但無法自行實現WSGI服務 主要功能皆與效能有關
-可暫存靜態資源static 讓重複請求不用到appication server(django)
-或針對高流量請求時緩存request
-可以從nginx判斷 不同Domain或不同pathname已提供不同服務
-在nginx層處理HTTPS連線
-具多台伺服器時 可針對單一url的request做反向代理或將不同url的request做分流
+Gunicorn和Daphne都是常見網路接口 其提供的服務接近uWSGI 都是位於web server和application server之間
 
 WSGI為python語言針對CGI另外定義的網路接口
 ASGI是由WSGI做改良而得 因為近年有許多協定不使用原始的http規範(WebSocket)
@@ -3837,6 +3975,162 @@ settings.configure(DEBUG=True)  # 亦可使用configure()以繞過settings.py來
 
 application = ProtocolTypeRouter({"http":...,"websocket":....})
 可用於決定在不同網路協定時的分流處理方式 當需要用到WS時都必須在asgi.py設定
+
+## 設置uWSGI
+gunicorn和uwsgi為實現web server協議之服務器:
+web server只能用來處理靜態資料 接受http_request和回傳http_response
+Django為實現application server功能之框架:
+application server負責business logic的執行和database的存取 
+(application server無法直接與client端溝通 只能接受web server的request並回傳response)
+
+django一定需要搭配uWSGI 因為django自帶的server效能太差
+後端部署要使用uWSGI&nginx 可做反向代理與負載平衡
+client <-> web server(nginx) <-> the socket <-> uwsgi <-> application server(Django)
+uWSGI會創建一個unix socket用來連接web server和application server
+uwsgi --http :8000 --module mysite.wsgi 用uWSGI運行django專案的wsgi模組
+uwsgi --socket mysite.sock --module mysite.wsgi socket綁定端口此時可以可直接用http協定通訊 在uwsgi設置不同端口 可讓nginx作分流
+browser <-> 80 port <-> nginx <-> 8003 port <-> uwsgi <-> django
+browser <-> 80 port <-> nginx <-> static files(不用經過uwsgi)
+(這也是為何django只有在開發時 才要額外用STATICFILES_FINDERS的原因)
+
+不是所有request都會經過uwsgi 只有需傳到application_server的request 因為nginx會處理掉部分request
+nginx則處理所有的request作分流 而uwsgi只負責將django接上單一個port 兩者不相互依賴
+nginx會獨立一個host(web server) 而uwsgi會放在django的host上
+
+uwsgi --ini mysite_uwsgi.ini 亦可直接執行ini文件來運行uwsgi ini文件即包含socket和module等設定資訊(ini檔通常放在專案根目錄)
+
+uwsgi --http :9090 --wsgi-file wsgi.py 如果不使用ini檔 可以用參數表示
+wsgi.py中會有application(env, start_response)此時uwsgi會將request 送到wsgi.py
+
+touch uwsgi.ini ini檔的相關設定：
+[uwsgi]
+http = 0.0.0.0:8003  # 改變port後並要讓nginx導入新的路口(而request對nginx還是以8000port進入 此時還是用http協定)
+(socket = :8003  # 此時在瀏覽器輸入127.0.0.1:8003會找不到 因為不是由http協定進入 而是unix socket處理)
+(socket = /path/to/your/project/mysite.sock  # unix socket可以改用sock檔)
+(chmod-socket = 664  # 使用sock檔需要修改權限)
+
+module = project_name.wsgi:application # 等同wsgi-file 表示要將request送到哪
+chdir = /home/foobar/myproject/ 架設的server由根目錄/到project (可用執行uwsgi指令所在位址取代)
+home=/path/to/virtual/env 設置環境 (同樣可用執行uwsgi指令所在環境取代)
+master = True # 必須有master才能做processes(workers)
+processes = 4  # 4個進程 每多增加一個進程都會消耗內存而線程則不會 (可設置為CPU數*2)
+threads = 2  # 2個線程 但線程會導致同一個進程的行速度上升
+(拉高processes和threads有助於提升執行效率 最基本就是4,2)
+vacuum = True # 離開時清除uwsgi設置 刪除生產在VM中的unix socket文件和pid文件
+pidfile = /tmp/project_name-master.pid 如此才能用terminal操作關閉server (django設置)
+
+harakiri=20  # 20秒無法回應則重新生成process
+max-requests=5000  # 超過5000筆request也重新生成process
+
+## 設置nginx
+Nginx也是一種web server: 
+但無法自行實現WSGI服務 主要功能皆與效能有關 所以內層還要接上gunicorn或uwsgi
+
+nginx的反向代理reverse poxy：將static和media文件請求傳到一台server 而django應用則交給另一個server 並可暫存靜態資源static和media 讓重複請求不用到appication server(django)
+nginx的負載平衡load balancer：具多台同功能server時 可針對相同url的request做反向代理導向不同的server 或者將不同url的request做分流
+可以從nginx判斷 不同Domain或不同pathname以提供不同服務(跨server性質)
+
+針對高流量請求時nginx也可緩存送來的request
+亦可在nginx層處理HTTPS連線
+nginx可在同一個IP位址但不同port開多個server_name 依據request的url來決定分流到哪個port 因此可由uWSGI設置專用接口 再由nginx導向
+
+Network Address Translation(NAT架構) 區網內的電腦IP對外都會統一為一個公用IP
+nginx讓區網內的電腦能將某個port公開出去 可暫時獲得公有URL以供其他電腦連線
+nginx就是透過nginx自家伺服器做反向代理 將外部request傳送到區域內網的localhost
+
+Ubuntu系統中的所在位置:/usr/local/nginx
+sudo apt-get install nginx  在linux環境架設nginx
+sudo /etc/init.d/nginx start
+當修改設定檔後 需再次重啟：
+sudo /etc/init.d/nginx restart
+
+可準備2個資料夾 sites-enabled和sites-available 並修改nginx.conf:
+註解： # include /usr/local/etc/nginx/conf.d/*.conf;
+加上： include /usr/local/etc/nginx/sites-enabled/*; 表示引入在sites-enabled中的conf檔
+
+所有的conf檔都會放在sites-available 而確定要使用的conf檔則用soft link連結到sites-enabled 可避免直接在sites-enable改動
+sudo ln -s mysite_nginx.conf /etc/nginx/sites-enabled/  在sites-enabled目錄下提供conf檔
+sudo /etc/init.d/nginx restart 載入mysite_nginx.conf後再重啟
+
+sites-available/deploy-at-root-proxy-pass.conf的相關設定：
+
+upstream test {
+        server 192.168.1.123:58080;  # 指向實際後端application server主機 可在proxy_pass中指定
+        server 192.168.1.123:9099 max_fails=3 fail_timeout=15s;  # 可設置upstream fail的相關設定 可用於觸發錯誤重試機制
+
+        # server unix:///path/to/your/mysite/mysite.sock; # 也可以改用sock檔取代 此時不是用http協定 而是unix socket
+        (另外unix socket可能會有權限問題 可用：uwsgi --socket mysite.sock --wsgi-file test.py --chmod-socket=666 開權限)
+    }
+
+nginx underscores_in_headers on;  # 用於調整相關設定 此時proxy_set_header才能用有'_'的變數做替代
+
+server {
+    listen 8000; # the port your site will be served on
+    server_name your_domain; # the domain name it will serve for or your machine's IP or FQDN (除domain name之外 也可輸入該台host的IP位址或FQDN)
+    charset utf-8;
+
+    access_log  /data/nginx/logs/bpm.wangshibo.com-access.log main;
+    error_log  /data/nginx/logs/bpm.wangshibo.com-error.log;  # 存放紀錄
+
+    client_max_body_size 50M; # 限制上傳內容大小 超過則返回403錯誤 如果只是一般request則直接使用預設即可(默認為1M)
+    client_header_timeout 1m; # header請求時間太長 會返回403錯誤 (一般都是header快於body 當header確認回傳內容時才做body請求)
+    client_body_timeout 1m;
+    proxy_connect_timeout 60s; 當request無法即時被nginx處理時 會放於等待池中直到timeout時間
+    proxy_read_timeout 1m; 當response無法被即時被nginx處理時 也會先放於等待池中
+    proxy_send_timeout 1m; 當nginx正在處理response時 容許最長處理時間
+
+    location / { # 將port8000轉成uWSGI的port8003
+        proxy_pass http://127.0.0.1:8003/;  # port為uWSGI修改改過的端口
+        (或用proxy_pass upstream_name 表示會分流到被upstream指定的host)
+
+        (uwsgi_pass 127.0.0.1:8003;  # 如果uWSGI已將django路徑改成unix端口 則應用uwsgi_pass取代)
+        (include /path/to/your/mysite/uwsgi_params;  # 使用uwsgi_pass需加上uwsgi_params 可由nginx的github下載)
+
+        proxy_set_header Host $host; # 將原先指向web_server的host 換成 指向application_server的host
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Real-PORT $remote_port; # 同理用於替代原先web_server的資訊 換成實際client端的IP:PORT
+
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;  # X-Forwarded-For由多個IP組成 表示request經過的代理主機IP (X-Real-IP會是其中的第一個IP)
+
+        proxy_set_header X-Forwarded-Proto $scheme;  # 有時不需要 因為web_server可能會做轉換 例如： http 換成 ws
+
+        client_max_body_size 5M;  # 也可放於location之中 表示針對特定路徑有其限制
+        
+        proxy_next_upstream error timeout http_500 http_404; # 表示那些狀況時會進行重試 默認只會有error timeout 因為後兩者表示真的有問題 重試也不會有用
+
+    }
+    location /static/ {  # url為/static/直接取靜態文件 不進入uWSGI
+        alias /your/path/project_name/static/;  # url為/static/js/chat.js  則返回/your/path/project_name/static/js/chat.js 不重複location的配對路徑
+    }
+    location /media/ {  # 所有的靜態文件都要用nginx作分流
+        alias /your/path/project_name/mdia/;
+    }
+
+    error_page 502 503 =200 /50x.html;  # 表示發生特定錯誤時所返回路徑
+    location = /50x.html {  # 故需要再加上location 此時內容直接放在nginx就好 因為不會到後端
+        root /usr/share/nginx/html;  # 會返回/usr/share/nginx/html/50x.html 會將location的url接在 root的url 之後
+    }
+
+    location ~ ^/weblogs/ {  # 除了完整url之外 也可用正則表示法 ~表示區分大小寫的正則 ~*不區分大小寫的正則
+        root /data/weblogs/www.ttlsa.com;
+    }
+}
+
+nginx -t 測試設定檔是否可正常使用
+nginx -s stop 停止nginx
+nginx -s reload 重新讀取conf檔以使更新生效
+brew services restart nginx 用brew做重新啟動
+
+测试用JSP 用於測試最後application server後端收到的資訊:
+request.getScheme() 為所使用的協定(http, https, ws, wss, ftp...)
+request.getRemoteAddr()和request.getRemotePort() 為server端的內網IP(192.168.1.123)和內網port(58828) 指的是內網中架設web server的主機host(做反向代理)
+
+request.getServerName和request.getServerPort() 則是被web server分流導向的實際後端application server的主機host (因此ServerName可以不是IP 而是內網中已設置的name)
+
+為要取得實際client端host的資訊 (必須在nginx中使用proxy_set_header來替換掉web_server的host資訊)
+request.getHeader("X-Forwarded-For") 第一組IP為client端的host 最後一組IP為web_server的host
+request.getHeader("X-Real-IP")和request.getHeader("X-Real-Port") 若有在nginx替代web_server資訊 則會是client端的host資訊
+request.getHeader("Host") 指向實際後端application_server的host
 
 
 - - ---------------------------------------------
@@ -4084,7 +4378,7 @@ thread_sensitive=True  # 默認為True 表示會將所有透過sync_to_async()�
 thread_sensitive=False  # 則為在開一個全新的線程 結束後自動關閉
 
 - - ----------------------------------------
-# terminal:
+# terminal指令:
 ## conda指令
 conda env list
 conda create --name myenv python=3.5
@@ -4121,8 +4415,8 @@ python manage.py makemigrations 如此一來就會重新由0001_initial.py開始
 
 如果要做資料庫遷移到不同系統(sqlite->pqsql) 則可用fixture幫忙
 fixture指的是被內容被序列化的資料庫檔案 可能為json或xml
-python manage.py dumpdata > whole.json 將sqlite的內容寫入whole.json
-python manage.py loaddata whole.json 在由whole.json匯入pqsql
+python3 manage.py dumpdata > whole.json 將sqlite的內容寫入whole.json
+python3 manage.py loaddata whole.json 在由whole.json匯入pqsql
 如果db太大會導致無法順利轉換成fixture 故sqlite只適用於開發階段db較小的時候
 
 python3 manage.py flush 將還未migrate的數據刪除
@@ -4161,6 +4455,8 @@ print('len(dialogues):'+str(num), file=sys.stderr)
 python manage.py collectstatic
 將STATICFILES_DIRS路徑中所收集到的static檔 收集放入STATIC_ROOT中
 故不應該把static檔放入STATIC_ROOT中 不然會被蓋掉
+collectstatic 除了用於收集不同app資料夾中的static檔 也可以收集專案之外的media文件 像是music或video可能不會放在專案資料夾中 
+此時就必須用collectstatic 因為這樣才不會有路徑權限問題 (djangon只能使用專案內的檔案 無法存取電腦的其他檔案)
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'templates'),
@@ -4213,7 +4509,6 @@ psql -U postgres -d postgres -h 127.0.0.1 -p 5432 登入pgsql資料庫
 或用pg sql shell輸入相關資料登入 登入資料庫後可以直接使用sql指令進行操作
 
 
-
 ## pip指令
 pip套件管理工具的名稱為python package index(pypi) 本身就是以python寫成的工具
 pip freeze 查看當前環境的程式包
@@ -4257,6 +4552,7 @@ vim中常見模式為NORMAL, INSERT, REPLACE:
 
 --VISUAL--:在NORMAL中選擇v則可用鼠標進行操作
 
+## linux指令
 ps auxw  (不以'-'做指令 通常可以連用 並 只是改變輸出的顯示)
 a(all) terminal下的所有程序
 e(environment) 每個程序的環境變量
@@ -4286,6 +4582,12 @@ echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文�
 
 echo {ASCII字串} | base64 -D > image.png 亦可用於建立圖檔
 echo $SHELL 查看當前的shell 目前使用:/bin/zsh
+bash或zsh都是可執行的 可輸入/bin/bash 或/bin/zsh 打開terminal
+/bin/bash -c ls 可直接執行皆在-c(command)的指令
+
+cat test.txt | xargs echo -n3 將text.txt資料用三行顯示(xargs的默認輸出即為echo)
+用xargs將cat建立檔案的path傳給echo執行 
+find ~/Library/Caches/ -name "google-cloud-sdk" | xargs rm -r 用xargs將find找到的路徑傳給rm執行
 
 export -p 列出當前所有的環境變量
 export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原先$PATH之外新增$HOME/bin/)
@@ -4293,11 +4595,53 @@ export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原�
 echo $PATH 檢查目前的環境變量
 
 ls -a 才能看到所有隱藏的檔案(.bash_profile)
+ls -l 查看檔案的詳盡資料
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
-source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機
+source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機(或用source ~/.zshrc 一定要做！)
 修改的文件必須是目前所使用的殼層 可用echo $SHELL查看
 bash:bash_profile , zsh: zshrc
+
+mv A A-new 或 mv A ./folder-new/A-new 更名檔案或移動檔案
+rm 刪除單一檔案 和 rm -rf 刪除整個資料夾
+
+ln A A-ln-hard 為link 即用於將執行檔接到特定資料夾 使其可用terminal指令執行
+ln -s B B-ln-soft 為soft link 當原檔名稱備更改 會導致連接失效
+/usr/bin/ 則放系統內建的terminal指令 如ls, cd, echo, touch...等
+/usr/local/bin/ 此資料夾是用來放所有第三方程式的terminal指令
+各個應用程式都會有軟連接將執行檔接過去  如npm, brew, pip, python...等
+whereis ls 系統內建的指令則用whereis搜尋
+which npm 第三方程式的指令可用which搜尋 
+
+curl原名為cURL 與wget相同都是做檔案下載 兩者都有很多參數指令可用
+wget -m -p -k -P ./  https://example.com/ 備份網站 -m表示鏡像下載(等同-r -N:遞迴下載且只下載更新檔案) -p下載所有檔案 -k表示更換成本地連接 -P表示存到本地端位置
+
+wget僅用來下載遠端資料 不會做後續的安裝或部署
+tar -c 用於壓縮檔案 和 tar -x 用於解壓縮檔案
+
+chown用於修改用戶與群組 也可由ls -l查看檔案權限
+chown root:root /tmp/tmp1.txt 把tmp1.txt的用戶改為root用戶名:root用戶組
+chown -r root:root /tmp 把tmp資料夾內所有檔案改為root用戶名:root用戶組
+
+chmod用於修改權限 可由ls -l查看檔案權限
+chmod +x為 /tmp/tmp1.txt 增加執行權限 等同 chmod a+x /tmp/tmp1.txt (因為a為all 可以直接省略)
+或用chmod -x /tmp/tmp1.txt則為去除執行權限
+
+對象除了a(all)之外 還有u(user), g(group), o(other) 總共四種 
+user表示該文件的所屬用戶 group表示該文件的所屬用戶之群組的其他用戶 other則是此群組之外的用戶 all 就是以上三者的總合
+權限則為r讀/w寫/x執行 以及:
+s執行時將執行進程設為該文件的所屬用戶(至少要有x)
+u a+u 讓所有人都有所屬用戶相同的權限
+g a+g 讓所有人都有群組其他用戶相同的權限
+o a+o 讓所有人都有有和其他人相同的權限
+
+chmod 777 /tmp/tmp1.txt 7=4+2+1表示所有人都有完整的權限
+r/w/x 分別表示 數字4/2/1(第一位, 第二位, 第三位) 用於使用2進位寫入檔案管理系統
+同理 6=4+2 為讀寫權限 5=4+1為讀取和執行
+-rwxrw-r-- 前三個為user的權限(rwx) 中間三個為group權限(rw-) 後三個為其他人權限(r--) 
+
+如果仍不能執行可以在~ 改用./command_name
+
 
 ## git指令
 git config --global user.name "<Your Name>" 先將這台電腦連結到github上的使用者
@@ -4501,33 +4845,77 @@ README.md 為使用markdown語法撰寫
 - - ---------------------------------------------------
 # containerized app使用 (docker和kubernetes)
 
+
 ## docker指令
 docker version 檢查版本
 docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上名稱
 (在設置好的包含Dockerfile的資料夾中進行 不同於pod物件使用yaml建立)
+要做成container的檔案 需要把.gitignore的部分都先移除 尤其是.env
+為避免與本地端原檔混在一起通常會在做一份git clone
 docker tag 59f3e3615488 docker-demo-app 用於建立完後再改名
 docker images 列出目前所有的images
 
 Dockerfile中的內容：(Dockerfile不用加副檔名)
-FROM: python:3.8.3-alpine 所用程式版本(從Docker Hub抓base image)
-WORKDIR: /usr/src/app 在開啟container的機台中設置work directory
-(/usr/src/app 約定俗成 大部分的server都是linux作業系統 也大都在此使用container)
+Dockerfile用於在本地端建立專用的container 
+通常包含軟體需求(FROM),所在目錄(WORKDIR),對外埠號(EXPOSE), 前置執行指令(RUN)與最後執行指令(CMD)
 
+將django做成container:
+FROM: python:3.8.3-alpine 所用程式版本(從Docker Hub抓base image)
+LABEL maintainer="example@gmail.com" 存放相關資訊
+WORKDIR: /usr/src/app 在開啟container的機台中設置work directory 不存在時會自動建立 表示在此層執行RUN
+(/usr/src/app 約定俗成 大部分的server都是linux作業系統 也大都在此使用container)
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1  建立機台的環境變數 若有多項可以分開書寫
-RUN: directive executes commands in the container.
 RUN pip install --upgrade pip 
 COPY ./requirements.txt /usr/src/app
 RUN pip install -r requirements.txt  用pip對requirments.txt進行安裝
-COPY . /usr/src/app  複製當前專案 (專案的根目錄 會與Dockerfile同一層)
-EXPOSE 8000  container所接受的port
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]  最後用cmd執行runserver即可
+COPY . /usr/src/app  複製當前專案到host的特定位置 (專案的根目錄 會與Dockerfile同一層)
 
-requirment.txt可用pip freeze > requirments.txt導出
+EXPOSE 8000  container所接受的port
+ENTRYPOINT [ "/bin/bash, "-c", "echo $HOME"]
+ENTRYPOINT [ "/bin/bash", "docker-entrypoint.sh"] 可執行sh檔內部的指令 (此於常見寫法)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]  最後用cmd執行runserver即可 
+指的是container的最後一行指令 也可以直接用docker run取代：
+docker run --rm -it container_name python manage.py runserver 0.0.0.0:8000
+因此通常會將必定要進行的指令寫在ENTRYPOINT 而CMD會寫入隨情況改變的指令
+此外docker-entrypoint.sh內部可寫入$PYTHONUNBUFFERED,  等環境變數 而CMD則不行
+
+dockerFile的寫法分為 shell form 和 exec form 兩種：前者以command的形式來寫 後者用[]array來寫 
+差別在於shell form則是每行獨立 而exec form可將ENTRYPOINT和CMD連用
+
+#docker-entrypoint.sh 通常會將docker的前置作業寫入entrypoint 不同於直接寫在dockerFile的RUN是為了架設環境
+#!/bin/bash # 用於指令shell script 可取代/bin/bash -c指令
+
+#Collect static files
+echo "Collect static files"
+python manage.py collectstatic --noinput
+
+#Make migrations
+echo "Make migrations"
+python manage.py makemigrations
+
+#Apply database migrations
+echo "Apply database migrations"
+python manage.py migrate
+
+exec "$@"  # 執行CMD指令
+
+requirment.txt可用pip list --format=freeze > requirements.txt導出(比pip freeze更好 因為會審略掉多餘的安裝資訊 只留下版本號)
+(pip list --format=json > requirements.txt 則轉成json格式)
 conda clean -a 先做淨化 再轉成requirments.txt前可先做清除
 
 此外settings.py中部分設定必須放到env中
 並使用secret物件和configMap物件來存取資料
+
+將nginx做成container:
+FROM nginx:latest
+LABEL maintainer="example@gmail.com"
+COPY nginx.conf /etc/nginx (linux作業系統 的 nginx預設資料夾位置)
+COPY docker-nginx-dj3.conf /etc/nginx/sites-available
+
+RUN mkdir -p /etc/nginx/sites-enabled/ && \  創建sites-enabled
+    ln -s /etc/nginx/sites-available/docker-nginx-dj3.conf /etc/nginx/sites-enabled/  並做soft-link
+CMD ["nginx", "-g", "daemon off;"] nginx會在container中執行 故須設置deamon off 讓container不會自動關閉 讓nginx可以留在前台處理(foreground)
 
 docker run -p 3000:3000 -it 733776b1db0a 有了id之後便能開始生成container
 -p表示publish 將容器發布到端口port上 另外-P則表示隨機生成port 如此就不用指定3000:3000
@@ -4542,6 +4930,10 @@ docker pull [Image 名稱]:[Image 版本] 取得一個指定版本的image
 等同 docker pull registry.hub.docker.com/ubuntu:latest 會在Docker Hub中找此image
 (一般來說不用自己build一個映像檔 只要用pull就好)
 docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有一個類似的6380)
+
+可在django的settings.py中設定 不需要密碼的redis使用方式：redis://127.0.0.1:6379/0
+需要密碼的redis為：redis://password@127.0.0.1:6379/0
+
 使用channels框架需要在settings.py設置redis端口
 (也可以直接略過pull步驟 docker會幫我們檢查本地端 若沒有會自動pull image)
 
@@ -4552,7 +4944,8 @@ docker rm <ContainerID> 找到id後可做刪除
 
 docker login  登入後才可以上傳到docker hub中
 docker tag django_todo:latest <Docker Hub username>/django_todo:latest
-docker push <Docker Hub username>/django_todo:latest
+docker push <Docker Hub username>/django_todo:latest 放在docker hub
+docker push asia.gcr.io/<project-id>/server 也可放在google docker registry
 
 docker只涉及連到本地機的port 與IP位址無關
 決定外界使否可連線或連到哪個ip位址則由django manage.py決定
@@ -4568,7 +4961,9 @@ container中的data不會保存下來 All data in the container is not preserved
 
 Docker Compose是docker的延伸工具 可組合多個功能的container來提供完整服務
 Kubernetes也是container的集中管理工具 並由google進行維護
-兩者都必須要使用YAML批次腳本 (docker-compose.yml) 此外許多指令也與docker相同
+兩者都必須要使用YAML(批次腳本) 此外許多指令也與docker相同
+YAML:如果此項目會並列重複時 應該在前面加上- (ex:-name:...-name:...)
+因此可知yaml同一層並列資料存在順序性 並可用-var_name:做分隔
 
 # kubernetes指令
 使用minikube作為本機端的操作工具 用於建設Kubernetes Cluster 
@@ -4711,6 +5106,8 @@ kubectl get deploy,pods -o wide 可查看當前物件在哪個node上排程
 
 
 ### 建立k8s的pod物件：
+pod指的是k8s中所有協助完成application的container之總和 關鍵在於pod內部的不同container 可由local port互相溝通
+
 kubectl create -f mypod.yaml 用於建立pod物件 -f為--file (kind:Pod)
 kubectl get pods --show-all 查看當前所有pod物件 預設為只查看正在運行的pod物件 
 kubectl describe pods mypod 查看pods中mypod的物件訊息
@@ -4744,7 +5141,7 @@ metadata.annotations等同使用者的註解 不會被k8s系統解讀
 
 spec中可以定義多個container：
 由container.name(container的名稱), 
-container.image(Docker Registry中的下載途徑), 
+container.image(Docker Registry中的下載途徑 即K8s用於存放docker image的地方), 
 container.port(用於溝通的埠號)所組成 
 container.port.name 可以在埠號上設置名稱 如此一來可供service物件使用
 container.port.containerPort: 3000 表示此container使用3000溝通(只用於container之間溝通) 
@@ -5081,7 +5478,6 @@ npm run test <file-name>.test.js  // 只執行單一測試檔
 
 - - ------------------------------------------------
 # python語法補充：
-
 class TestError(Exception):  # 一般自訂的例外都是繼承Exception類別 表示任何程式發生的例外都能捕捉
   def __init__(self, code):
     super().__init__(code)
