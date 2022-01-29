@@ -1,0 +1,17 @@
+
+.gcloudignore
+.dockerignore
+
+.git
+.gitignore
+
+.DS_Store
+.idea/
+.vscode/
+jsconfig.json
+
+.env
+gae.env
+local.env
+
+term/

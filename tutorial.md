@@ -1769,7 +1769,7 @@ CSS選擇規則：
 
 id_name通常用在固定配件 永遠只會有一個元素 ex: container, send_text, send_btn等
 大部分<input>元素都會用id_name以方便抓取
-class_name則用於會動態生成的配件 ex: contaner內部的chat_dialog內容
+class_name則用於會動態生成的配件 ex: container內部的chat_dialog內容
 
 '.resultParas p' 其中的" "為選擇其後代所有子節點
 '.resultParas>p' 其中的">"為選擇其直接子節點
@@ -3764,6 +3764,11 @@ gcloud compute instances create gcelab \ instance執行個體名稱 及 VM機�
 --zone asia-east1-b \ VM所在區域
 --machine-type=n1-standard-1 \ 決定所需VM機台規格 
 
+gcloud compute instances create-with-container busybox-vm \ 用容器化的開啟方式
+--container-image docker.io/busybox:1.27 \
+--container-env-file ./env.txt \ 放入.env檔
+--container-mount-host-path mount-path=/logs,host-path=/tmp,mode=rw  \ 裝載到host的特定目錄上
+
 vCPU:被實現為計劃按需運行的線程 指的是虛擬CPU 直到有工作負載時才會分配到可運行的真正物理CPU 對使用VM的用戶來說vCPU就等同真的CPU
 運算最佳化：用於遊戲類型應用 需要大量突現即時性顯示的功能
 記憶體最佳化：用於專業雲計算應用服務 所需內存較大的功能
@@ -4569,14 +4574,14 @@ kill -9 /kill -15
 前者為絕對關機 後者需要時間自動關機：後者比前者好
 
 建立文件三種方式:
-touch output,txt
+touch output.txt
 cat > output.txt
 echo "hello world" > output.txt
 
 touch 為keep in touch 即更新文件的意思 故建立後可直接開啟文件
 cat file1.txt file2.txt > file.txt cat原先用於合併多份文件
 cat > filename 表示將空白文件合併進去filename 即為建立文件
-cat filename 則表示顯示該文件後不做任何動作
+cat filename 則表示顯示該文件後不做任何動作 即不做合併
 echo "hello world" 為在terminal上顯示文本 
 echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文件
 
@@ -4595,7 +4600,7 @@ export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原�
 echo $PATH 檢查目前的環境變量
 
 ls -a 才能看到所有隱藏的檔案(.bash_profile)
-ls -l 查看檔案的詳盡資料
+ls -l 查看檔案的詳盡資料 包含使用權限等
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
 source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機(或用source ~/.zshrc 一定要做！)
@@ -4847,14 +4852,6 @@ README.md 為使用markdown語法撰寫
 
 
 ## docker指令
-docker version 檢查版本
-docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上名稱
-(在設置好的包含Dockerfile的資料夾中進行 不同於pod物件使用yaml建立)
-要做成container的檔案 需要把.gitignore的部分都先移除 尤其是.env
-為避免與本地端原檔混在一起通常會在做一份git clone
-docker tag 59f3e3615488 docker-demo-app 用於建立完後再改名
-docker images 列出目前所有的images
-
 Dockerfile中的內容：(Dockerfile不用加副檔名)
 Dockerfile用於在本地端建立專用的container 
 通常包含軟體需求(FROM),所在目錄(WORKDIR),對外埠號(EXPOSE), 前置執行指令(RUN)與最後執行指令(CMD)
@@ -4866,6 +4863,7 @@ WORKDIR: /usr/src/app 在開啟container的機台中設置work directory 不存�
 (/usr/src/app 約定俗成 大部分的server都是linux作業系統 也大都在此使用container)
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1  建立機台的環境變數 若有多項可以分開書寫
+ARG NODE_VER 也類似於環境變數 但會在build container時設置 (docker build --build-arg NODE_VER=node-v5.9.0-linux-armv7l)
 RUN pip install --upgrade pip 
 COPY ./requirements.txt /usr/src/app
 RUN pip install -r requirements.txt  用pip對requirments.txt進行安裝
@@ -4917,6 +4915,17 @@ RUN mkdir -p /etc/nginx/sites-enabled/ && \  創建sites-enabled
     ln -s /etc/nginx/sites-available/docker-nginx-dj3.conf /etc/nginx/sites-enabled/  並做soft-link
 CMD ["nginx", "-g", "daemon off;"] nginx會在container中執行 故須設置deamon off 讓container不會自動關閉 讓nginx可以留在前台處理(foreground)
 
+
+docker version 檢查版本
+docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上名稱
+(在設置好的包含Dockerfile的資料夾中進行 不同於pod物件使用yaml建立)
+要做成container的檔案 需要把.gitignore的部分都先移除 尤其是.env
+為避免與本地端原檔混在一起通常會在做一份git clone
+docker tag 59f3e3615488 docker-demo-app 用於建立完後再改名
+docker images 列出目前所有的images
+docker commit -m "Added Git package" -a "Starter" 59f3e3615488 當修改container之後 可用commit更新 讓docker hub與本地端同步 
+但可以會使得原先在service掛載的secret或config無法使用
+
 docker run -p 3000:3000 -it 733776b1db0a 有了id之後便能開始生成container
 -p表示publish 將容器發布到端口port上 另外-P則表示隨機生成port 如此就不用指定3000:3000
 3000:3000是因為要先連到host實體機的port 再連到實體機內container的port
@@ -4926,8 +4935,9 @@ Container可被視為一台獨立的電腦 -it：-i是interactive可由鍵盤輸
 docker run -p 3000:3000 -d 733776b1db0a
 -d是daemonized 表示在背景中執行 運行時不做任何操作
 或用-idt表示在背景中執行但仍保有基本輸入輸出的能力
+
 docker pull [Image 名稱]:[Image 版本] 取得一個指定版本的image
-等同 docker pull registry.hub.docker.com/ubuntu:latest 會在Docker Hub中找此image
+等同:docker pull registry.hub.docker.com/ubuntu:latest 會在Docker Hub中找此image
 (一般來說不用自己build一個映像檔 只要用pull就好)
 docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有一個類似的6380)
 
@@ -4938,7 +4948,34 @@ docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有�
 (也可以直接略過pull步驟 docker會幫我們檢查本地端 若沒有會自動pull image)
 
 
-docker ps -a 用來找目前正在執行的docker -a是all的意思 表示不只正在執行的
+docker ps -a 用來找目前正在執行的container -a是all的意思 表示不只正在執行的 (等同docker container ps -a 可省略container)
+docker ps --filter name=redis_server 用篩選找尋特定container
+
+docker service ps redis 查看包含redis名詞的特定service物件
+docker service create --name redis --secret my_secret_data redis:alpine 對container掛載secret物件 (linux系統的預設路徑：/run/secrets/my_secret_data)
+docker service update --secret-add db_pass running_service_name 更新container 額外掛載secret物件
+docker service update --secret-rm my_secret_data redis 對特定的container 刪除之前掛載的secret物件
+
+docker service create --name redis --config my-config redis:alpine 對container掛載config物件 (linux系統的預設路徑：/my-config)
+
+docker本身有service物件：
+docker run只是單獨執行一個container 而使用docker service則可以依據設定自動處理多個container
+當發生問題時可以重啟 自行尋找node來上架容器 並可以進行不中斷更新
+
+
+docker secret ls 查看secret物件
+docker secret rm my_secret_data 刪除secret物件
+printf "This is a secret" | docker secret create my_secret_data - 使用'-'參數 將standard input輸入到my_secret_data中 
+docker secret create .env ./.env 直接用特定檔案建立secret物件 物件也要同名才能直接給後端抓取
+
+docker config ls 查看config物件
+echo "This is a config" | docker config create my-config - 用'-'參數 將standard input輸入到my-config中 
+docker config create .env ./.env config的使用方法基本跟secret相同 無一差別在於傳遞過程不會加密且最後預設的存放物質不相同
+
+docker container exec container_id ls -l 在container中執行linus指令
+docker container exec container_id cat >text.txt 建立空白文件
+docker container exec container_id cat text.txt 顯示此文件內容
+
 docker stop <ContainerID> 找到id後便可直接關閉
 docker rm <ContainerID> 找到id後可做刪除
 
@@ -5296,7 +5333,10 @@ volumes:
   secret:
     secretName: mysecret  # 將env當成db的資料來處理
 
-volumes除了存放secret之外 也可以存放configMap
+volumes除了存放secret之外 也可以存放configMap 
+configMap可以用於管理Configuration
+config存放部署用的資料： (不同於secret存放敏感資料) 
+通常不會做加密編碼 但會存放在外部以方便做動態更新
 volumes:
 - name: nginx-conf-volume
   configMap:

@@ -42,9 +42,11 @@ selenium 4以上
 完成goto-place
 修改checkGate和gameCheckGate
 
-上限前JS必須進行防盜措施
+上限前JS必須進行編碼做防盜措施
+放上ga
 GCE上線部署
-架設監控系統 以防突發狀況 除了application的問題外 還要能處理流量問題以及DDOS防治
+架設監控系統以防突發狀況：除了application外 要能處理流量問題以及DDOS防治問題
+以 獨立遊戲開發團隊 身份 創辦patron, facebook, instagram 
 
 例行檢查項目：
 手機與其他瀏覽器的RWD調整
