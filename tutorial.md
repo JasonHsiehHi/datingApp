@@ -3663,7 +3663,7 @@ gcloud init 在本地端與google cloud連線 設定登入帳號, 專案, 網域
 gcloud docker --push 上傳container到GCS上 或可用Container Builder
 gcloud auth login 登入GCP帳號
 gcloud auth list 列出有效帳戶名稱
-gcloud config list project 列出專案ID名稱
+gcloud config list 列出專案ID名稱與預設地區等資訊
 
 siege指令 用於做server的壓力測試： (用於測試autoscaling是否正常)
 sudo apt-get -y install siege
@@ -3674,12 +3674,14 @@ gcloud app deploy 用gae直接架設網站
 gcloud app browse 並用瀏覽器瀏覽
 
 ## GCS:
-gsutil ls 查看專案目前的googlestorage值區
-gsutil cp data gs://gs-bucket-name/
+gsutil ls -l gs://my-awesome-bucket 查看專案目前的googlestorage值區 -l為詳細資料
+gsutil cp data gs://gs-bucket-name/ 上傳
+gsutil cp gs://my-awesome-bucket/kitten.png Desktop/kitten2.png 下載
+gsutil rm gs://my-awesome-bucket/kitten.png 刪除
 gsutil defacl set public-read gs://gs-bucket-name 將特定bucket設為公開讀取
 gsutil rsync -R static/ gs://gs-bucket-name/static 上傳整個資料夾到bucket上
 
-curl -X GET \ 用於download 存在於GCS的檔案
+curl -X GET \ 用於download在GCS檔案
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -o "SAVE_TO_LOCATION" \
   "https://storage.googleapis.com/storage/v1/b/BUCKET_NAME/o/OBJECT_NAME?alt=media"
@@ -3693,6 +3695,8 @@ gcloud sql databases describe postgres --instance=pgsql 也可直接查看SQL個
 gcloud container clusters create-auto autopilot-cluster-1-clone-1 \ 創建autopilot模式的pod單位
 --region "asia-east1" \
 --release-channel "regular" \
+--network "projects/anonlarp-project/global/networks/default" \ 
+--subnetwork "projects/anonlarp-project/regions/asia-east1/subnetworks/default" \
 
 gcloud container clusters get-credentials autopilot-cluster-1-clone-1 \ 連結專案
 --project projectname 
@@ -3760,6 +3764,10 @@ mymail.somecollege.edu host為mymail，位於somecollege.edu網域中
 而連接外網的入口host會架設web server用於分流到內網的host(反向代理) 瀏覽器中輸入的domain name就是找這台連接外網的入口host 
 
 ## GCE：
+gcloud beta compute ssh \ 在本地端連上虛擬機的SSH
+--zone "your_zone" "your_instant_name" \
+--project "your_project_name" \
+
 gcloud compute instances create gcelab \ instance執行個體名稱 及 VM機台名稱  (instances指的是執行個體 相當於建立管理物件 並不單指目前建立的VM機台)
 --zone asia-east1-b \ VM所在區域
 --machine-type=n1-standard-1 \ 決定所需VM機台規格 
@@ -3768,6 +3776,9 @@ gcloud compute instances create-with-container busybox-vm \ 用容器化的開�
 --container-image docker.io/busybox:1.27 \
 --container-env-file ./env.txt \ 放入.env檔
 --container-mount-host-path mount-path=/logs,host-path=/tmp,mode=rw  \ 裝載到host的特定目錄上
+--container-command \ 等同docker run -c 
+--container-stdin \ 等同docker run -i 可以開啟交互模式
+--container-tty \  等同docker run -t 在交互模式下可使用指令
 
 vCPU:被實現為計劃按需運行的線程 指的是虛擬CPU 直到有工作負載時才會分配到可運行的真正物理CPU 對使用VM的用戶來說vCPU就等同真的CPU
 運算最佳化：用於遊戲類型應用 需要大量突現即時性顯示的功能
@@ -3984,9 +3995,14 @@ application = ProtocolTypeRouter({"http":...,"websocket":....})
 ## 設置uWSGI
 gunicorn和uwsgi為實現web server協議之服務器:
 web server只能用來處理靜態資料 接受http_request和回傳http_response
+
 Django為實現application server功能之框架:
 application server負責business logic的執行和database的存取 
 (application server無法直接與client端溝通 只能接受web server的request並回傳response)
+
+ubuntu安裝方式uwsgi方式:
+sudo apt-get install build-essential python-dev python-pip
+sudo pip install uwsgi 表示為python的套件 故也可以直接放在requirements.txt中
 
 django一定需要搭配uWSGI 因為django自帶的server效能太差
 後端部署要使用uWSGI&nginx 可做反向代理與負載平衡
@@ -4003,6 +4019,8 @@ nginx則處理所有的request作分流 而uwsgi只負責將django接上單一�
 nginx會獨立一個host(web server) 而uwsgi會放在django的host上
 
 uwsgi --ini mysite_uwsgi.ini 亦可直接執行ini文件來運行uwsgi ini文件即包含socket和module等設定資訊(ini檔通常放在專案根目錄)
+當使用uwsgi做為接口時 則不需要用python manage.py runserver 0.0.0.0:8000
+(uwsgi.ini的module會直接接到wsgi.py中application)
 
 uwsgi --http :9090 --wsgi-file wsgi.py 如果不使用ini檔 可以用參數表示
 wsgi.py中會有application(env, start_response)此時uwsgi會將request 送到wsgi.py
@@ -4053,6 +4071,14 @@ sudo /etc/init.d/nginx restart
 註解： # include /usr/local/etc/nginx/conf.d/*.conf;
 加上： include /usr/local/etc/nginx/sites-enabled/*; 表示引入在sites-enabled中的conf檔
 
+user  root root; root為host電腦管理者名稱 其後為群組名稱 因為nginx需要獲取底層的權限 故需要設置管理者
+
+TCP_NOPUSH on; 數據包累積到一定大小才會發送 必須啟用sendfile才會生效
+TCP_NODELAY on; 對於數據包採取採取盡快發送 keepalive狀態下才會開啟
+兩者可以一起使用 表因為兩者的判定條件不相同 故不牴觸
+
+gzip  on; 當網址資源需要下載的檔案或文件太大時才會開啟 表示獲取資源會先進行壓縮到用戶端在進行解壓
+
 所有的conf檔都會放在sites-available 而確定要使用的conf檔則用soft link連結到sites-enabled 可避免直接在sites-enable改動
 sudo ln -s mysite_nginx.conf /etc/nginx/sites-enabled/  在sites-enabled目錄下提供conf檔
 sudo /etc/init.d/nginx restart 載入mysite_nginx.conf後再重啟
@@ -4060,18 +4086,27 @@ sudo /etc/init.d/nginx restart 載入mysite_nginx.conf後再重啟
 sites-available/deploy-at-root-proxy-pass.conf的相關設定：
 
 upstream test {
-        server 192.168.1.123:58080;  # 指向實際後端application server主機 可在proxy_pass中指定
-        server 192.168.1.123:9099 max_fails=3 fail_timeout=15s;  # 可設置upstream fail的相關設定 可用於觸發錯誤重試機制
+    server 192.168.1.123:58080;  # 指向實際後端application server主機 可在proxy_pass中指定
+    server 192.168.1.123:9099 max_fails=3 fail_timeout=15s;  # 可設置upstream fail的相關設定 可用於觸發錯誤重試機制
 
-        # server unix:///path/to/your/mysite/mysite.sock; # 也可以改用sock檔取代 此時不是用http協定 而是unix socket
-        (另外unix socket可能會有權限問題 可用：uwsgi --socket mysite.sock --wsgi-file test.py --chmod-socket=666 開權限)
+    # server unix:///path/to/your/mysite/mysite.sock; # 也可以改用sock檔取代 此時不是用http協定 而是unix socket
+    (另外unix socket可能會有權限問題 可用：uwsgi --socket mysite.sock --wsgi-file test.py --chmod-socket=666 開權限)
     }
+
+upstream myweb {
+    server web1.dtask.idv.tw weight=3;  loadbalancer可設置分配權重 weight=3
+    server web2.dtask.idv.tw weight=2;
+}
 
 nginx underscores_in_headers on;  # 用於調整相關設定 此時proxy_set_header才能用有'_'的變數做替代
 
 server {
     listen 8000; # the port your site will be served on
-    server_name your_domain; # the domain name it will serve for or your machine's IP or FQDN (除domain name之外 也可輸入該台host的IP位址或FQDN)
+    (listen 8000 default_server; 當沒有匹配到時會轉往default_server 如果沒定義default_server時則用第一個server代替)
+
+    server_name your_domain; 
+    # the domain name it will serve for or your machine's IP or FQDN (除domain name之外 也可輸入該台host的IP位址或FQDN)
+
     charset utf-8;
 
     access_log  /data/nginx/logs/bpm.wangshibo.com-access.log main;
@@ -4089,7 +4124,7 @@ server {
         (或用proxy_pass upstream_name 表示會分流到被upstream指定的host)
 
         (uwsgi_pass 127.0.0.1:8003;  # 如果uWSGI已將django路徑改成unix端口 則應用uwsgi_pass取代)
-        (include /path/to/your/mysite/uwsgi_params;  # 使用uwsgi_pass需加上uwsgi_params 可由nginx的github下載)
+        (include /path/to/your/mysite/uwsgi_params;  # 使用uwsgi_pass需加上uwsgi_params 用於取代下面的proxy_set_header設定)
 
         proxy_set_header Host $host; # 將原先指向web_server的host 換成 指向application_server的host
         proxy_set_header X-Real-IP $remote_addr;
@@ -4112,9 +4147,12 @@ server {
     }
 
     error_page 502 503 =200 /50x.html;  # 表示發生特定錯誤時所返回路徑
-    location = /50x.html {  # 故需要再加上location 此時內容直接放在nginx就好 因為不會到後端
+    location = /50x.html {  # 故需要再加上location 此時內容直接放在nginx就好 因為不會到後端 '='f指的是重定向 而不是用戶原先輸入的網址
         root /usr/share/nginx/html;  # 會返回/usr/share/nginx/html/50x.html 會將location的url接在 root的url 之後
     }
+    error_page 404 /404.html 可顯示自定義404頁面內容，正常返回404狀態碼。
+    error_page 404 = /404.html 可顯示自定義404頁面內容，但返回200狀態碼。 '='為重定向之意error_page 404 =200 /404.html 可省略重定向成功的200狀態碼
+
 
     location ~ ^/weblogs/ {  # 除了完整url之外 也可用正則表示法 ~表示區分大小寫的正則 ~*不區分大小寫的正則
         root /data/weblogs/www.ttlsa.com;
@@ -4124,7 +4162,11 @@ server {
 nginx -t 測試設定檔是否可正常使用
 nginx -s stop 停止nginx
 nginx -s reload 重新讀取conf檔以使更新生效
+brew search nginx 查詢是否有此軟件
+brew info nginx 查看此軟件的相關訊息
+brew install nginx 下載此軟件
 brew services restart nginx 用brew做重新啟動
+
 
 测试用JSP 用於測試最後application server後端收到的資訊:
 request.getScheme() 為所使用的協定(http, https, ws, wss, ftp...)
@@ -4573,6 +4615,11 @@ grep -i 不分大小寫
 kill -9 /kill -15
 前者為絕對關機 後者需要時間自動關機：後者比前者好
 
+建立資料夾:
+mkdir Test 在當前目錄建立資料夾
+mkdir -p /home/demo/sub2/Test 會創建目錄直到抵達所需創建的資料夾為止 忽略過程中路徑目錄不存在的問題
+mkdir -m 755 /home/demo/sub1/Test 與上相同 但針對創建的資料夾可以自設權限
+
 建立文件三種方式:
 touch output.txt
 cat > output.txt
@@ -4589,6 +4636,8 @@ echo {ASCII字串} | base64 -D > image.png 亦可用於建立圖檔
 echo $SHELL 查看當前的shell 目前使用:/bin/zsh
 bash或zsh都是可執行的 可輸入/bin/bash 或/bin/zsh 打開terminal
 /bin/bash -c ls 可直接執行皆在-c(command)的指令
+
+pwd 顯示目前的絕對路徑
 
 cat test.txt | xargs echo -n3 將text.txt資料用三行顯示(xargs的默認輸出即為echo)
 用xargs將cat建立檔案的path傳給echo執行 
@@ -4646,6 +4695,23 @@ r/w/x 分別表示 數字4/2/1(第一位, 第二位, 第三位) 用於使用2進
 -rwxrw-r-- 前三個為user的權限(rwx) 中間三個為group權限(rw-) 後三個為其他人權限(r--) 
 
 如果仍不能執行可以在~ 改用./command_name
+
+
+## linux目錄
+/etc, /bin, /dev, /lib, /sbin 為linux五個次目錄 
+/etc 專處理系統開機過程所需讀起的設定檔
+/bin terminal的常用執行檔 cd,ls...
+/dev 主電腦系統之外的裝置相關檔案 可能為軟碟機或光碟機
+/lib 編輯程式的函式庫
+/sbin 系統管理常用程式 fdisk,mount...
+
+/opt 存放可選程式 當相關管理程式為測試版時通常會存放於此 方便做刪除
+/tmp 使用者的暫時存放區 安裝軟體時的預設工作目錄
+/usr 多個子目錄：為儲放使用者自行安裝的第三方套件 包含常用執行檔/usr/bin 與 常用程式/usr/sbin
+/usr/man 存放套件說明檔
+/usr/local 套件升級的安裝目錄 即除了原廠電腦系統之外其餘後續升級都會存放在於此
+
+/var 儲放系統登入記錄, 發生問題紀錄, 常態性服務紀錄
 
 
 ## git指令
@@ -4837,6 +4903,7 @@ hotfix緊急修補分支：由master分支出來 用於解決正式版已上線�
 git push -f -f為force 就是讓本地端的分支直接上傳蓋掉遠端的分支(極不推薦)
 
 git remote -v 查看當前專案所連結的遠端儲存庫
+git remote set-url origin git@github.com:username/renamerepo.git 修改原先origin的路徑
 git remote add upstream git_url 用於連結其他遠端儲存庫 可自行設置專案名稱
 origin為git clone下來的專案位置 即個別開發者的githug帳號 另一個取名upstream則為owner的github帳號
 
@@ -4859,27 +4926,38 @@ Dockerfile用於在本地端建立專用的container
 將django做成container:
 FROM: python:3.8.3-alpine 所用程式版本(從Docker Hub抓base image)
 LABEL maintainer="example@gmail.com" 存放相關資訊
-WORKDIR: /usr/src/app 在開啟container的機台中設置work directory 不存在時會自動建立 表示在此層執行RUN
-(/usr/src/app 約定俗成 大部分的server都是linux作業系統 也大都在此使用container)
+WORKDIR: /usr/src/app 在開啟container的機台中設置work directory 不存在時會自動建立 表示在此層執行RUN (/usr/src/app慣用位置 或直接用/app)
+
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1  建立機台的環境變數 若有多項可以分開書寫
-ARG NODE_VER 也類似於環境變數 但會在build container時設置 (docker build --build-arg NODE_VER=node-v5.9.0-linux-armv7l)
+ARG NODE_VER 也類似於環境變數 但可在build container時重新設置 (docker build --build-arg NODE_VER=node-v5.9.0-linux-armv7l)
+
+COPY ./requirements.txt /usr/src/app 將requirements.txt複製到container中 或直接將整個專案複製過去
+COPY . /usr/src/app 複製當前專案到container的特定位置 (專案的根目錄 會與Dockerfile同一層)
+COPY static /etc/static/ 用於複製整個資料夾 當指定目標為資料夾時 會將內部的內容複製過去
+
+ADD http://example.com/big.tar.xz /usr/src/things/ 與COPY相同都是複製 但ADD用於複製遠端檔案
+
 RUN pip install --upgrade pip 
-COPY ./requirements.txt /usr/src/app
 RUN pip install -r requirements.txt  用pip對requirments.txt進行安裝
-COPY . /usr/src/app  複製當前專案到host的特定位置 (專案的根目錄 會與Dockerfile同一層)
+
+VOLUME /app 當docker run --mount時會將檔案掛載在container中的此位址
 
 EXPOSE 8000  container所接受的port
 ENTRYPOINT [ "/bin/bash, "-c", "echo $HOME"]
 ENTRYPOINT [ "/bin/bash", "docker-entrypoint.sh"] 可執行sh檔內部的指令 (此於常見寫法)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]  最後用cmd執行runserver即可 
-指的是container的最後一行指令 也可以直接用docker run取代：
+CMD python manage.py runserver 0.0.0.0:8000 最後用cmd執行runserver即可 
+指的是container的最後一行指令 也可以直接在shell用docker run取代：
 docker run --rm -it container_name python manage.py runserver 0.0.0.0:8000
-因此通常會將必定要進行的指令寫在ENTRYPOINT 而CMD會寫入隨情況改變的指令
-此外docker-entrypoint.sh內部可寫入$PYTHONUNBUFFERED,  等環境變數 而CMD則不行
+
+因此通常會將必定要進行的指令寫在ENTRYPOINT (像是下載uwsgi等...)
+而CMD會寫入隨情況改變的指令 因為docker run可覆蓋掉cmd但不會影響ENTRYPOINT
+此外docker-entrypoint.sh內部可寫入$PYTHONUNBUFFERED等環境變數 而CMD則不行
 
 dockerFile的寫法分為 shell form 和 exec form 兩種：前者以command的形式來寫 後者用[]array來寫 
-差別在於shell form則是每行獨立 而exec form可將ENTRYPOINT和CMD連用
+ENTRYPOINT不能用shell form來寫 會導致CMD指令被覆蓋掉 (shell form則是每行獨立)
+有時CMD可以只寫參數 而沒有執行指令： CMD ['-i','-t']  (exec form以array表示 即ENTRYPOINT將後面的CMD指令連用)
+好處是docker run --command 可以只寫附加的參數 而沒有執行指令(放在ENTRYPOINT中)
 
 #docker-entrypoint.sh 通常會將docker的前置作業寫入entrypoint 不同於直接寫在dockerFile的RUN是為了架設環境
 #!/bin/bash # 用於指令shell script 可取代/bin/bash -c指令
@@ -4922,19 +5000,31 @@ docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上�
 要做成container的檔案 需要把.gitignore的部分都先移除 尤其是.env
 為避免與本地端原檔混在一起通常會在做一份git clone
 docker tag 59f3e3615488 docker-demo-app 用於建立完後再改名
+
+gcloud auth configure-docker 要上傳前必須用此方法向docker取得憑證
+docker pull busybox 如果沒有標版本號 那就是用busybox:latest
+docker tag busybox asia.gcr.io/my-project/busybox 如果需要放到特定雲端上 就需要先用tag做改名動作
+docker push asia.gcr.io/my-project/busybox
+
 docker images 列出目前所有的images
 docker commit -m "Added Git package" -a "Starter" 59f3e3615488 當修改container之後 可用commit更新 讓docker hub與本地端同步 
 但可以會使得原先在service掛載的secret或config無法使用
 
 docker run -p 3000:3000 -it 733776b1db0a 有了id之後便能開始生成container
 -p表示publish 將容器發布到端口port上 另外-P則表示隨機生成port 如此就不用指定3000:3000
-3000:3000是因為要先連到host實體機的port 再連到實體機內container的port
+3000:3000是因為要先連到host實體機的port 再連到host內container的port
 因為一台host機可以有多個container 故需要用兩個一組的port
-Container可被視為一台獨立的電腦 -it：-i是interactive可由鍵盤輸入 -t是terminal即可由螢幕輸出
+
+Container可被視為一台獨立的電腦 -it：
+-i是interactive可獲取container的STDIN 可輸入但需要用docker container exec
+-t是--tty 為分配一個虛擬終端機（pseudo-tty）並綁定到container上 此時可直接用指令 
 
 docker run -p 3000:3000 -d 733776b1db0a
--d是daemonized 表示在背景中執行 運行時不做任何操作
-或用-idt表示在背景中執行但仍保有基本輸入輸出的能力
+-d是--detach(分離模式) 表示在背景中執行 且運行時終端機不能對container做任何輸入或輸出操作 此時關閉終端機也不會有問題
+預設為--foreground(前台模式) 此時運行docker run的終端機 會附加到container的STDOUT和STDERR
+
+docker run --name container名稱 -p 8080:80 -v /html:/usr/share/nginx/html -d nginx 
+-v表示當host中的檔案映射到container的路徑上
 
 docker pull [Image 名稱]:[Image 版本] 取得一個指定版本的image
 等同:docker pull registry.hub.docker.com/ubuntu:latest 會在Docker Hub中找此image
@@ -4978,6 +5068,7 @@ docker container exec container_id cat text.txt 顯示此文件內容
 
 docker stop <ContainerID> 找到id後便可直接關閉
 docker rm <ContainerID> 找到id後可做刪除
+docker image rm <ImageID>  同理也可以把存放在本地端的image刪除
 
 docker login  登入後才可以上傳到docker hub中
 docker tag django_todo:latest <Docker Hub username>/django_todo:latest

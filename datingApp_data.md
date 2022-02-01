@@ -20,8 +20,8 @@ redis 3.5.3
 jquery 3.6.0 (查看JS檔)
 bootstrap 5.0.2 (查看JS檔)
 postgreSQL 13.5 
-uwsgi
-nginx
+uwsgi 2.0.20 (brew info uwsgi)
+nginx 1.20.2 (container nginx:stable)
 docker 20.10.7 (docker version)
 npm 6.14.12 (npm -v)
 jest 27.3.1 (package.json)
@@ -45,8 +45,10 @@ selenium 4以上
 上限前JS必須進行編碼做防盜措施
 放上ga
 GCE上線部署
+用GCE使用https
+pgsql要使用外接硬碟存放資料
 架設監控系統以防突發狀況：除了application外 要能處理流量問題以及DDOS防治問題
-以 獨立遊戲開發團隊 身份 創辦patron, facebook, instagram 
+創辦獨立遊戲開發團隊：使用patron, facebook, instagram 
 
 例行檢查項目：
 手機與其他瀏覽器的RWD調整

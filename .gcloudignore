@@ -25,7 +25,18 @@ __pycache__/
 .vscode/
 jsconfig.json
 
+Dockerfile
+
 gae.env
+gce.env
 local.env
 
 term/
+tutorial.md
+datingApp_data.md
+
+dump.rdb
+
+db.sqlite3
+pgdb.sql
+whole.json

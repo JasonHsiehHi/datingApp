@@ -10,8 +10,20 @@
 .vscode/
 jsconfig.json
 
+app.yaml
+main.py
+
 .env
 gae.env
+gce.env
 local.env
 
 term/
+tutorial.md
+datingApp_data.md
+
+dump.rdb
+
+db.sqlite3
+pgdb.sql
+whole.json
