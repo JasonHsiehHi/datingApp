@@ -31,12 +31,17 @@ gae.env
 gce.env
 local.env
 
+localhost_uwsgi.ini
+
+#tutorial & notes
 term/
 tutorial.md
 datingApp_data.md
 
+#redis
 dump.rdb
 
+#SQL
 db.sqlite3
-pgdb.sql
-whole.json
+pgdb*
+whole*

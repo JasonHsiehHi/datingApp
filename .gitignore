@@ -16,5 +16,4 @@ main.py
 
 term/
 
-pgdb.sql
-whole.json
+localhost_uwsgi.ini

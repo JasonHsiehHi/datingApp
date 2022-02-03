@@ -22,8 +22,10 @@ term/
 tutorial.md
 datingApp_data.md
 
+localhost_uwsgi.ini
+
 dump.rdb
 
 db.sqlite3
-pgdb.sql
-whole.json
+pgdb*
+whole*

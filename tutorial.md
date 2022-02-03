@@ -3681,10 +3681,25 @@ gsutil rm gs://my-awesome-bucket/kitten.png 刪除
 gsutil defacl set public-read gs://gs-bucket-name 將特定bucket設為公開讀取
 gsutil rsync -R static/ gs://gs-bucket-name/static 上傳整個資料夾到bucket上
 
-curl -X GET \ 用於download在GCS檔案
-  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
-  -o "SAVE_TO_LOCATION" \
-  "https://storage.googleapis.com/storage/v1/b/BUCKET_NAME/o/OBJECT_NAME?alt=media"
+在containerOS的VM中 並不會主動安裝GCS 需要進入container中自行安裝 分為3步驟:
+1.docker exec -it container_id bash 進入container的shell
+
+2.apt-get update 套件管理軟體apt-get需要先進行安裝
+apt-get install gcc python-dev python-setuptools libffi-dev 
+apt-get install python3-pip 如果遇到沒有python的環境則需要用apt-get先安裝python 才能用pip
+pip install gsutil 由於已經有pip故可以直接做安裝
+
+3.gsutil config 使用config完成gcloud帳號授權後即可使用
+
+postgresql常用的備份檔案與還原方式：
+pg_dump -U username -d database >db.sql
+psql -U username -d database < db.sql
+如果以上方法不成功 可改用django的方式： 
+python manage.py dumpdata > whole.json
+python manage.py loaddata fixture/whole.json
+(過程中把*/migrations/*.py 和 */migrations/*.pyc清除
+並重做makemigrations和migrate
+最後再進到django的shell把ContentType清掉 ContentType.objects.all().delete())
 
 ## GSQL:
 gcloud sql instances describe pgsql 查看當前的SQL執行個體
@@ -4022,8 +4037,14 @@ uwsgi --ini mysite_uwsgi.ini 亦可直接執行ini文件來運行uwsgi ini文件
 當使用uwsgi做為接口時 則不需要用python manage.py runserver 0.0.0.0:8000
 (uwsgi.ini的module會直接接到wsgi.py中application)
 
+uwsgi --stop /tmp/datingApp-master.pid 使用<pidfile>來關閉uwsgi 相關位置可在.ini檔中設定
+
 uwsgi --http :9090 --wsgi-file wsgi.py 如果不使用ini檔 可以用參數表示
 wsgi.py中會有application(env, start_response)此時uwsgi會將request 送到wsgi.py
+
+此外daphne要先於uwsgi設置 因為uwsgi會測試asgi的路徑
+daphne datingApp.asgi:application -b 0.0.0.0 -p 8009 使用daphne設置端口
+
 
 touch uwsgi.ini ini檔的相關設定：
 [uwsgi]
@@ -4126,13 +4147,17 @@ server {
         (uwsgi_pass 127.0.0.1:8003;  # 如果uWSGI已將django路徑改成unix端口 則應用uwsgi_pass取代)
         (include /path/to/your/mysite/uwsgi_params;  # 使用uwsgi_pass需加上uwsgi_params 用於取代下面的proxy_set_header設定)
 
-        proxy_set_header Host $host; # 將原先指向web_server的host 換成 指向application_server的host
+        proxy_set_header Host $host; # 將原先指向web_server的host 換成 指向application_server的host(可用$host取代$http_host)
+        ($host不包含port 而$http_host包含port)
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Real-PORT $remote_port; # 同理用於替代原先web_server的資訊 換成實際client端的IP:PORT
 
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;  # X-Forwarded-For由多個IP組成 表示request經過的代理主機IP (X-Real-IP會是其中的第一個IP)
 
         proxy_set_header X-Forwarded-Proto $scheme;  # 有時不需要 因為web_server可能會做轉換 例如： http 換成 ws
+
+        proxy_redirect 可直接對客戶端送來的url進行修改 (用於隱藏：當客戶端看到url時 所透露出來的server端訊息)
+        (proxy_redirect為default時 都會進行)
 
         client_max_body_size 5M;  # 也可放於location之中 表示針對特定路徑有其限制
         
@@ -4161,6 +4186,7 @@ server {
 
 nginx -t 測試設定檔是否可正常使用
 nginx -s stop 停止nginx
+nginx -s start 啟動nginx
 nginx -s reload 重新讀取conf檔以使更新生效
 brew search nginx 查詢是否有此軟件
 brew info nginx 查看此軟件的相關訊息
@@ -4445,8 +4471,9 @@ python3 -c 'import channels; print(channels.__version__)' (-c 執行python的命
 django-admin startproject myproject 第一次在專案名稱資料夾建django專案
 python3 manage.py startapp myapp 第一次在django的目錄下見app
 
-python3 manage.py makemigrations 第一次建database 以及每一次model做更動都要使用
-針對app中的models.py創建SQL指令 但不會執行任何指令 不會產生任何一張table, 任何一筆record
+python3 manage.py makemigrations 第一次建database以及每一次model做更動都要使用
+針對app中的models.py創建SQL指令 但不會執行任何指令 不會產生任何一張table, 任何一筆record (此時就算不接上任何資料庫也能執行)
+
 python3 manage.py migrate 讀取migrations中的SQL指令 會接續makemigrations後執行
 基於SQL指令創建table和record 將兩指令分開是為了快速在不同資料庫創建一樣的格式
 (另外即使不使用model做資料庫 仍需要做註冊：因為像sessions等功能都需要用到資料庫)
@@ -4463,10 +4490,11 @@ python manage.py makemigrations 如此一來就會重新由0001_initial.py開始
 如果要做資料庫遷移到不同系統(sqlite->pqsql) 則可用fixture幫忙
 fixture指的是被內容被序列化的資料庫檔案 可能為json或xml
 python3 manage.py dumpdata > whole.json 將sqlite的內容寫入whole.json
-python3 manage.py loaddata whole.json 在由whole.json匯入pqsql
+python3 manage.py loaddata whole.json -i 在由whole.json匯入pqsql -i可忽略原資料
 如果db太大會導致無法順利轉換成fixture 故sqlite只適用於開發階段db較小的時候
 
-python3 manage.py flush 將還未migrate的數據刪除
+python3 manage.py flush 刪除資料庫的record數據
+python3 manage.py sqlflush 刪除資料庫的tabel架構和record數據
 manage.py migrate myapp zero 則用於刪除myapp的所有data
 
 python manage.py runserver 
@@ -4600,6 +4628,11 @@ vim中常見模式為NORMAL, INSERT, REPLACE:
 --VISUAL--:在NORMAL中選擇v則可用鼠標進行操作
 
 ## linux指令
+'&'  表示指令在背景中執行my-script.sh &  
+'&&' 將不同指令並列 前指令成功才會做後指令 make && make install  
+'|'  為將前指令的結果輸出接著做後指令的輸入 ls | grep filename  
+'||' 前指令失敗才會做後指令 cat filename || echo “fail”
+
 ps auxw  (不以'-'做指令 通常可以連用 並 只是改變輸出的顯示)
 a(all) terminal下的所有程序
 e(environment) 每個程序的環境變量
@@ -4611,6 +4644,8 @@ grep 用來做收尋 通常會與ps連用 (ps auxw | grep aaa)
 egrep 等同 grep -E (--extended-regexp) 幾乎沒有在用
 fgrep 等同 grep -F (--fixed-strings) 表示固定長度字串
 grep -i 不分大小寫
+
+ps ax -o pid,ppid,%cpu,vsz,wchan,command|egrep '(nginx|PID)' 找尋與nginx相關的執行程序
 
 kill -9 /kill -15
 前者為絕對關機 後者需要時間自動關機：後者比前者好
@@ -4650,6 +4685,7 @@ echo $PATH 檢查目前的環境變量
 
 ls -a 才能看到所有隱藏的檔案(.bash_profile)
 ls -l 查看檔案的詳盡資料 包含使用權限等
+ls -l /dev/disk/by-id/google-* 可用星號表示自動匹配任何字串
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
 source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機(或用source ~/.zshrc 一定要做！)
@@ -4665,7 +4701,9 @@ ln -s B B-ln-soft 為soft link 當原檔名稱備更改 會導致連接失效
 /usr/local/bin/ 此資料夾是用來放所有第三方程式的terminal指令
 各個應用程式都會有軟連接將執行檔接過去  如npm, brew, pip, python...等
 whereis ls 系統內建的指令則用whereis搜尋
-which npm 第三方程式的指令可用which搜尋 
+which npm 第三方程式的指令可用which搜尋(gcloud, gsutil...)
+whoami 查看當前的使用者
+id $whoami 查看當前使用者的相關資訊 使用 -g -n 可取得group群組名稱
 
 curl原名為cURL 與wget相同都是做檔案下載 兩者都有很多參數指令可用
 wget -m -p -k -P ./  https://example.com/ 備份網站 -m表示鏡像下載(等同-r -N:遞迴下載且只下載更新檔案) -p下載所有檔案 -k表示更換成本地連接 -P表示存到本地端位置
@@ -4675,7 +4713,7 @@ tar -c 用於壓縮檔案 和 tar -x 用於解壓縮檔案
 
 chown用於修改用戶與群組 也可由ls -l查看檔案權限
 chown root:root /tmp/tmp1.txt 把tmp1.txt的用戶改為root用戶名:root用戶組
-chown -r root:root /tmp 把tmp資料夾內所有檔案改為root用戶名:root用戶組
+chown -R root:root /tmp 把tmp資料夾內所有檔案改為root用戶名:root用戶組
 
 chmod用於修改權限 可由ls -l查看檔案權限
 chmod +x為 /tmp/tmp1.txt 增加執行權限 等同 chmod a+x /tmp/tmp1.txt (因為a為all 可以直接省略)
@@ -4695,6 +4733,18 @@ r/w/x 分別表示 數字4/2/1(第一位, 第二位, 第三位) 用於使用2進
 -rwxrw-r-- 前三個為user的權限(rwx) 中間三個為group權限(rw-) 後三個為其他人權限(r--) 
 
 如果仍不能執行可以在~ 改用./command_name
+
+sed指令(Stream Editor):
+sed 's/beijing/wuhan/g' 文件內的beijing替換成wuhan
+sed -e 's/Giga/GigaRama/' -e 's/^/Hi../' > file sed -e用於指定多重條件
+sed -E 's/(DROP|CREATE|COMMENT ON) EXTENSION/-- \1 EXTENSION/g' 其中\1會配對前a面正則配對上的字串 即(DROP|CREATE|COMMENT ON)其中一種
+
+加裝硬碟的步驟 任何新硬碟在使用前都必須先做格式化, 更改使用權限, 掛載到電腦的檔案系統： 
+lsblk 查看目前的在VM上的硬碟
+blkid 可列出VM上硬碟的UUID
+mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/DEVICE_NAME 將選定的硬碟做格式化 ext4為文件系統而非分區使用 -m 0為使用所有可用硬碟空間 -E 表示為格式化選項 此為用於優化持磁碟性能表現(停用延迟初始化並使用discard功能)
+sudo mount -o discard,defaults /dev/DEVICE_NAME /mnt/disks/postgres-disk 將硬碟格式化後 要用mount進行掛載 之後就能在特定位址使用硬碟
+ 讓linux每次重啟時 能夠自動裝載硬碟
 
 
 ## linux目錄
@@ -5038,8 +5088,8 @@ docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有�
 (也可以直接略過pull步驟 docker會幫我們檢查本地端 若沒有會自動pull image)
 
 
-docker ps -a 用來找目前正在執行的container -a是all的意思 表示不只正在執行的 (等同docker container ps -a 可省略container)
-docker ps --filter name=redis_server 用篩選找尋特定container
+docker ps -a 用來找目前正在執行的container -a是all的意思 表示不只正在執行的 (等同docker container ls -a 可省略container)
+docker ps --filter name=redis_server 用篩選找尋特定container (ps為查看目前的的process status)
 
 docker service ps redis 查看包含redis名詞的特定service物件
 docker service create --name redis --secret my_secret_data redis:alpine 對container掛載secret物件 (linux系統的預設路徑：/run/secrets/my_secret_data)
@@ -5065,6 +5115,10 @@ docker config create .env ./.env config的使用方法基本跟secret相同 無�
 docker container exec container_id ls -l 在container中執行linus指令
 docker container exec container_id cat >text.txt 建立空白文件
 docker container exec container_id cat text.txt 顯示此文件內容
+
+docker attach continaer_id 連接到container的配置的處理進程(STDOUT...) 不是ssh
+docker exec -it 9ad62459bfdc bash 進入container的ssh
+docker exec -it 9ad62459bfdc sh 在container當前的workdir在開啟ssh
 
 docker stop <ContainerID> 找到id後便可直接關閉
 docker rm <ContainerID> 找到id後可做刪除

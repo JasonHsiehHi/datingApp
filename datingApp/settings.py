@@ -193,7 +193,7 @@ CERTAIN_TIME_FOR_DELETE_PHOTO = 24 * 15  # the all photos in room are removed ev
 MAXIMUM_FOR_DELETE_PHOTO = 30  # each players in single room at most save 30 pieces of photo
 
 # for chat app - roomtime
-ROOMTIME_MIN = loads(os.getenv('ROOMTIME_MIN'))
+ROOMTIME_MIN = '{"1": 60, "2": 20, "3": 15, "4": 12, "5": 10, "6": 8, "7": 8, "8": 8}'
 
 # for SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

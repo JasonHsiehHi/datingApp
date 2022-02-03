@@ -10,7 +10,7 @@ RUN pip install -r requirements.txt
 VOLUME /app
 
 EXPOSE 8003
-ENTRYPOINT [ "/bin/bash", "docker-entrypoint.sh"]
+# ENTRYPOINT [ "/bin/bash", "docker-entrypoint.sh"]
 
 # CMD python manage.py runserver 0.0.0.0:8000
 CMD uwsgi --ini uwsgi.ini
