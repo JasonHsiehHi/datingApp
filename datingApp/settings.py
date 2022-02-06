@@ -85,7 +85,7 @@ CACHES = {
 
 WSGI_APPLICATION = 'datingApp.wsgi.application'
 
-ASGI_APPLICATION = "datingApp.asgi.application"
+ASGI_APPLICATION = 'datingApp.asgi.application'
 
 # channel redis
 if DEBUG is True:

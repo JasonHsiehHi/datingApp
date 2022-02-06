@@ -5,27 +5,26 @@
 .git
 .gitignore
 
+# MAC-OS & VScode 
 .DS_Store
 .idea/
 .vscode/
 jsconfig.json
 
+#for GAE
 app.yaml
 main.py
 
-.env
-gae.env
-gce.env
-local.env
+# .env
+*.env
 
+#tutorial & notes
 term/
 tutorial.md
 datingApp_data.md
 
-localhost_uwsgi.ini
-
+#redis & SQL
 dump.rdb
-
 db.sqlite3
-pgdb*
-whole*
+pgdb*.sql
+whole*.json

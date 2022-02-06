@@ -1,19 +1,20 @@
 # Default ignored files
 
+# MAC-OS & VScode 
 .DS_Store
 .idea/
 .vscode/
 jsconfig.json
 
-.env
-gae.env
-gce.env
-local.env
+# .env
+*.env
 
 #for GAE
 app.yaml
 main.py
 
+# term
 term/
 
-localhost_uwsgi.ini
+# log
+log/

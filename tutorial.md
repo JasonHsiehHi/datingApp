@@ -30,7 +30,7 @@ pfx = ["webkit", "moz", "MS", "o", ""] 因此有些css也需要有對應的前�
 (介面方法必須實作的原因是：確保外部在調用方法時都不會出錯)
 而所謂的基本方法也就是針對全部子類別而言 此方法都不會為空(都會被使用到)
 
-解決方法就是建立多個介面讓子類別實作 有空方法出現就移到其他介面 
+解決方法就是建立多個介面讓子類別實作 有空方法出現就移到其他介面 
 (不同於父類別只能繼承一個 介面則可實作多個)
 
 依賴反轉原則 (Dependency inversion principle)
@@ -39,21 +39,21 @@ pfx = ["webkit", "moz", "MS", "o", ""] 因此有些css也需要有對應的前�
 依賴反轉指的是當第三方更動時 我們仍不需要更動主程式 而是只要反向的調整在adapter中的第三方套件方法即可
 
 控制反轉Inversion of Control (IOC) 和 依賴注入Dependency Injection (DI)：
-用戶直接使用A程式 但A程式依賴於B程式和C程式 當B或C更動時會導致問題發生
+用戶直接使用A程式 但A程式依賴於B程式和C程式 當B或C更動時會導致問題發生
 此時可以用IoC Container來使用A,B,C程式 此時就能把A從原本的依賴關係獨立出來 
 這就是將控制權全部反轉導Container上 以此降低程式的耦合程度
 
-A程式依賴於B程式 當有一天B程式發生變動而改用C程式時 此時就需要A程式的維護成本
+A程式依賴於B程式 當有一天B程式發生變動而改用C程式時 此時就需要A程式的維護成本
 此時就能用DI 將被依賴物件注入被動接受物件中 也就是將B程式當成參數引入A程式中
 此時只要規範C程式與B程式實作同一種介面 就能確寶C程式也當成參數注入時不會出錯
 
-這種將物件作為參數的方法有點類似strategy pattern
+這種將物件作為參數的方法有點類似strategy pattern
 但stg模式主要訴求更多樣性的物件 而DI則是為了降低耦合程度
 
 **多版本控制**
 將介面作為參數 此時所有實作該介面的物件都可以被引用進去
 用介面做為參數的好處是當你需要修改物件時時 你不需要動到所有依賴於此物件的程式
-方法為用另一個物件來實作介面 如果確定修改完成後再把原物件刪除即可
+方法為用另一個物件來實作介面 如果確定修改完成後再把原物件刪除即可
 而不同版本可直接使用不同物件 並讓所有物件都統一實作相同介面即可
 
 - - - ------------------------------------------------
@@ -81,7 +81,7 @@ this_folder = Path(__file__) / '..'
 
 path = Path('foo/ber/baz/boo/boom') 用相對路徑找parent
 path.parent // output: Path('foo/ber/baz/boo/')
-list(path.parents)  parents則會回傳多個路徑類別的list 
+list(path.parents)  parents則會回傳多個路徑類別的list 
 直到執行時的當前所在位置：Path('.') 為止
 //output: [PosixPath('foo/ber/baz/boo'), PosixPath('foo/ber/baz'), PosixPath('foo/ber'), PosixPath('foo'), PosixPath('.')]
 
@@ -91,7 +91,7 @@ DEBUG=True 才會導向error page (上半部黃色下半部traceback的頁面)
 ALLOWED_HOSTS=[] 可填入部署的虛擬主機IP或直接用"*"
 
 設置SECRET_KEY：
-SECRET_KEY可用於製作salt 對於加密功能極其重要
+SECRET_KEY可用於製作salt 對於加密功能極其重要
 
 import os
 SECRET_KEY = os.environ['SECRET_KEY']  # Read SECRET_KEY from an environment variable
@@ -193,7 +193,7 @@ for key in request.session.keys(): 可以用 keys()或items()來進行session的
 
 使用SessionStore：
 from django.contrib.sessions.backends.db import SessionStore
-SessionStore 用於將用戶的session_dict以encode()的方式 轉成 session_data 以方便傳入db中
+SessionStore 用於將用戶的session_dict以encode()的方式 轉成 session_data 以方便傳入db中
 
 s = SessionStore()
 s['last_login'] = '2019/1/1'  # 將資料以dict的形式存入
@@ -260,7 +260,7 @@ g2 = SchoolPerson(content_object=s1, tag='student1')
 ## 其他settings參數
 AUTH_PASSWORD_VALIDATORS = []
 用於查看用戶在網頁上所輸入的密碼是否符合要求：
-與輸入的帳號過於相似, 字符少於標準位數, 密碼重複性太高強度不夠, 密碼全部為數字...等
+與輸入的帳號過於相似, 字符少於標準位數, 密碼重複性太高強度不夠, 密碼全部為數字...等
 
 STATICFILES_DIRS 用於收集不同app資料夾中的static檔 
 STATIC_ROOT 收集完後再用manage.py collectstatic執行 轉入STATIC_ROOT中
@@ -295,7 +295,7 @@ t = int(datetime.datetime.now().strftime('%H'))
 if 5 <= t < 17: / else: 常用此變數來判斷早上/晚上
 
 timezone.now() 無論TIME_ZONE設在哪都會用'UTC'時區的時間 用於存入資料庫
-統一時區 表示不會因為用戶所在時區不同而導致重疊
+統一時區 表示不會因為用戶所在時區不同而導致重疊
 timezone.localtime()則依據TIME_ZONE的值而反賄當地時間
 
 在其他py檔中使用settings.py的設定：
@@ -326,6 +326,8 @@ re.match(pattern, string) 每一個re都是一組pattern 並放入要驗證的st
 (abc)+ 此時不已單一字元來計算次數 abc是一組 只充許 abc, abcabc,......
 用(...)匹配到的字串會放入match.group()中 可以由.group(1) .group(2)找尋先後被匹配到的字串
 
+
+
 ~http_url re網址的正則:
 /(https?:\/\/[^ ;|\\*'"!,()<>]+\/?)/g
 其中： /^https?:\/\//  等同: /^(http|https):\/\//
@@ -337,11 +339,14 @@ re.match(pattern, string) 每一個re都是一組pattern 並放入要驗證的st
 ~常用的password正則
 re.match(r"^(?=.*[\d])(?=.*[A-Z])(?=.*[a-z])(?=.*[@#$])[\w\d@#$]{6,12}$", password)
 
+~常用的檔案篩選正則
+/^.*\.md$/ 批對資料夾內所有md副檔名
+
 (?=...)為lockahead：本身不佔用任何字元 僅用於判別是否符合 
 abc(?=[1-9]) // output: 'abc1'中的'abc'(lockahead不佔字元) 'abcw'則不符合
 
-r"^(?=.*[\d])[\w\d@#$]" 由於lockahead前面沒有字元 會導致錯誤 必須加上^開頭
-同理r"[\w\d@#$](?<=.*[\d])$" lockbehind若放在最後要加上$結尾
+r"^(?=.*[\d])[\w\d@#$]" 由於lockahead前面沒有字元 會導致錯誤 必須加上^開頭
+同理r"[\w\d@#$](?<=.*[\d])$" lockbehind若放在最後要加上$結尾
 
 (?<=...)為lockbehind：因為(?=...)只能檢測字串右側 若要檢測字串左側 則用(?<=...)
 (?<=[1-9])abc // output: '1abc'中的'abc'(lockbehind不佔字元) 'abc'則不符合
@@ -378,7 +383,7 @@ var re = /(\w+)\s(\w+)/;
 var str = 'John Smith';
 var newstr = str.replace(re, "$2,$1");  // "Smith, John" 常用於顛倒順序
 
-var re =/(foo) (bar) \1 \2/;  等同: /(foo) (bar) (foo) (bar)/
+var re =/(foo) (bar) \1 \2/;  等同: /(foo) (bar) (foo) (bar)/
 \1, \2分別代表(foo)和(bar)這前後兩個group
 
 var newStr = str.replace(re, (match) => { // 'JOHN SMITH' 用於替換大小寫
@@ -415,13 +420,13 @@ channels.db.database_sync_to_async 就是專門處理model的同步至非同步�
 (類似於asgiref.sync.sync_to_async：因訪問DB需額外建連接 故改採database_sync_to_async更好)
 
 關聯式資料庫ORM的重點在外鍵(ForeignKey) 用於減少每筆資料的重複屬性
-假設現在用唯一的大表格(model)且以BookId作為主鍵：則會有許多重複的genre 此時genre就可用外鍵連結以減少重複性
+假設現在用唯一的大表格(model)且以BookId作為主鍵：則會有許多重複的genre 此時genre就可用外鍵連結以減少重複性
 而其他與genre相關的屬性同樣會有重複性問題 故應轉到genre的model上 (ex:相同類別的書會放在相同書架上)
 (假設每本書都只能有一種genre 即不考慮ManyToManyField())
 
 外鍵(ForeignKey)是一種recursive和lazy關係：
 recursive：在lookups操作上可以透過多個外鍵來查找不同model的資料 
-lazy：當抓取此model類別的資料時外鍵的資料不會事先被存取
+lazy：當抓取此model類別的資料時外鍵的資料不會事先被存取
 
 class Car(models.Model):
   name = models.CharField(max_length=100)
@@ -429,14 +434,14 @@ class Car(models.Model):
 class Manufacturer(models.Model):
   name = models.CharField(max_length=100)
 
-on_delete 表示當該筆外鍵紀錄(record)刪除後 連結此外鍵的model應如何處理 
+on_delete 表示當該筆外鍵紀錄(record)刪除後 連結此外鍵的model應如何處理 
 models.CASCADE(默認)
-表示資料不完整 故一同將所有連接此外鍵紀錄的筆數都刪除
+表示資料不完整 故一同將所有連接此外鍵紀錄的筆數都刪除
 models.SET_NULL, null=True
 資料不完整也無所謂 可直接轉為null 通常表示此外鍵屬性不影響資料完整性
 
 related_name屬性用於manufacturer的反向關係名稱
-可用manufacturer.car.all() 表示querySet
+可用manufacturer.car.all() 表示querySet
 若不使用related_name 則預設為manufacturer.car_set.all()
 
 而related_query_name屬性用於反向filter中的名稱
@@ -471,7 +476,7 @@ model之間的關係可分為:一對一,一對多,多對多 這三種
 
 OneToOneField就是unique=True的ForeignKey 
 將兩表分開的原因不是因為重複性 而是可設置不同的權限以方便資訊管理
-另外有時不想修改現成的model時 也可以OneToOneField將新的model與此做連結 (常用於User模型的擴充)
+另外有時不想修改現成的model時 也可以OneToOneField將新的model與此做連結 (常用於User模型的擴充)
 
 ManyToManyField重點在於改善原先ForeignKeyㄧ對多的局限性 使關係改為多對多
 django會自行生成源model與目標model之映射關係的中間表
@@ -494,7 +499,7 @@ django的model封裝了Validator 為避免不合規定的資料寫入
 txt1 = "My name is {fname}, I'm {age}".format(fname = "John", age = 36)
 txt2 = "My name is {0}, I'm {1}".format("John",36)
 txt3 = "My name is {}, I'm {}".format("John",36)
-可在資料庫存放{} 如此就能用填入動態資訊
+可在資料庫存放{} 如此就能用填入動態資訊
 
 name = models.CharField(max_length=2, choices=SELECTITEM)
 choices在admin上會為選項 而不是原本的文字欄
@@ -526,7 +531,7 @@ id本來就會遞增 故也可直接查id知道目前所創建的房間數(不�
 因此有些資料為符合辨識功能 可用(unique=True)確保唯一性
 
 null=False和blank=False:
-null=False表示資料庫內的該欄不能用null儲存(預設) blank=False表示在admin或view輸入時會經過驗證不能填空
+null=False表示資料庫內的該欄不能用null儲存(預設) blank=False表示在admin或view輸入時會經過驗證不能填空
 另外null=True常用於sparse model 可節省許多不用的空間
 
 last_modified = DateField(auto_now=True)
@@ -536,7 +541,7 @@ auto_now_add則表示只在建立物件的當下儲存
 但auto_now和auto_now_add都會自動附上editable=False 和 blank=True 導致不能做更改
 
 pub_date = models.DateTimeField(default=timezone.now)
-故可改用default的方式 如此就能事後修改
+故可改用default的方式 如此就能事後修改
 亦可用：default=datetime.date.today (即datetime.date.today())
 
 TimeField 儲存python的time.time()物件
@@ -551,7 +556,7 @@ model中必須要有DateField或DateTimeField才能用
 
 
 大部分的field屬性都跟validators相關
-def validate_even(value):  # 可以寫validate function來作為validators的參數
+def validate_even(value):  # 可以寫validate function來作為validators的參數
   if value % 2 != 0:
     raise ValidationError(
       _('%(value)s is not an even number'),
@@ -561,7 +566,7 @@ def validate_even(value):  # 可以寫validate function來作為validators的�
 even_field = models.IntegerField(validators=[validate_even])
 
 import uuid (python)
-uuid.uuid4() 可以隨機生成常見的char(32)字串 不包含4個引號'-'
+uuid.uuid4() 可以隨機生成常見的char(32)字串 不包含4個引號'-'
 
 upload = models.FileField(upload_to='uploads/')
 FileField不同於字串或數值變數 故需要提供存放位置 (因性能考量 media檔案不會存放在資料庫中) 
@@ -585,7 +590,7 @@ self.image為fieldFile的子類 因此同樣可以調用相關的API
 
 除了上述的屬性之外 fieldFile也提供修改的方法：
 photo.image.save(filename, filecontent, save=True)  # photo.save()為querySet的方法 與此無關
-用於先創建model的實例 但還未綁定相關檔案時： 過程相關麻煩
+用於先創建model的實例 但還未綁定相關檔案時： 過程相關麻煩
 from django.core.files import File
 f = open('/path/to/hello.world')
 myfile = File(f)
@@ -635,7 +640,7 @@ SlugField源於CharField 指的是報紙的短標題 兩者都是放字串變數
 但SlugField不能放特殊字元(充許下划線underscores與連字符hyphens) 空白格也不行 因此較適合存放url
 
 def __str__(self):
-    return self.title  # 用於print()該模型實例出來的物件變數
+    return self.title  # 用於print()該模型實例出來的物件變數
 
 直接用function的執行結果作為屬性：
 @property  # 不使用@property則不會多ㄧ欄屬性 但仍可在admin或view以其他方法呈現
@@ -680,12 +685,12 @@ class BookAdmin(admin.ModelAdmin):
 
   display_genre.short_description = 'Genre'  # 在select頁面 用'genre'取代'display_genre'名稱
 
-list_display的第一項用來取代model的__str__ 如果沒有額外定義ModelAdmin 則用__str__代表record
+list_display的第一項用來取代model的__str__ 如果沒有額外定義ModelAdmin 則用__str__代表record
 admin上的ForignKey顯示方式並不一定是pk(與資料庫不同) 而是以__str__為主 
 
   list_filter = ('genre',)  # 可加上過濾功能 通常只用於choice的資料欄
   search_fields = ('name',)  # 同樣放在select頁面 加上搜尋功能以避免資料量過多的時候
-  ordering = ('-genre',)  # 針對字串開頭來做排序 '-'可用於反序
+  ordering = ('-genre',)  # 針對字串開頭來做排序 '-'可用於反序
 
   fields = ['name','id']  # 不同於list_display在select頁面 fields則在update頁面(add或change)用於改變排版順位
   
@@ -706,8 +711,8 @@ class BooksInstanceInline(admin.TabularInline):  # 也可用admin.StackedInline(
   extra = 1  # 預設是3個空白關聯表 可改為1個
 
 admin.site.register(Book)  # 不額外指定Admin則使用預設
-admin.site.register(Book, BookAdmin)  # 引入model並完成register註冊 並可加入BookAdmin類別參數來做admin頁面客製化
-也可直接在BookAdmin類別上 添加:@admin.register(Book)
+admin.site.register(Book, BookAdmin)  # 引入model並完成register註冊 並可加入BookAdmin類別參數來做admin頁面客製化
+也可直接在BookAdmin類別上 添加:@admin.register(Book)
 
 
 - - - ---------------------------------------------------
@@ -717,7 +722,7 @@ render()只是一種快捷的寫法(shortcuts)
 response = render(request, template_url, content) 
 主要作用為接受HttpRequest物件做參數 並最後回傳HttpResponse物件
 
-若一般不使用render() 改用直接回傳HttpResponse物件:
+若一般不使用render() 改用直接回傳HttpResponse物件:
 t = loader.get_template('app/index.html')  # 需要用loader物件來載入template 會變的更麻煩
 content = {'name': 'data'}
 return HttpResponse(t.render(content, request)) 
@@ -761,7 +766,7 @@ def index(request,room_id):  # 從model中取其變數
 Book.objects.all() 所有的Model類別(繼承models.Model) 都能使用.objects的方法
 books = Book.objects.all() 表示此model類別的所有紀錄 為最大的查詢集(QuerySet)
 books[0],books[1]...可找依照目前排序的每筆record
-books[-1] 會發生問題 因為querySet並不完全充許所有內建的list方法
+books[-1] 會發生問題 因為querySet並不完全充許所有內建的list方法
 
 其中：Book 為 Model類別
 Book.objects 為Book model中的Manager類別 可以客製化一些方法
@@ -773,7 +778,7 @@ Book.objects.all().aggregate(Avg('price'))  aggregate用於找特定屬性的總
 
 aggregate()用來取單一field數值 若要取整個instance則用order_by()後取first()
 Book.objects.order_by('-price').first() 等同取price最高的record
-'price'表示遞增 和'-price'表示遞減
+'price'表示遞增 和'-price'表示遞減
 
 Book.objects.all().annotate(number_of_entries=Count('entry')) annotate在每筆record中 除了現有的field之外多增加其他資料欄
 q[0].number_of_entries  # 好處是annotate()的資料欄不會寫入database
@@ -877,7 +882,7 @@ Book.objects.delete() 會讓database全部刪除
 Book.objects.filter(headline='Lennon').update(genre="sci-fi") 
 用於更改內容且必須用filter()鎖定 (即使只要更改單一項也不能用get())  等同: 
 book.genre = "sci-fi"
-book.save() 需用book = Book.objects.get(pk=1)存入記憶體 導致浪費內存
+book.save() 需用book = Book.objects.get(pk=1)存入記憶體 導致浪費內存
 
 另外save()會傳送pre_save或post_save這兩種signal 同樣delete()同樣也有pre_delete或post_delete兩種signal
 差異在於內存中的實例是否要保有舊資料或直接進行更新
@@ -888,7 +893,7 @@ def auto_change_file_path(sender):
   ...
 
 
-view內部變數：
+view內部變數：
 此時的templates的預設url為:templates/catalog/book_list.html
 可用template_name = 'books/my_arbitrary_template_name_list.html'修改預設位置
 預設的只有template的路徑 還是要自己加上html檔案
@@ -905,15 +910,15 @@ request.META.get('REMOTE_ADDR')
 
 
 ## contrib.auth在views.py設置權限的方式
-設置權限authentication: 用於做限制訪問, 註冊用戶資料, 依據用戶提供特定內容等
+設置權限authentication: 用於做限制訪問, 註冊用戶資料, 依據用戶提供特定內容等
 
-使用裝飾器decorators '@'： 
+使用裝飾器decorators '@'： 
 @property  # 意即將對象的方法包裝成屬性 可以在return之前多添加代碼
 def dueDate(self):  # @property是為了增加易讀性
   ......
   return dueDate;
 
-使用裝飾器'@'來設置授權：
+使用裝飾器'@'來設置授權：
 from django.contrib.auth.decorators import login_required
 
 @login_required
@@ -924,7 +929,7 @@ def my_view(request):
 
 def my_view(request):
   ......
-  if not request.user.is_authenticated:  # 當用戶登入後的每一次請求request.user.is_authenticated都會回傳True
+  if not request.user.is_authenticated:  # 當用戶登入後的每一次請求request.user.is_authenticated都會回傳True
     return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     
 只要有auth就可用request.user屬性：
@@ -952,10 +957,10 @@ def login(request):
     ...
 
 def logout_view(request):
-  logout(request)  # Redirect to a success page.  # 登出不需要將user作為參數 因為相對應得user資料已經存在sessions中 且登出後會刪除sessions
+  logout(request)  # Redirect to a success page.  # 登出不需要將user作為參數 因為相對應得user資料已經存在sessions中 且登出後會刪除sessions
 
 
-使用裝飾器'@'來設置權限許可：
+使用裝飾器'@'來設置權限許可：
 from django.contrib.auth.decorators import permission_required
 
 @permission_required('catalog.can_mark_returned') # catalog.can_mark_returned 為app_name.codename
@@ -1050,20 +1055,20 @@ def renew(request, pk):
 redirect用於重新連接到指定的URL(重新走urls.py)
 render通常用於post請求 以完成在網站頁面進行驗證等動作 
 
-redirect()和render()都是django.shortcuts的方法 用於view中來返回網頁
+redirect()和render()都是django.shortcuts的方法 用於view中來返回網頁
 用法為：redirect(url) 和render(request, template_name, context_dict)
 (template_name必須輸入從BASE_DIR之後的完整路徑 'chat/index.html')
 
 HttpResponseRedirect與redirect的差異：
 HttpResponseRedirect()參數只有一個且只能是url 
-redirect()則除url之外充許view的function當參數 且redirect('videos_view', video_id=video_id) 充許加入url字串作為參數
+redirect()則除url之外充許view的function當參數 且redirect('videos_view', video_id=video_id) 充許加入url字串作為參數
 
 reverse_lazy('all-borrowed'))
 lazy在程式語言當中通常表示不會馬上執行 以避免發生未加載錯誤
 即為延後執行的reverse('all-borrowed') 常用於刪除資料後的重整
 
 
-HttpResponse參數為html完整資料為字串形式 而HttpResponseRedirect參數為url也為字串形式
+HttpResponse參數為html完整資料為字串形式 而HttpResponseRedirect參數為url也為字串形式
 ## 不同status的常見HttpResponse類別
 from django.shortcuts import get_object_or_404
 當資料庫中沒有record時 自動引發http404
@@ -1142,7 +1147,7 @@ def index(request):
 
   if request.method == "POST":  # 用url將client端的request作為參數引入此view 故可用request.method來判別請求方法
     form = ExpenseModelForm(request.POST)  # 為將POST表單資料傳入Form
-    if form.is_valid():  # 可能為資料不充許留空null 且又沒有預設值 必須要完全符合對應的model格式才會通過
+    if form.is_valid():  # 可能為資料不充許留空null 且又沒有預設值 必須要完全符合對應的model格式才會通過
       form.save()  # 一般處理資料應放在client端 好處是不用另外從database調資料
       return redirect("/expenses") # 最後要用redirect()導回原網址
 
@@ -1166,7 +1171,7 @@ model上的field格式正確但不適合存入資料庫的資料 例如：有敏
 驗證過程為讓輸入form中的資料通過驗證器validators: 即內建的正則表示法 若資料不通過時會自動引發ValidationError
 form.is_valid的驗證流程分為兩大步 為先做form的clean方法後在做model的clean方法 
 
-可以自訂validators或使用field形式內建的validators
+可以自訂validators或使用field形式內建的validators
 如果不通過validators 則最後回傳的ValidationError會有包含所有validators的message_dict
 slug = forms.CharField(validators=[validators.validate_slug, validate_too_long]) 
 def validate_too_long(string):
@@ -1228,7 +1233,7 @@ qb.urlencode()  # output: 'a=1&a=2&c=3' 轉回get的?url形式
 rest_framework(不太好用!):
 可用於將多個相關的views整合成viewset 
 並在urls.py使用DefaultRouter()方法來取代原先的urlpattern 需用include(router.urls)引用
-但ViewSet本身不提供任何方法 因此有:
+但ViewSet本身不提供任何方法 因此有:
 GenericViewSet可提供queryset的方法 和 ModelViewSet則提供list(),retrieve(),update()等方法
 可在api.py中覆蓋GenericViewSet和ModelViewSet的方法
 
@@ -1248,7 +1253,7 @@ CRUD 為 Create(新增)、Read(讀取)、Update(更新)與Delete(刪除)的縮�
 http之中為 POST/ GET / PUT / DELETE 其中只有GET和POST最常用
 但實際上POST和PUT兩者都能進行create和update:
 在網站的特定URL上新增文章應使用PUT 因為每次都是提交相同內容不影響結果
-在網站的特定值做變動應使用POST 因為每次增加減少都會使該值變動 
+在網站的特定值做變動應使用POST 因為每次增加減少都會使該值變動 
 
 RESTful風格(Representational State Transfer):
 為軟體的一種設計風格 目的使不同程式或軟體能使用統一的一套操作標準來在網路上傳遞資訊
@@ -1303,7 +1308,7 @@ Content-Type: text/plain
 ---------------------------974767299852498929531610575
 
 其中boundary會在不同的Content-Disposition之間 用於當做封裝訊息的分界
-用<input>的name屬性來區分不同的封裝訊息 
+用<input>的name屬性來區分不同的封裝訊息 
 
 - - - ---------------------------------------------------
 # http_code代號：
@@ -1311,7 +1316,7 @@ Content-Type: text/plain
 
 200 OK 伺服器回應成功 
 201 created (ex:PUT,POST 成功建立新的內容)
-202 accepted （ex:DELETE 成功請求但還未執行)
+202 accepted （ex:DELETE 成功請求但還未執行)
 204 no content (ex:POST 當使用者並未更改資料但仍發送請求時 此時伺服器只會確認此要求但不做更動)
 
 301 redirect 即重新整理當前網頁 (仍與原本用戶輸入的url相同)
@@ -1420,7 +1425,7 @@ function Person(name, age) {  //物件本身也是用function構成的
   };
 };
 
-前者只是一個物件變數(variable) 後者可視為物件類別(class) 
+前者只是一個物件變數(variable) 後者可視為物件類別(class) 
 可用new Person(name, age)進行實例化
 若沒有參數 則 new Person()等同new Person
 
@@ -1454,7 +1459,7 @@ if(0), if(null), if(undefined) 和 if(NaN)
 等同if(false)
 
 因為'hi' === 'hi '  //false  而'hi'.trim() === 'hi '.trim()  //true
-trim用於將前後的空白去除 以避免字串判別受空白格有影響
+trim用於將前後的空白去除 以避免字串判別受空白格有影響
 
 另外判斷字串是否為空 可直接用if(str) //str = ''則為false
 但為追求易讀性 更常用if(str.length == 0)
@@ -1550,7 +1555,7 @@ sayHello(){
   console.log('Hello');
 }  //但expression則不行 因為變數還沒有宣告
 
-expression需要事先宣告且會佔用變數空間 適合作為專案中的常用函數集合 
+expression需要事先宣告且會佔用變數空間 適合作為專案中的常用函數集合 
 而此方法集只會建立一次 因此也符合匿名函數的使用邏輯
 declaration不需要事先宣告但大多數仍會放於專案上層 適合單一功能的函數
 
@@ -1594,18 +1599,18 @@ methodSet.method1(a_value);
 
 
 var用於function之中 let用於block之中 const則用於全域變數
-var在全域範圍中(global scope)宣告等同const const無論在哪個程式中(local scope)宣告都是const
+var在全域範圍中(global scope)宣告等同const const無論在哪個程式中(local scope)宣告都是const
 
 而直接在最外層使用var 則為全域變數 也就是window物件
 遵守這種宣告方式 可避免變數跑到外部
 
-javascript屬於動態定型語言 也就是js的變數可以不是先宣告且僅作為物件的參照 
+javascript屬於動態定型語言 也就是js的變數可以不是先宣告且僅作為物件的參照 
 js不同於其他語言 變數不需要事先指定型態 可直接用var取代int,float,str,bool...
 其好處就是list(array), dict(object) 裡面的物件都不需要同一類型
 若js變數不事先宣告var 則此變數為全域變數(window物件, 可直接在console使用this.some取得)
 
 for( let i = 0; i < 5; i++ ) {
-  window.setTimeout(function() {  // async時會產生問題 但若是同步方法則兩者無異 
+  window.setTimeout(function() {  // async時會產生問題 但若是同步方法則兩者無異 
     console.log(i);
   }, 1000 * i);
 }
@@ -1736,7 +1741,7 @@ label for="id"屬性 用於表示跟哪個input綁在一起
 input type有多種樣式 "radio", "text", "submit"
 
 guessField.focus() 表示在載入頁面時 自動將游標放入input
-此時點擊鍵盤會觸發guessField的鍵盤事件(eventListener)
+此時點擊鍵盤會觸發guessField的鍵盤事件(eventListener)
 
 <input type="text" id="guessField" class="guessField" readonly>
 加上readonly 可用JS控制來鎖定輸入
@@ -1767,7 +1772,7 @@ CSS選擇規則：
 也可用 'a[title]' , 'a[href="https://example.com"]' 找特定屬性的元素
 前者找有title屬性的a 元素 而後者找href屬性為"https://example.com"的 a元素
 
-id_name通常用在固定配件 永遠只會有一個元素 ex: container, send_text, send_btn等
+id_name通常用在固定配件 永遠只會有一個元素 ex: container, send_text, send_btn等
 大部分<input>元素都會用id_name以方便抓取
 class_name則用於會動態生成的配件 ex: container內部的chat_dialog內容
 
@@ -1780,7 +1785,7 @@ former_element ~ target_element { style properties } 通用兄弟選擇器
 "+"符合第一元素與第二元素相鄰時 "~"只要符合兩個元素在同一層即可
 
 class與id最主要的差別：
-id只會有一個且通常部會改變 class可以有多個較常經由JS的互動而改變(class="hide")
+id只會有一個且通常部會改變 class可以有多個較常經由JS的互動而改變(class="hide")
 
 prompt(),alert()這種在window外層的method都盡量不用 風格已經被淘汰
 
@@ -1791,7 +1796,7 @@ prompt(),alert()這種在window外層的method都盡量不用 風格已經被淘
 直接在html標籤上的行內(inline)套用 順位優於 <link href="...">外部link引用
 
 規則二：css選擇器優先順位： id>class>html_tag
-即$("#id")>$(".classname")>$("tagname")
+即$("#id")>$(".classname")>$("tagname")
 
 規則三：針對性越強其優先順位越高 因為表示排在越後面進行解析
 div#test span { color: green; }
@@ -1802,7 +1807,7 @@ span { color: red; }
 // 前者的影響範圍會大於後者 即:div span{}只是span{}的一小部分
 
 規則四：當其他條件相同時 後敘述比前敘述優先順位更高 
-span { color: red; }
+span { color: red; }
 ......
 span { color: blue; }
 而前敘述與後敘述指的是在CSS檔的前後位置
@@ -1868,7 +1873,7 @@ $("ul").parents('div') 回傳所有符合的父元素
 $("ul:eq(0)").next() 或 $("ul:eq(1)").prev()
 next()與prev()直接抓取同層的下一個與上一個元素
 
-$.each(obj, function(key, val) {   若用$.each() 則第一參數可放入object, array等可遍及物件    
+$.each(obj, function(key, val) {   若用$.each() 則第一參數可放入object, array等可遍及物件    
   alert(key);   
   alert(val);      
 });   
@@ -1961,7 +1966,7 @@ var sayWelcomeIIFEs = (function(name) {
 
 - - - -----------------------------------
 # unary_operator單運算子：
-!:表示為not 常用於 !undefined 會轉成true
+!:表示為not 常用於 !undefined 會轉成true
 +:使變數轉成Number()型態 
 -:也使變數轉成Number()型態 但會轉成負數
 - - - -----------------------------------
@@ -2064,7 +2069,7 @@ jquery的animate()不能用transform屬性 只有transition才行 因此css動�
 針對一次性的轉場應使用css 而需對動畫過程做追蹤或存在較高互動性的動畫則使用js
 搭配css的animation和transition兩個屬性： animation是持續進行的動畫 transition則為過渡到另一配置
 
-使用2個class_name的元素通常是指含有動畫：前者為此元素 後者為加上的動畫
+使用2個class_name的元素通常是指含有動畫：前者為此元素 後者為加上的動畫
 事件觸發後元素加上class='horizTranslate' 此時若有transition屬性 則會有過渡動畫效果
 .box.horizTranslate {  
   -webkit-transition: 3s;
@@ -2093,7 +2098,7 @@ jquery的animate()不能用transform屬性 只有transition才行 因此css動�
 
 
 transform屬性：必須配合keyframes才能以迭代來完成動畫
-可用於在瀏覽器視窗內設計3d元素 但前提是元素必須放在transform-style:3d的父元素內部
+可用於在瀏覽器視窗內設計3d元素 但前提是元素必須放在transform-style:3d的父元素內部
 <div class="camera"> // camera用perspective-origin和perspective決定3d空間的架設位置
     <div class="space"> // space用transform-style決定2d空間或3d空間
         <div class="box"></div> // box在3d空間時z軸才有意義
@@ -2108,7 +2113,7 @@ transform-origin: top left; 元素的左上方作為旋轉點 等同0% 0%
 .center-panel {  
      position:absolute;
      left: 50%;  // left只能將子元素的左上點移到正中央 但子元素並沒有置中  
-     transform: translateX(-50%);  // 再依據子元素的寬度做調整 往左移動
+     transform: translateX(-50%);  // 再依據子元素的寬度做調整 往左移動
 }
 
 .heart.animated { // 動畫相關屬性與jquery.animate()的options相同
@@ -2138,7 +2143,7 @@ animationiteration 動畫每次迭代開始時
 transitionend 過渡動畫結束
 transitionstart 過渡動畫開始時
 transitionrun 過渡動畫被添加於物件時(有時動畫不會馬上執行)
-transitioncancel 過渡動畫被取消時
+transitioncancel 過渡動畫被取消時
 
 
 jquery的物件距離用法:
@@ -2247,7 +2252,7 @@ formData.get(name); // 讀取單項的鍵值value
 for(var pair of formData.entries()) {
    console.log(pair[0]+ ', '+ pair[1]); // 用於同時讀取key (pair[0]) 和 value (pair[1])
 }
-另有formData.values()和formData.keys() // 分別返回可迭代的array 同理可用for-of取值
+另有formData.values()和formData.keys() // 分別返回可迭代的array 同理可用for-of取值
 
 $.each($('#form').serializeArray(), function(a, t) {  // 或用serializeArray()轉為可迭代array
   formData.append(t.name, t.value)
@@ -2267,7 +2272,7 @@ var file = $('input[type=file]').files[0] // 直接用css selector抓取的就�
 
 var fileReader = new FileReader();
 fileReader.readAsDataURL(file)
-var imageView = $('#imageView');  // 讓fileReader讀取的檔案可顯示在<img>上
+var imageView = $('#imageView');  // 讓fileReader讀取的檔案可顯示在<img>上
 fileReader.bind("load", function(event) { // 'load'讀取完成後觸發
   imageView.src = this.result;  //用戶上傳的圖片可直接在UI上顯示
 });
@@ -2324,7 +2329,7 @@ $.ajax({
 })
 contentType 用 !1 取代 "multipart/form-data" 
 其原因為 "multipart/form-data" 只適合直接寫在html的<form>POST請求 
-其為符合多項<input>的表單 因此不同input資料之間會有boundary 
+其為符合多項<input>的表單 因此不同input資料之間會有boundary 
 
 常見的dataType為text, json, jsonp, script, html, xml 最常用的text, json
 jsonp為完成在網頁上顯示跨站資源 此時ajax的options改為dataType:'jsonp'和jsonp:!0
@@ -2339,16 +2344,16 @@ success: function(res){
 } 
 
 通常與$.ajax()一同出現的非同步方法：
-~Deferred Object 為jquery專用於處理非同步問題的物件 
+~Deferred Object 為jquery專用於處理非同步問題的物件 
 dfd = new $.Deferred 創建Deferred物件
 dfd物件僅用於dfd.resolve()和dfd.reject()兩種方法的辨識:
-當因為eventhandler觸發此兩種方法時 就會再執行dfd的done(), fail(), always()三種情況的事件
+當因為eventhandler觸發此兩種方法時 就會再執行dfd的done(), fail(), always()三種情況的事件
 
 非同步事件永遠在處理需要耗時等待的方法：
 因為不知道何時會執行完畢 故先寫各種執行完畢之狀況所要觸發的事件 以此來達到跳脫原先執行緒的非同步目的
 
 dfd.state() 可看目前線程的狀況 分為三種state:
-"Pending" 處理中, "Resolve"處理成功, "Reject"處理失敗
+"Pending" 處理中, "Resolve"處理成功, "Reject"處理失敗
 
 dfd.promise():
 返回一個與Deffered物件對應的Promise物件 (也是jquery的物件 不是JS原生的Promise物件)
@@ -2374,7 +2379,7 @@ dfd.always()(function(){
     alert('it is over');
 });
 done(), fail()用來表示成功或失敗時所執行的方法 always()則無論如何都會出現
-而如何定義成功或失敗 則需要靠resolve()和reject() 
+而如何定義成功或失敗 則需要靠resolve()和reject() 
  
 $('button.success').on('click', function() {
   dfd.resolve();
@@ -2428,7 +2433,7 @@ dfd.done( function() {
 基於bootstrap開發 可使用程式來設計對話視窗(可加上callback function) 
 常見的模式分為三種： (bootbox都是基於JS的原生對話框做插件)
 window.alert() 只有一個"確定"按鍵
-window.prompt() 會有input輸入欄 因此最後會回傳string值
+window.prompt() 會有input輸入欄 因此最後會回傳string值
 windiw.confirm() 有"確認","取消"兩按鍵 因此最後會回傳bool值
 
 bootbox.setDefaults("locale", "zh_TW") // setDefaults()可作相關設定
@@ -2501,7 +2506,7 @@ $(function () {
   $('#username').editable({  //如果不放在<a data-*="">中 也可放於editable({...}) 同理也可以用在$.ajax({...})中
     type:'text',
     title:"使用者名稱",
-    url:"https://jsonplaceholder.typicode.com/posts", //data-url用於傳送至server端的位置
+    url:"https://jsonplaceholder.typicode.com/posts", //data-url用於傳送至server端的位置
     name='username',
     value＝"你的名字",  //可用於作為預設值
 
@@ -2514,7 +2519,7 @@ $(function () {
   $.fn.editable.defaults.emptytext = '點我加入資料';  // 預設為'Empty'
   $.fn.editableform.loading = "<div class='editableform-loading'>...........</div>"  //自行設置loading樣式
   $.fn.editableform.buttons = "<button type="submit" class="editable-submit">ok</button><button type="button" class="editable-cancel">cancel</button>"
-  // editableform.buttons同理 可以由原先的模板做修改
+  // editableform.buttons同理 可以由原先的模板做修改
 
 })(jQuery);
 
@@ -2527,12 +2532,12 @@ data-type可選擇X-editable內建的表單元件
 
 fileupload.js使用jQuery.ajax()為基底 
 且即使瀏覽器不支援XHR 也能用IframeTransport方法替代
-processData, contentType 和 cache三項options皆為False 以方便檔案傳輸
+processData, contentType 和 cache三項options皆為False 以方便檔案傳輸
 
 <input type="file" class="hide" id="upload-photo-input" name="img_file" data-url="upload/photo_nocrop">
 需要使用到jquery-ui.js和jquery.iframe-transport.js
 
-$(function() {  // 用法即為eventHandler 直接綁定(binding)即可 
+$(function() {  // 用法即為eventHandler 直接綁定(binding)即可 
     $("#upload-photo-input").fileupload({  // 用fileupload({...})做綁定
       url:'/photo',
       type:'POST',
@@ -2550,10 +2555,10 @@ $(function() {  // 用法即為eventHandler 直接綁定(binding)即可
       processalways:function(e, data) {}  // 當一個單獨檔案處理成功或失敗後觸發 (可能很多次)
       (process做前綴 都表示特別針對單一檔案)
 
-      progressall:function(e, data) {}  // 全域性上傳處理事件觸發(用於進度條顯示)
+      progressall:function(e, data) {}  // 全域性上傳處理事件觸發(用於進度條顯示)
     }) 
     
-    fileupload之option項的done,fail,always 等同於ajax之option項的success, error, complete
+    fileupload之option項的done,fail,always 等同於ajax之option項的success, error, complete
     相關參數與$.ajax()類似： ($.ajax()會回傳jqXHR物件)
     jqXHR.done(function(data, textStatus, jqXHR){...})
     可用data.result, data.textStatus, data.jqXHR 來使用以上參數
@@ -2567,7 +2572,7 @@ $(function() {  // 用法即為eventHandler 直接綁定(binding)即可
 $("#upload-photo-input").fileupload(  // 第一參數'option' 可用於作為setter
     'option','url','/path/to/upload/handler.json'  // 用於修改其中一項option
 );
-var dropZone = $('#fileupload').fileupload(  // 同理 第一參數'option' 也可作為getter
+var dropZone = $('#fileupload').fileupload(  // 同理 第一參數'option' 也可作為getter
     'option','dropZone'
 );
 
@@ -2631,7 +2636,7 @@ document.addEventListener("click",function(){
 
 "focus" & "blur": 元素被聚焦時觸發 元素失去聚焦時觸發
 當focus觸發也表示另一元素會執行blur 兩者會同時在不同元素上執行
-若互動元素疊加時要注意：子元素focus也就表示父元素blur 
+若互動元素疊加時要注意：子元素focus也就表示父元素blur 
 
 tab時只會觸發：focus
 點擊時的觸發順序為：mousedown > focus > mouseup > click
@@ -2699,7 +2704,7 @@ $('#foo').bind('update', function(){ // "update"事件
 $('#foo').trigger('update');
 
 bind()對於後生成的元素無法綁定 此時可用deleate()代替：
-deleate()為父元素的方法 用於綁定子元素的事件
+deleate()為父元素的方法 用於綁定子元素的事件
 $('#root').delegate('a', 'click', function(){  // 'a'是'#root'的子元素 
     console.log('clicked');
 });
@@ -2845,7 +2850,7 @@ return void 0 === i && (i = 1), 0 === i ? (..A..) : (..B..)
 comparison與assignment寫在一起 此時表示若前者為true(i==undefined) 則i=1 並最後return (..B..)
 若前者為false(i!=undefined) 則直接略過後方的assignment 並最後也是return (..B..)
 JS中普遍會把comparison中的變數移到右邊 其目的是為與宣告或賦值(var i=0)做區分
-return 後面出現的',' 也只是為了便捷性而已 最後會回傳最右邊的變數
+return 後面出現的',' 也只是為了便捷性而已 最後會回傳最右邊的變數
 而通常','前面的部分只是都會與最右邊的變數相關 故會縮寫成一行
 故可改寫成：
 if (i === undefined) {
@@ -2858,7 +2863,7 @@ if (i === 0) {
 } //','後面的部分
 
 如何省略if...else...:(JS便捷性):
-variable1 = (1 == variable2) ? "true" : "false";  //':'左右兩邊都是變數 則可以直接做賦值
+variable1 = (1 == variable2) ? "true" : "false";  //':'左右兩邊都是變數 則可以直接做賦值
 等同：
 if(1 == variable2){
   variable1 = "true"
@@ -2892,10 +2897,10 @@ b = 20;
 !0 = true
 !1 = false
 
-用e來表示10的次方(JS便捷性)：
+用e來表示10的次方(JS便捷性)：
 var a = 1e3, b=2e5; // a=1000, b=200000 
 
-|0,&0做二進位位元運算： (會將任何數先轉成二進位來做位元邏輯運算)
+|0,&0做二進位位元運算： (會將任何數先轉成二進位來做位元邏輯運算)
 因為做運算只考慮到整數的部分 故： 5.2442|0 等同為 5|0 且任何數與0做OR都為自己 故結果為101
 
 
@@ -2950,7 +2955,7 @@ js和min.js的差別就在於後者是壓縮過的 如果要上架應採用後�
 
 **html_tag <a>:**
 <a>用於做超連結或執行觸發的動作：
-<a href="{% url 'index' %}">Home</a> 
+<a href="{% url 'index' %}">Home</a> 
 url是django模板標籤 必須要在urls.py中設置urlpatterns的path(name='index')函數做映射器
 另外有re_path() 即使用正則表示法regular expression的path()
 
@@ -2958,7 +2963,7 @@ url是django模板標籤 必須要在urls.py中設置urlpatterns的path(name='in
 <a onclick="showClickLinkConfirm('$1')">$1</a>
 
 window.open(strurl,'_blank') 為非同步方法
-獲取strUrl的資源 並在另一視窗打開('_blank',或可用<a>元素的id值)
+獲取strUrl的資源 並在另一視窗打開('_blank',或可用<a>元素的id值)
 
 另一種用法：
 <a href="javascript:function1()">运行 function1</a> 可用於執行<script>內部的方法
@@ -2974,7 +2979,7 @@ window.open(strurl,'_blank') 為非同步方法
 簡而之dtl模板語言的變數可以插在html中的任何地方 只要符合格式即可
 
 <input id="team_name" type="text" name="name_field" value="Default name for team.">
-id用於html辨識 name則用於POST(request)表單傳送 value則可用於初始值
+id用於html辨識 name則用於POST(request)表單傳送 value則可用於初始值
 value是為取代textContent 因為<input>屬於單一tag的元素
 
 <form method="post" action="{% url 'login' %}" target="framename" autocomplete='off'>
@@ -3044,7 +3049,7 @@ function formatAMPM(date) {
   <input type="radio" name="size" id="size_1" value="small">
   <input type="radio" name="size" id="size_2" value="medium">
   <input type="radio" name="size" id="size_3" value="large">
-form表單最後只會有一個name:value 故radio選項中只能選一個
+form表單最後只會有一個name:value 故radio選項中只能選一個
 
 <form id='send_form'>
 有時<form>元素也可以完全不加屬性 所有eventHandler都用JS來執行
@@ -3066,7 +3071,7 @@ function formatAMPM(date) {
 def my_view(request):
 
 CSRF_USE_SESSIONS=False為預設 此時會存入cookie當中
-但有時為安全性考量 會將其存放在server端中(session) 此時CSRF_USE_SESSIONS=True
+但有時為安全性考量 會將其存放在server端中(session) 此時CSRF_USE_SESSIONS=True
 
 CSRF_COOKIE_HTTPONLY=False為預設
 若CSRF_USE_SESSIONS=True 則不能透過JS不能直接存取CSRF 故一般幾乎不會用
@@ -3080,7 +3085,7 @@ function getCookie('csrftoken')
 
 
 CSRF(Cross-Site Request Forgery) 中文翻為跨站請求攻擊或跨站偽造請求
-攻擊者會偽造請求(不知名連結...等)給其他被攻擊者 讓被攻擊者在"不知情"的情況下送出請求
+攻擊者會偽造請求(不知名連結...等)給其他被攻擊者 讓被攻擊者在"不知情"的情況下送出請求
 如此一來就會通過該網站後端的身分認證機制 因為也確實是被攻擊者所發送的請求
 
 csrf_token：用於確認請求是來自上一頁正確的表單 以此避免在站外連結所送出的請求
@@ -3120,7 +3125,7 @@ token = token 需檢驗使否為正確的token
 <footer>會在頁面最下方用於放置版權等資訊 <header>通常放置於頁面最上方 用於介紹標題
 <nav class="menu">
   <a href="#home">Home</a> 
-<nav>則負責放置其餘資訊的連結 通常內部會有<a>元素
+<nav>則負責放置其餘資訊的連結 通常內部會有<a>元素
 
 實際上大部份html元素都能用<div>取代 
 但用特定的元素能快速抓到整個網頁的架構 有助於SEO優化
@@ -3165,7 +3170,7 @@ django template variable {{...}}:
     <h2>{{i}}</h2>
 {% endfor %}
 
-故需要改為 {% for i in range %} 先將ragne(10)做成list 再傳入
+故需要改為 {% for i in range %} 先將ragne(10)做成list 再傳入
 並用render_response('template.html', {'range': range(10)}) 將range傳入template中
 
 django template tags {%...%} 和 filter "|":
@@ -3182,7 +3187,7 @@ if not forloop.last 插在forloop的區塊中 為使最後一次的loop不會加
 
 
 {% for o in some_list %}
-  <tr class="{% cycle 'row_odd' 'row_even' %}">{{ o }}</tr>
+  <tr class="{% cycle 'row_odd' 'row_even' %}">{{ o }}</tr>
 {% endfor %} cycle與for常一起使用 
 //output:
 <tr class='row_odd'>...</tr>
@@ -3204,7 +3209,7 @@ django template{%...%} 也能插在標籤的變數之中
 {% extends "base_generic.html" %}
 子輩template必須使用extends來繼承父輩template
 {% block title %}...... {%endblock%} 
-block放在父輩template中 可讓子輩template改寫 (block大多只會透過繼承方式改寫 不會由其他py檔寫入)
+block放在父輩template中 可讓子輩template改寫 (block大多只會透過繼承方式改寫 不會由其他py檔寫入)
 
 {% firstof var1 var2 var3 "fallback value" %}
 firstof 表示前一變數只要存在 就會優先輸出前一變數
@@ -3230,7 +3235,7 @@ value為"Joel\nis a slug"
 
 {{ body|linebreaks|force_escape }}
 |force_escape 用於將其他filter的結果在做轉譯
-|linebreaks後會有<p></p>  |force_escape可將其留下來輸出
+|linebreaks後會有<p></p>  |force_escape可將其留下來輸出
 
 {% autoescape on %}
 {% firstof var1 var2 var3 "<strong>fallback value</strong>"|safe %}
@@ -3308,7 +3313,7 @@ class AuthorModelTest(TestCase):
 
   def setUpTestData(cls):  # Set up data for the whole TestCase
     cls.foo = Foo.objects.create(bar="Test") 只有建立時才存取 用於整個類別共用的變數
-  但不同的test_function並不會相互影響 因封裝了copy.deepcopy()讓每次test的變數彼此獨立
+  但不同的test_function並不會相互影響 因封裝了copy.deepcopy()讓每次test的變數彼此獨立
 
 另外python django test 所使用的資料庫是額外建立的 會與真正的資料庫分開
 故可用fixtures物件 創建初始數據以供測試使用 常用格式為JSON (data.json)
@@ -3322,7 +3327,7 @@ setUpTestData()由setUpClass()封裝出來的 通常專門處理資料庫相關�
 setUpClass(cls)和tearDownClass(cls)等同是 jest的BeforeAll()和AfterAll()
 同理setUp()和tearDown()就等同jest的BeforeEach()和AfterEach()
 另有setUpModule()和tearDownModule()放在TestCase類別之外
-處理所有類別都會執行的前置或善後 等同是jest的describe()之外BeforeAll()和AfterAll()
+處理所有類別都會執行的前置或善後 等同是jest的describe()之外BeforeAll()和AfterAll()
 
 assertEquals(field_label,'first name') 等同assertTrue(field_label == 'first name')
 但前者比後者更好：因為測試失敗 會返回標籤上實際的值
@@ -3363,7 +3368,7 @@ FIXTURE_DIRS = [
 
 
 ## selenium
-selenium屬於web_test工具 必須要用ChromeDriver用以協助瀏覽器執行動作
+selenium屬於web_test工具 必須要用ChromeDriver用以協助瀏覽器執行動作
 selenium時常會與django的TestCase並用
 
 from selenium import webdriver 在py檔引用
@@ -3450,14 +3455,14 @@ afterAll(() => console.log('1 - afterAll'));
 
 beforeEach(() => console.log('2 - beforeEach')); // 在每次測試中執行 等同setUp() 通常放在describe(function(){...})中 
 afterEach(() => console.log('2 - afterEach'));
-一般放在describe()之內 做為待測function的前置準備 若多個function的前置準備太相似 也可放於describe()之外 作為所有function的共同前置
+一般放在describe()之內 做為待測function的前置準備 若多個function的前置準備太相似 也可放於describe()之外 作為所有function的共同前置
 
 beforeAll()和beforeEach()代表測試時的前置作業 可能為設定使用者資料或狀態等
 意即表示test()只能是簡單的變數或方法回傳值判別 不能再做其他動作
 若test()真的要進行其他複雜的動作 也應該以調用同區域function的方式進行
 
 expect(peopleA.name).toBe('GQSM')  //測試字串或整數等
-expect(peopleA).toEqual({ name: 'GQSM', age: 25 })  //測試object或array
+expect(peopleA).toEqual({ name: 'GQSM', age: 25 })  //測試object或array
 toBeGreaterThan(), toBeGreaterThanOrEqual(), toBeLessThan(), toBeLessThanOrEqual() // 用於整數
 toBeCloseTo()  // 用於浮點數 
 toContain() // array中是否包含變數
@@ -3496,7 +3501,7 @@ async function test_search() {  // 只要程式碼中有非同步(await)都要�
   // wait(function(){}) 等到function回傳true為止在進行下一條 並設置timeout條件 如果超過時間則不再等待(raise timeout error)
   // 通常下面會放時間等待的function(await element.getText())
 }
-如果執行時間太長會導致await與其他正在執行的非同步方法因競爭而堵塞 導致不穩定問題(intermittent issues)
+如果執行時間太長會導致await與其他正在執行的非同步方法因競爭而堵塞 導致不穩定問題(intermittent issues)
 因此通常加上driver.wait()會先凍結執行緒 直到參數的判別式為真為止
 driver.wait()又稱為explicit wait 因其參數判別式必須抓取可見的元素
 
@@ -3528,7 +3533,7 @@ await searchElmt.clear();
 let btnElmt = driver.findElement(By.linkText("Sign in")); // 表示<a>元素的text值
 
 const actions = driver.actions({async: true});  // actionChains 並放入物件參數
-await actions.move({origin:searchBtn}).press().perform();  // 同理 move()也可以放入物件參數 如此就不需要用位置參數
+await actions.move({origin:searchBtn}).press().perform();  // 同理 move()也可以放入物件參數 如此就不需要用位置參數
 
 btn.click(), btn.doubleClick() 方法基本都跟python的selenium相同 只是換成js的編寫風格
 
@@ -3536,7 +3541,7 @@ await actions.move({origin:sourceEle}).press().perform(); // 按者
 await actions.move({origin:targetEle}).release().perform(); // 釋放
 // 表示拖移元素
 
-await driver.wait(until.alertIsPresent());  // alert出現時為true 會等待到符合條件為止 也就是出現alert視窗為止
+await driver.wait(until.alertIsPresent());  // alert出現時為true 會等待到符合條件為止 也就是出現alert視窗為止
 let alert = await driver.switchTo().alert(); // 可用switchTo()儲存alert內容變數
 
 
@@ -3605,7 +3610,7 @@ Microsoft的Azure本身就包含了Paas和Iaas兩種服務
 
 其中Elastic Beanstalk(EB) 是AWS雲端環境的快速部署與管理平台(PaaS) 
 可使用任何AWS組件 像是Elastic Load Balancer負載均衡, Auto-Scaling Group和Security Group等
-而Elastic Computer Cloud(EC2) 則讓用戶在上面自行建置伺服器 為AWS的雲端空間(IaaS)
+而Elastic Computer Cloud(EC2) 則讓用戶在上面自行建置伺服器 為AWS的雲端空間(IaaS)
 
 其中Google App Engine(GAE)是GCP的快速部署與管理平台(Paas) 
 Google Compute Engine(GCE)是GCP的雲端空間(Iaas)
@@ -3616,7 +3621,7 @@ GCP價格最便宜 而AWS支援服務最齊全
 GCP發展最晚 全球覆蓋率最低 而AWS則最早發展 有最多的可用區域
 
 - - ---------------------------------------------
-# GCP操作:
+# GCP操作:
 VM常用的作業系統Ubuntu 18.04 LTS 相關指令:
 sudo apt-get update 進行更新
 sudo curl http://vestacp.com/pub/readme.md 只會在terminal上顯示
@@ -3673,6 +3678,9 @@ siege -c 250 http://34.120.153.46
 gcloud app deploy 用gae直接架設網站
 gcloud app browse 並用瀏覽器瀏覽
 
+Liveness checks 檢查VM和VM中的container是否正在運行 當未達標準時會重開一次
+Readiness checks 是否已準備接受流入的request 當未達標準時不會進入用於執行的個體池pool of instances
+
 ## GCS:
 gsutil ls -l gs://my-awesome-bucket 查看專案目前的googlestorage值區 -l為詳細資料
 gsutil cp data gs://gs-bucket-name/ 上傳
@@ -3719,7 +3727,7 @@ gcloud container clusters get-credentials autopilot-cluster-1-clone-1 \ 連結�
 ## GVPC and network:
 虛擬私有雲服務(Virtual Private Cloud)
 最大單位為網域 即為獨立存在的LAN 而旗下的子網路可想像成一個VLAN
-網域之間不能直接互通 而建立在同一網域下子網路的app則可互通
+網域之間不能直接互通 而建立在同一網域下子網路的app則可互通
 VPC不同於固定的外部IP位置 需要透過GCP的公有端點來做通訊 GCP會提供DNS來做轉換
 
 VPC能讓不同的專案使用共同的內網資源:
@@ -3763,7 +3771,7 @@ gcloud compute backend-services add-backend web-backend-service \ 將後端服�
 子網路遮罩(subnet mask) 用來標示單一網路IP位址內的主機所在位址
 表示方法與IP位址相同 如:255.128.0.0 或 192.0.2.96/28 
 相同的IP位址和子網路的CIDR表示法為192.168.2.1/24 
-最後的/24：用來表示前24位數固定 只有後面8位數表示不同的連入主機 
+最後的/24：用來表示前24位數固定 只有後面8位數表示不同的連入主機 
 同理/16：192.168.0.0/16 前16位固定 其後表示不同主機
 不一定要是8的倍數 可能為20/： 10.128.0.0/20
 而 0.0.0.0 表示為所有ip的集合 用於表示默認所有ip連入
@@ -3774,7 +3782,7 @@ Classless Inter-Domain Routing 簡稱：CIDR
 domain name申請:
 FQDN（fully qualified domain name)指的是到特定主機host的完整網域名稱 
 mymail.somecollege.edu host為mymail，位於somecollege.edu網域中
-同理www.indiana.edu也是FQDN www為host_name 而indiana.edu則為域名 只是大部分時使用www主機做為網域的入口host 久而久之後就自動省略
+同理www.indiana.edu也是FQDN www為host_name 而indiana.edu則為域名 只是大部分時使用www主機做為網域的入口host 久而久之後就自動省略
 每台host都有至少一個IP位址 但大多數只供內網使用 
 而連接外網的入口host會架設web server用於分流到內網的host(反向代理) 瀏覽器中輸入的domain name就是找這台連接外網的入口host 
 
@@ -3783,7 +3791,7 @@ gcloud beta compute ssh \ 在本地端連上虛擬機的SSH
 --zone "your_zone" "your_instant_name" \
 --project "your_project_name" \
 
-gcloud compute instances create gcelab \ instance執行個體名稱 及 VM機台名稱  (instances指的是執行個體 相當於建立管理物件 並不單指目前建立的VM機台)
+gcloud compute instances create gcelab \ instance執行個體名稱 及 VM機台名稱  (instances指的是執行個體 相當於建立管理物件 並不單指目前建立的VM機台)
 --zone asia-east1-b \ VM所在區域
 --machine-type=n1-standard-1 \ 決定所需VM機台規格 
 
@@ -3797,7 +3805,7 @@ gcloud compute instances create-with-container busybox-vm \ 用容器化的開�
 
 vCPU:被實現為計劃按需運行的線程 指的是虛擬CPU 直到有工作負載時才會分配到可運行的真正物理CPU 對使用VM的用戶來說vCPU就等同真的CPU
 運算最佳化：用於遊戲類型應用 需要大量突現即時性顯示的功能
-記憶體最佳化：用於專業雲計算應用服務 所需內存較大的功能
+記憶體最佳化：用於專業雲計算應用服務 所需內存較大的功能
 
 三種VM機台的開機設定方式： (無論用哪一種方式都會至少需要一個開機硬碟)
 --image debian-10-buster-v20200309 或 --image-family debian-10 \ 作業系統的映像檔 前者可決定版本 後者為直接用最新版
@@ -3822,7 +3830,7 @@ gcloud compute instances update gcelab \
 gcloud compute instances remove-labels gcelab \  移除label標籤 
 --remove-labels environment
 
-gcloud compute instances list \  label最大的用處在於幫助過濾搜尋
+gcloud compute instances list \  label最大的用處在於幫助過濾搜尋
 --filter labels.environment=test
 
 gcloud compute instances describe gcelab 查看此VM機台的詳細訊息
@@ -3845,7 +3853,7 @@ default-allow-internal(預設防火牆)
 但放寬通訊協定tcp:0-65535, udp:0-65535, icmp
 
 default-allow-ssh(預設防火牆) 
-為port22 通常為全部套用的防火墻 因為這樣才能由本地端透過gcloud連接到VM的SSH
+為port22 通常為全部套用的防火墻 因為這樣才能由本地端透過gcloud連接到VM的SSH
 
 default-allow-rdp(預設防火牆)
 為port3389 為遠端桌面協定(Remote Desktop Protocol) 類似於SSH 但專用於微軟系統
@@ -3897,10 +3905,10 @@ automatic restart:機台硬體出現突發狀況則直接重開機(預設) 與�
 
 Security主機安全性設定：
 shielded VM: 主機開機時的安全檢查機制
-SSH key: 除了用GCP登入外 當用本地端連上SSH時需要有固定的key
+SSH key: 除了用GCP登入外 當用本地端連上SSH時需要有固定的key
 
 Sole Tenency用戶群節點： (node一般就是指host)
-一般來說VM會隨機開在資料中心中不同的實體機上
+一般來說VM會隨機開在資料中心中不同的實體機上
 此設定可用於將VM開在同一個機台上 但並不會影響VM表現 僅為符合部分企業的需求
 
 
@@ -3929,17 +3937,17 @@ gcloud compute instance-group create example-group \
 - - ---------------------------------------------
 # CI/CD 持續整合與持續交付
 
-circleCI用於自動化雲端環境的測試,整合和部署 需要有配合的雲端平台PaaS
+circleCI用於自動化雲端環境的測試,整合和部署 需要有配合的雲端平台PaaS
 Continuous Integration & Delivery (CI/CD) 持續整合與持續交付
 可自動偵測GitHub上的程式碼 若有更新則自動整合支線,自動建置Docker環境,自動測試,再自動部署到EB上
-且circleCI的自動化測試結果也會在GitHub上顯示 只要有新的push都會執行 無論最後有沒有pull到owner的帳號
+且circleCI的自動化測試結果也會在GitHub上顯示 只要有新的push都會執行 無論最後有沒有pull到owner的帳號
 
 在專案Repo中新增circle.yml
 其中包含machine:設置環境 dependencies:相依套件與框架 test:需進行的測試
 
 Git-Flow 為針對開發時git使用流程的規範(workflow)
 通常以release分支為基礎 每個release分支會有一隻develop分支 
-最後會將開發完成的develop併回release 此時release是已完成新功能且已修復完bug 確認後再併回master
+最後會將開發完成的develop併回release 此時release是已完成新功能且已修復完bug 確認後再併回master
 
 Github-Flow 也是一種git流程規範(workflow)
 但以master為基礎 只要是master上的版本都一定要通過測試 
@@ -3949,7 +3957,7 @@ Github-Flow與Git-Flow最大的差異：
 在於Github-Flow是以CI/CD為目的 強調上線部署後仍能不中斷開發
 
 常見資料庫系統：
-MySQL, SQLite,postgreSQL 都是關聯式資料庫(RDBMS) 追求一致性與準確性且能處理大量資料
+MySQL, SQLite,postgreSQL 都是關聯式資料庫(RDBMS) 追求一致性與準確性且能處理大量資料
 MySQL則適合高流量大規模的網站 接受多個客戶同時訪問同一資料庫
 SQLite屬於輕量型資料庫 適合中低流量的網站 且會有資料庫需單個寫入的侷限性
 
@@ -3963,7 +3971,7 @@ redis 全名為remote diction server 同樣是資料庫的一種
 # asgi.py and wsgi.py
 皆由CGI而來（Common Gateway Interface,通用網路接口）
 就如同使用者介面UI是針對人與機器之間的連接 CGI則是用戶電腦請求到伺服器處理之間的連接
-而更正確來講：CGI是web server和application server的連接 有CGI才能提供動態資料
+而更正確來講：CGI是web server和application server的連接 有CGI才能提供動態資料
 
 (1) a production-grade WSGI server like Gunicorn+Django for ordinary HTTP requests.
 (2) a production-grade ASGI server like Daphne+Channels for WebSocket requests.
@@ -3984,7 +3992,7 @@ channel layer的目的是為了讓不同的client端可以透過同一個server�
 (藉此來取代原本的輪詢架構 即其他client端一直作請求來要更新資料)
 
 另一種延伸的可調用方法 channel_layer.group_send("group_name", {...})
-用group_name取代channel_name 其餘也同樣以message_dict作為參數
+用group_name取代channel_name 其餘也同樣以message_dict作為參數
 
 因group而出現的方法:
 channel_name是每個consumer獨有的 group_name則為管理多個channel_name而創建
@@ -4000,19 +4008,23 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'datingApp.settings')
 from django.conf import settings
 settings.configure(DEBUG=True)  # 亦可使用configure()以繞過settings.py來變更環境變數
 若沒有導入任何設置 當django需要讀取相關的環境變數時 便會發生ImportError例外
-若已經設置'DJANGO_SETTINGS_MODULE' 又用configure()覆蓋到其中的環境變數 則為RuntimeError例外
+若已經設置'DJANGO_SETTINGS_MODULE' 又用configure()覆蓋到其中的環境變數 則為RuntimeError例外
 故兩者方法只能使用其一且也不能都不使用 可用settings.configured判斷是否已設定
 
-
 application = ProtocolTypeRouter({"http":...,"websocket":....})
-可用於決定在不同網路協定時的分流處理方式 當需要用到WS時都必須在asgi.py設定
+可用於決定在不同網路協定時的分流處理方式 當需要用到WS時都必須在asgi.py設定
+
+## 設置daphne
+此為django-channel推薦的網路接口 用於處理asgi.py
+一般不需要多寫ini檔
+daphne -b 0.0.0.0 -p 8089 datingApp.asgi:application 即可開啟daphne
 
 ## 設置uWSGI
-gunicorn和uwsgi為實現web server協議之服務器:
-web server只能用來處理靜態資料 接受http_request和回傳http_response
+gunicorn和uwsgi為實現web server協議之接口:
+為考慮效率 web server大多用來處理靜態資料 並接受http_request和回傳http_response
 
 Django為實現application server功能之框架:
-application server負責business logic的執行和database的存取 
+application server負責business logic的執行和database的存取 
 (application server無法直接與client端溝通 只能接受web server的request並回傳response)
 
 ubuntu安裝方式uwsgi方式:
@@ -4030,7 +4042,7 @@ browser <-> 80 port <-> nginx <-> static files(不用經過uwsgi)
 (這也是為何django只有在開發時 才要額外用STATICFILES_FINDERS的原因)
 
 不是所有request都會經過uwsgi 只有需傳到application_server的request 因為nginx會處理掉部分request
-nginx則處理所有的request作分流 而uwsgi只負責將django接上單一個port 兩者不相互依賴
+nginx則處理所有的request作分流 而uwsgi只負責將django接上單一個port 兩者不相互依賴
 nginx會獨立一個host(web server) 而uwsgi會放在django的host上
 
 uwsgi --ini mysite_uwsgi.ini 亦可直接執行ini文件來運行uwsgi ini文件即包含socket和module等設定資訊(ini檔通常放在專案根目錄)
@@ -4067,8 +4079,8 @@ harakiri=20  # 20秒無法回應則重新生成process
 max-requests=5000  # 超過5000筆request也重新生成process
 
 ## 設置nginx
-Nginx也是一種web server: 
-但無法自行實現WSGI服務 主要功能皆與效能有關 所以內層還要接上gunicorn或uwsgi
+Nginx是一種web server: 
+但無法自行實現WSGI服務 主要功能皆與效能有關 所以內層還要接上處理wsgi的gunicorn或uwsgi 與 處理asgi的daphne
 
 nginx的反向代理reverse poxy：將static和media文件請求傳到一台server 而django應用則交給另一個server 並可暫存靜態資源static和media 讓重複請求不用到appication server(django)
 nginx的負載平衡load balancer：具多台同功能server時 可針對相同url的request做反向代理導向不同的server 或者將不同url的request做分流
@@ -4078,7 +4090,7 @@ nginx的負載平衡load balancer：具多台同功能server時 可針對相同u
 亦可在nginx層處理HTTPS連線
 nginx可在同一個IP位址但不同port開多個server_name 依據request的url來決定分流到哪個port 因此可由uWSGI設置專用接口 再由nginx導向
 
-Network Address Translation(NAT架構) 區網內的電腦IP對外都會統一為一個公用IP
+Network Address Translation(NAT架構) 區網內的電腦IP對外都會統一為一個公用IP
 nginx讓區網內的電腦能將某個port公開出去 可暫時獲得公有URL以供其他電腦連線
 nginx就是透過nginx自家伺服器做反向代理 將外部request傳送到區域內網的localhost
 
@@ -4119,7 +4131,7 @@ upstream myweb {
     server web2.dtask.idv.tw weight=2;
 }
 
-nginx underscores_in_headers on;  # 用於調整相關設定 此時proxy_set_header才能用有'_'的變數做替代
+nginx underscores_in_headers on;  # 用於調整相關設定 此時proxy_set_header才能用有'_'的變數做替代
 
 server {
     listen 8000; # the port your site will be served on
@@ -4127,6 +4139,11 @@ server {
 
     server_name your_domain; 
     # the domain name it will serve for or your machine's IP or FQDN (除domain name之外 也可輸入該台host的IP位址或FQDN)
+
+    server_name  www.vipdailiang.com vipdailiang.com;  表示對nginx 輸入兩者都會通到相同地方
+
+    server_name  vipdailiang.com; 第二種方法是加上rewrite 如此就會做重導向
+    rewrite ^/(.*) http://www.vipdailiang.com/$1 permanent; rewrite可用於重定向
 
     charset utf-8;
 
@@ -4140,19 +4157,39 @@ server {
     proxy_read_timeout 1m; 當response無法被即時被nginx處理時 也會先放於等待池中
     proxy_send_timeout 1m; 當nginx正在處理response時 容許最長處理時間
 
+
+    location  = / {  # '='表示精準配對 只會配對'/'一種情況
+    } 
+    location ^~ /images/ {  # '^~'表示只會配對此選項 其後便不再配對其它location
+    }
+    location ~ ^/weblogs/ {  # 除了完整url之外 也可用正則表示法 ~表示區分大小寫的正則 ~*不區分大小寫的正則
+    }
+    location ~* \.(gif|jpg|jpeg)$ {  # '~*'表示配對一組不區分大小寫的正則 '.'為特殊符號 加上'\.'
+    }
+
+    # try_files可用於取代rewrite用於做重定向：
+    常用於static檢驗上 如果沒有static資料時才做重定向到backend server (因為static資源會放在web server)
+    
+    location / {
+      try_files $uri $uri/ @proxy_to_app;  # try_files用於檢查$url, $url/...等資料是否存在 若存在則返回最先檢查到的那一筆 若不存在則執行最後一個路徑(@proxy_to_app)
+    }
+    location @proxy_to_app {  # @proxy_to_app為在此設定檔宣告的location變數 此變數會被帶到try_files的$uri之後
+    }
+    
+
     location / { # 將port8000轉成uWSGI的port8003
         proxy_pass http://127.0.0.1:8003/;  # port為uWSGI修改改過的端口
         (或用proxy_pass upstream_name 表示會分流到被upstream指定的host)
 
         (uwsgi_pass 127.0.0.1:8003;  # 如果uWSGI已將django路徑改成unix端口 則應用uwsgi_pass取代)
-        (include /path/to/your/mysite/uwsgi_params;  # 使用uwsgi_pass需加上uwsgi_params 用於取代下面的proxy_set_header設定)
+        (include /path/to/your/mysite/uwsgi_params;  # 使用uwsgi_pass需加上uwsgi_params 用於取代下面的proxy_set_header設定)
 
         proxy_set_header Host $host; # 將原先指向web_server的host 換成 指向application_server的host(可用$host取代$http_host)
         ($host不包含port 而$http_host包含port)
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Real-PORT $remote_port; # 同理用於替代原先web_server的資訊 換成實際client端的IP:PORT
 
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;  # X-Forwarded-For由多個IP組成 表示request經過的代理主機IP (X-Real-IP會是其中的第一個IP)
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;  # X-Forwarded-For由多個IP組成 表示request經過的代理主機IP (X-Real-IP會是其中的第一個IP)
 
         proxy_set_header X-Forwarded-Proto $scheme;  # 有時不需要 因為web_server可能會做轉換 例如： http 換成 ws
 
@@ -4164,7 +4201,7 @@ server {
         proxy_next_upstream error timeout http_500 http_404; # 表示那些狀況時會進行重試 默認只會有error timeout 因為後兩者表示真的有問題 重試也不會有用
 
     }
-    location /static/ {  # url為/static/直接取靜態文件 不進入uWSGI
+    location /static/ {  # url為/static/直接取靜態文件 不進入uWSGI
         alias /your/path/project_name/static/;  # url為/static/js/chat.js  則返回/your/path/project_name/static/js/chat.js 不重複location的配對路徑
     }
     location /media/ {  # 所有的靜態文件都要用nginx作分流
@@ -4178,20 +4215,27 @@ server {
     error_page 404 /404.html 可顯示自定義404頁面內容，正常返回404狀態碼。
     error_page 404 = /404.html 可顯示自定義404頁面內容，但返回200狀態碼。 '='為重定向之意error_page 404 =200 /404.html 可省略重定向成功的200狀態碼
 
-
-    location ~ ^/weblogs/ {  # 除了完整url之外 也可用正則表示法 ~表示區分大小寫的正則 ~*不區分大小寫的正則
-        root /data/weblogs/www.ttlsa.com;
-    }
 }
 
-nginx -t 測試設定檔是否可正常使用
-nginx -s stop 停止nginx
-nginx -s start 啟動nginx
-nginx -s reload 重新讀取conf檔以使更新生效
+sudo nginx -t 測試設定檔是否可正常使用 每次執行時都要進行一次
+sudo nginx -s reload 重新讀取conf檔以使更新生效
+sudo nginx -g 'daemon off;' sudo一定要加上 且使用'daemon off;狀態開啟 才比較有關閉
 brew search nginx 查詢是否有此軟件
 brew info nginx 查看此軟件的相關訊息
 brew install nginx 下載此軟件
-brew services restart nginx 用brew做重新啟動
+
+## 設置supervisord
+用於自動管理進程 當發生問題時會自動執行相關指令已開啟端口(uwsgic和daphne都需要透過supervisord管理)
+supervisord -c /etc/project_name/supervisord.conf 執行supervisord -c可指定特定設定檔執行 若不指定則用預設/etc/supervisord.conf 
+(supervisorctl只能在base環境下使用 不然看不到status狀態)
+supervisorctl start all 等同supervisord 但必須先由 supervisord指令來建立upervisord.sock
+supervisorctl status 檢查當前的狀況
+supervisorctl stop all
+supervisorctl start programxxx 除了用all之外 也可以指定進程
+supervisorctl stop programxxx
+supervisorctl restart programxxx 重新啟動該進程 不會重新讀取設定檔
+supervisorctl reload 亦重新啟動該進程 但會先停止進程並重讀設定檔 
+supervisorctl update 如果沒有改變則不會停止 
 
 
 测试用JSP 用於測試最後application server後端收到的資訊:
@@ -4257,7 +4301,7 @@ class ChatConsumer(WebsocketConsumer):
   def connect(self):  # 建立連線時觸發
     # 每一個consumer在建立連接成功時 都會有scope用來紀錄connection的狀態資料
     if self.scope["user"].is_anonymous:  # connect()常用於驗證user身份
-      self.close() # 若要拒絕connection則用close() 表示webSocket只提供給認證身份者
+      self.close() # 若要拒絕connection則用close() 表示webSocket只提供給認證身份者
     else:
       Clients.objects.create(channel_name=self.channel_name)  # 在database建立record
       self.accept()  # accept()為connect()的最後一步
@@ -4283,7 +4327,7 @@ connect()最後會有self.accept()此時在傳回前端觸發WebSocket.onopen
 當執行disconnect()時 就已經跟前端沒有關係了 故為後續處理
 
 receive()包辦了所有從clinet端的互動方法 
-可在text_data['command']中設置client聯繫server的所有方法
+可在text_data['command']中設置client聯繫server的所有方法
 
 加上group的方法：(要使用group 就一定要設置channel_layer (在setting.py設置))
 原先channel_layer = channels.layers.get_channel_layer()
@@ -4303,16 +4347,16 @@ consumer是在server端的eventHandler 而chat_message()即為從channel_layer�
 consumer的self.send() 與self.channel_layer.send() 兩者方向不同
 前者是傳給client端 後者是傳給channel_layer上其他的consumer(仍在server端)
 
-self.receive()或self.receive_json() 為分流所有從client端傳來的content_dict並執行相關方法
+self.receive()或self.receive_json() 為分流所有從client端傳來的content_dict並執行相關方法
 self.send()或self.send_json() 為負責所有傳送給client端的content_dict
 content_dict用於與client端交流 所有的key-value都可自訂 
 massage_dict則與其他channel交流 規定第一組一定要是"type"
 
 會特別區分receive()和receive_json()的原因是 webSocket只要是單一字串都能傳
-後者就等於是不用多做json.loads()和json.dumps()
+後者就等於是不用多做json.loads()和json.dumps()
 
 另外's'為string的意思：
-json.loads()可直接將json與string型態做轉換 json.load()則必須用text_file開啟
+json.loads()可直接將json與string型態做轉換 json.load()則必須用text_file開啟
 
 with open('mock_data.json', newline='') as jsonfile:
   data = json.load(jsonfile)
@@ -4550,7 +4594,7 @@ python manage.py shell 可用於手動操作database (CTRL+D離開)
 如同在網頁上操作資料或呈現view.py裡面的訊息 可按CTRL+D離開
 SSH(secure shell)在terminal與遠端伺服器之間建立安全通道 github或gcp都需要使用SSH
 
-ssh-keygen -f .ssh/id_rsa 此指令用於產出符合規範的SSH Key並存放在特定檔案中
+ssh-keygen -f .ssh/id_rsa 此指令用於產出符合規範的SSH Key並存放在特定檔案中
 cat ~/.ssh/id_rsa.pub SSH Key
 
 ## redis-server指令
@@ -4558,7 +4602,7 @@ redis-server用於架設django緩沖系統  (CTRL+D離開)
 pip django-redis 必須安裝django-redis (不同於channel內建的redis庫)
 redis-server 開啟Redis伺服器 才能使用redis-cli指令
 redis-server redis.conf 可用conf檔做IP、port、logfile和datafile(dir)的設置
-redis-cli 開啟Redis的CLI介面(command-line interface) 可檢查內存的key-value鍵(預設為db0)
+redis-cli 開啟Redis的CLI介面(command-line interface) 可檢查內存的key-value鍵(預設為db0)
 redis-cli -n 1 開啟db1資料庫(redis分為16個資料庫db0~db16) 若不指定-n 則會自動開啟db0
 redis-cli ping 用於驗證redis-server是否可正常使用
 redis-cli select 2 移動到其他db資料庫
@@ -4576,7 +4620,7 @@ redis-cli expire key_name 60 延長鍵的過期時間(單位為秒) （另有:pe
 redis-cli get key_name 返回key的value
 redis-cli set key_name value 設置key的value (但一般都使用django的shell來存取cache)
 
-loadtest -n 100 -k  http://localhost:8000/index/ 用於做網站載入速度測試 用來測試cache的實用性
+loadtest -n 100 -k  http://localhost:8000/index/ 用於做網站載入速度測試 用來測試cache的實用性
 
 ## postgresql 指令
 psql -U postgres -d postgres -h 127.0.0.1 -p 5432 登入pgsql資料庫
@@ -4633,19 +4677,29 @@ vim中常見模式為NORMAL, INSERT, REPLACE:
 '|'  為將前指令的結果輸出接著做後指令的輸入 ls | grep filename  
 '||' 前指令失敗才會做後指令 cat filename || echo “fail”
 
-ps auxw  (不以'-'做指令 通常可以連用 並 只是改變輸出的顯示)
+ps auxw  (不以'-'做指令 通常只是改變輸出的顯示)
+ps ef 顯示所有進程及環境變數並以全格式顯示
 a(all) terminal下的所有程序
 e(environment) 每個程序的環境變量
 u(user) 以用戶為主來排列程序
 x() 不以terminal來區分
 w(wide)以寬闊的格式來顯示
 
-grep 用來做收尋 通常會與ps連用 (ps auxw | grep aaa)
+grep 用來做收尋 通常會與ps連用 (ps auxw | grep aaa.sh)
 egrep 等同 grep -E (--extended-regexp) 幾乎沒有在用
 fgrep 等同 grep -F (--fixed-strings) 表示固定長度字串
 grep -i 不分大小寫
 
 ps ax -o pid,ppid,%cpu,vsz,wchan,command|egrep '(nginx|PID)' 找尋與nginx相關的執行程序
+ps aux | grep supervisord 檢查supervisor的進程
+
+awk指令也時常會與ps連用 用於顯示重要訊息
+awk '{print $1,$4}' log.txt 顯示文本中每排的第1項和第4項 
+
+[log.txt]
+2 this is a test    # output:2 a
+3 Are you like awk    # output:3 like
+This's a test    # output:This's 
 
 kill -9 /kill -15
 前者為絕對關機 後者需要時間自動關機：後者比前者好
@@ -4673,6 +4727,7 @@ bash或zsh都是可執行的 可輸入/bin/bash 或/bin/zsh 打開terminal
 /bin/bash -c ls 可直接執行皆在-c(command)的指令
 
 pwd 顯示目前的絕對路徑
+pwd -P 顯示實際的工作目錄(而非連接檔的位置) -L則為輸出連接路徑
 
 cat test.txt | xargs echo -n3 將text.txt資料用三行顯示(xargs的默認輸出即為echo)
 用xargs將cat建立檔案的path傳給echo執行 
@@ -4684,7 +4739,7 @@ export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原�
 echo $PATH 檢查目前的環境變量
 
 ls -a 才能看到所有隱藏的檔案(.bash_profile)
-ls -l 查看檔案的詳盡資料 包含使用權限等
+ls -l 查看檔案的詳盡資料 包含使用權限等
 ls -l /dev/disk/by-id/google-* 可用星號表示自動匹配任何字串
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
@@ -4697,9 +4752,11 @@ rm 刪除單一檔案 和 rm -rf 刪除整個資料夾
 
 ln A A-ln-hard 為link 即用於將執行檔接到特定資料夾 使其可用terminal指令執行
 ln -s B B-ln-soft 為soft link 當原檔名稱備更改 會導致連接失效
+
 /usr/bin/ 則放系統內建的terminal指令 如ls, cd, echo, touch...等
-/usr/local/bin/ 此資料夾是用來放所有第三方程式的terminal指令
+/usr/local/bin/ 此資料夾是用來放所有第三方程式的terminal指令
 各個應用程式都會有軟連接將執行檔接過去  如npm, brew, pip, python...等
+
 whereis ls 系統內建的指令則用whereis搜尋
 which npm 第三方程式的指令可用which搜尋(gcloud, gsutil...)
 whoami 查看當前的使用者
@@ -4723,21 +4780,24 @@ chmod +x為 /tmp/tmp1.txt 增加執行權限 等同 chmod a+x /tmp/tmp1.txt (因
 user表示該文件的所屬用戶 group表示該文件的所屬用戶之群組的其他用戶 other則是此群組之外的用戶 all 就是以上三者的總合
 權限則為r讀/w寫/x執行 以及:
 s執行時將執行進程設為該文件的所屬用戶(至少要有x)
-u a+u 讓所有人都有所屬用戶相同的權限
+u a+u 讓所有人都有所屬用戶相同的權限
 g a+g 讓所有人都有群組其他用戶相同的權限
 o a+o 讓所有人都有有和其他人相同的權限
 
 chmod 777 /tmp/tmp1.txt 7=4+2+1表示所有人都有完整的權限
 r/w/x 分別表示 數字4/2/1(第一位, 第二位, 第三位) 用於使用2進位寫入檔案管理系統
-同理 6=4+2 為讀寫權限 5=4+1為讀取和執行
+同理 6=4+2 為讀寫權限 5=4+1為讀取和執行
 -rwxrw-r-- 前三個為user的權限(rwx) 中間三個為group權限(rw-) 後三個為其他人權限(r--) 
 
 如果仍不能執行可以在~ 改用./command_name
 
-sed指令(Stream Editor):
+sed指令(Stream Editor):
 sed 's/beijing/wuhan/g' 文件內的beijing替換成wuhan
 sed -e 's/Giga/GigaRama/' -e 's/^/Hi../' > file sed -e用於指定多重條件
 sed -E 's/(DROP|CREATE|COMMENT ON) EXTENSION/-- \1 EXTENSION/g' 其中\1會配對前a面正則配對上的字串 即(DROP|CREATE|COMMENT ON)其中一種
+
+wc /etc/motd/test.txt 計算檔案的行數(newline)、字數(word)與位元組數(byte)
+wc -l /etc/motd/test.txt 參數-l 只計算其中的行數
 
 加裝硬碟的步驟 任何新硬碟在使用前都必須先做格式化, 更改使用權限, 掛載到電腦的檔案系統： 
 lsblk 查看目前的在VM上的硬碟
@@ -4751,7 +4811,7 @@ sudo mount -o discard,defaults /dev/DEVICE_NAME /mnt/disks/postgres-disk 將硬�
 /etc, /bin, /dev, /lib, /sbin 為linux五個次目錄 
 /etc 專處理系統開機過程所需讀起的設定檔
 /bin terminal的常用執行檔 cd,ls...
-/dev 主電腦系統之外的裝置相關檔案 可能為軟碟機或光碟機
+/dev 主電腦系統之外的裝置相關檔案 可能為軟碟機或光碟機
 /lib 編輯程式的函式庫
 /sbin 系統管理常用程式 fdisk,mount...
 
@@ -4796,7 +4856,7 @@ git commit -m "init commit" 只會將此時在暫存區的檔案commit到本地�
 git commit -a -m "update content" 可用-a簡化add流程 
 但只會安置更動過modified的檔案 對於新增或刪除則無效
 
-也可以將未安置的檔案再add到'上一個'commit版本 此時要用--amend:
+也可以將未安置的檔案再add到'上一個'commit版本 此時要用--amend:
 git commit --amend -m "update content fixed" 用於修改最近一次的commit 
 git commit --amend --no-edit no-edit則表示不改變commit的message
 只能修改最近一次 過去的commit因為會影響到其後的commit版本故不能直接修改
@@ -4825,15 +4885,15 @@ git checkout branch_name 則將HEAD移動到其他分支 此時commit就會紀�
 git checkout -b branch_name 同樣能簡化branch流程
 不一定每條分支最後都一定要合併 多分支可用於為專案提供多個版本
 
-git branch feature cd82f29 表示多加上一個branch指著此commit 常用於回到過去版本後在做延伸
-git branch -d feature 用於merge合併完後將分支刪除
+git branch feature cd82f29 表示多加上一個branch指著此commit 常用於回到過去版本後在做延伸
+git branch -d feature 用於merge合併完後將分支刪除
 git branch -D feature merge合併前就將分支刪除 用於淘汰此分支的版本內容
 git branch -m old_name new_name 當本地端分支重新命名
 若將分支刪除後 commit並不會被刪除仍可透過checkout切換 但會導致HEAD斷頭
 
 git checkout cd82f29 也可移動到其他的commit版本 (只要輸入commit識別碼的前7碼就行)
 (另一角度想:checkout只能移動到commit 而移動到branch則指的是當前分支所指的commit)
-但若此commit並不是分支最新上傳的 也就是當前沒有分支指著它 則會導致HEAD斷頭
+但若此commit並不是分支最新上傳的 也就是當前沒有分支指著它 則會導致HEAD斷頭
 
 git checkout cd82f29 welcome.html 也可以只回復單一檔案
 git checkout welcome.html 若沒有指定commit版本 則表示回復到當前分支(HEAD)
@@ -4846,7 +4906,7 @@ commit雖可以獨立於分支 但如此就難以事後被搜尋 以至於維護
 此時可用git branch new_branch 來指定新的分支給commit
 
 git reflog 詳細顯示你每個commit和git指令辨識碼(reset指令也會被記錄)
-git reset HEAD~2 用於回到過往的版本 往後退2個版本(HEAD~2)
+git reset HEAD~2 用於回到過往的版本 往後退2個版本(HEAD~2)
 git reset cd82f29^ 表示到此commit的前一次 等同(cd82f29~1) 
 預設為--mixed 只會改變暫存區檔案 但不會動到工作目錄的檔案 即之後所變動的檔案被歸為untracked
 git reset --soft cd82f29 都不會動到暫存區和工作目錄的檔案 版本之後所變動的檔案會被歸為modified
@@ -4861,8 +4921,8 @@ git checkout和git reset都可以回到過去的commit版本
 git branch -a 可查看所有分支 可分為本地端分支master和追蹤分支origin/master
 當clone下來的專案由於本地端沒有分支 只會有追蹤分支origin/master
 git checkout -t origin/master 此時可用-t 來切換到tracking branch 此時分支名為master
-(等同 git checkout master 會在本地端建一隻分支做追蹤)
-git pull origin master 每次要在分支工作時都應先下載當前分支的最新版本
+(等同 git checkout master 會在本地端建一隻分支做追蹤)
+git pull origin master 每次要在分支工作時都應先下載當前分支的最新版本
 git push origin master 且最後仍要將此分支上傳到遠端
 git push -u origin master  -u為--set-upstream 表示設定本地端分支會自動對應同名的遠端分支
 (也可以直接在當前分支設置git branch -u origin/master 此時沒有上傳)
@@ -4887,7 +4947,7 @@ git merge --no-ff hotfix 則禁止fast-forward快轉 故仍提交merge的commit
 
 git rebase hitfix rebase會將有分歧的兩條分支合併為一條 兩條分支最後都會指向同一個commit
 被合併分支(hitfix)會併到當前分支(master)的後面 好處是會保留分支的commit且log紀錄更清楚
-如果用merge合併完再把被合併分支刪除 則會導致被合併分支的commit遺失 
+如果用merge合併完再把被合併分支刪除 則會導致被合併分支的commit遺失 
 
 git rebase cd82f29 也可將單獨的commit併到當前分支的後面 (rebase字面意義就是推進版本(base)的意思)
 git cherry-pick fd23e1c 6a498ec f4f4442 將其他commit複製到當前分支的後面 不是合併故不會改變其他分支
@@ -4916,7 +4976,7 @@ drop 直接丟棄此commit 如果修改過的檔案沒有被下一個commit保�
 
 rebase會比merge更容易發生conflict 當發生conflict時：
 git rebase --continue 同上可手動處理檔案內分歧部分 修改完後繼續進行
-若不是文字檔時 則無法手動排除分歧部分 此時只能選擇分支中的其中一個檔案
+若不是文字檔時 則無法手動排除分歧部分 此時只能選擇分支中的其中一個檔案
 git checkout --ours cute_animal.jpg our表示為當前分支的檔案
 git checkout --theirs cute_animal.jpg theirsf表示被合併分支的檔案
 同上最後都需要重新將此檔案add到暫存區 再執行git rebase --continue
@@ -4926,7 +4986,7 @@ git rebase --abort 停止rebase合併
 
 git log 只會有commit版本紀錄 不會有git指令紀錄
 git log --oneline --graph 可看之前提交的commit紀錄 oneline為只有message格式 graph則將branch圖像化
-git log --pretty --graph pretty則為完整的紀錄格式 commit的排列順序是依據提交的先後時間
+git log --pretty --graph pretty則為完整的紀錄格式 commit的排列順序是依據提交的先後時間
 log紀錄中會有author, date, message等資訊 都可用來做搜尋：
 git log --author="JASON|SMITH"  '|'可用於搜尋多個author提交的commit
 git log --grep="update"  表示搜尋message中有符合字元的commit
@@ -4945,8 +5005,8 @@ hotfix緊急修補分支：由master分支出來 用於解決正式版已上線�
 **github:**
 多人協作時: 會從專案owner的github帳號 將專案fork到個別開發者的github帳號之中 
 此時才從個人帳號做下git clone 好處是push只會到自己的帳號
-個別開發者再對owner帳號發送pull request(PR) 
-此時owner會收到個別開發者的PR 確認無誤後在執行merge pull request
+個別開發者再對owner帳號發送pull request(PR) 
+此時owner會收到個別開發者的PR 確認無誤後在執行merge pull request
 
 針對本地端的上傳內容 遠端儲存庫永遠只接受快轉合併 也就是兩個分支不能有分歧
 (也非常符合邏輯：因為本地端只能push到自己的github帳號 也就是除了自己外 此github帳號基本不會有更動)
@@ -4954,8 +5014,8 @@ git push -f -f為force 就是讓本地端的分支直接上傳蓋掉遠端的分
 
 git remote -v 查看當前專案所連結的遠端儲存庫
 git remote set-url origin git@github.com:username/renamerepo.git 修改原先origin的路徑
-git remote add upstream git_url 用於連結其他遠端儲存庫 可自行設置專案名稱
-origin為git clone下來的專案位置 即個別開發者的githug帳號 另一個取名upstream則為owner的github帳號
+git remote add upstream git_url 用於連結其他遠端儲存庫 可自行設置專案名稱
+origin為git clone下來的專案位置 即個別開發者的githug帳號 另一個取名upstream則為owner的github帳號
 
 設置upstream是避免當前本地端的專案與owner的專案不同步的情形:
 git fetch upstream master 取得owner專案的master分支內容 此時在本地端為追蹤分支upstream/master
@@ -4974,7 +5034,7 @@ Dockerfile用於在本地端建立專用的container
 通常包含軟體需求(FROM),所在目錄(WORKDIR),對外埠號(EXPOSE), 前置執行指令(RUN)與最後執行指令(CMD)
 
 將django做成container:
-FROM: python:3.8.3-alpine 所用程式版本(從Docker Hub抓base image)
+FROM: python:3.8.3-alpine 所用程式版本(從Docker Hub抓base image)
 LABEL maintainer="example@gmail.com" 存放相關資訊
 WORKDIR: /usr/src/app 在開啟container的機台中設置work directory 不存在時會自動建立 表示在此層執行RUN (/usr/src/app慣用位置 或直接用/app)
 
@@ -4984,7 +5044,7 @@ ARG NODE_VER 也類似於環境變數 但可在build container時重新設置 (d
 
 COPY ./requirements.txt /usr/src/app 將requirements.txt複製到container中 或直接將整個專案複製過去
 COPY . /usr/src/app 複製當前專案到container的特定位置 (專案的根目錄 會與Dockerfile同一層)
-COPY static /etc/static/ 用於複製整個資料夾 當指定目標為資料夾時 會將內部的內容複製過去
+COPY static /etc/static/ 用於複製整個資料夾 當指定目標為資料夾時 會將內部的內容複製過去
 
 ADD http://example.com/big.tar.xz /usr/src/things/ 與COPY相同都是複製 但ADD用於複製遠端檔案
 
@@ -5009,7 +5069,7 @@ ENTRYPOINT不能用shell form來寫 會導致CMD指令被覆蓋掉 (shell form�
 有時CMD可以只寫參數 而沒有執行指令： CMD ['-i','-t']  (exec form以array表示 即ENTRYPOINT將後面的CMD指令連用)
 好處是docker run --command 可以只寫附加的參數 而沒有執行指令(放在ENTRYPOINT中)
 
-#docker-entrypoint.sh 通常會將docker的前置作業寫入entrypoint 不同於直接寫在dockerFile的RUN是為了架設環境
+#docker-entrypoint.sh 通常會將docker的前置作業寫入entrypoint 不同於直接寫在dockerFile的RUN是為了架設環境
 #!/bin/bash # 用於指令shell script 可取代/bin/bash -c指令
 
 #Collect static files
@@ -5041,7 +5101,7 @@ COPY docker-nginx-dj3.conf /etc/nginx/sites-available
 
 RUN mkdir -p /etc/nginx/sites-enabled/ && \  創建sites-enabled
     ln -s /etc/nginx/sites-available/docker-nginx-dj3.conf /etc/nginx/sites-enabled/  並做soft-link
-CMD ["nginx", "-g", "daemon off;"] nginx會在container中執行 故須設置deamon off 讓container不會自動關閉 讓nginx可以留在前台處理(foreground)
+CMD ["nginx", "-g", "daemon off;"] nginx會在container中執行 故須設置deamon off 此時container才能管理進程 (讓container不會自動關閉 讓nginx可以留在前台處理(foreground))
 
 
 docker version 檢查版本
@@ -5058,7 +5118,7 @@ docker push asia.gcr.io/my-project/busybox
 
 docker images 列出目前所有的images
 docker commit -m "Added Git package" -a "Starter" 59f3e3615488 當修改container之後 可用commit更新 讓docker hub與本地端同步 
-但可以會使得原先在service掛載的secret或config無法使用
+但可以會使得原先在service掛載的secret或config無法使用
 
 docker run -p 3000:3000 -it 733776b1db0a 有了id之後便能開始生成container
 -p表示publish 將容器發布到端口port上 另外-P則表示隨機生成port 如此就不用指定3000:3000
@@ -5102,8 +5162,7 @@ docker本身有service物件：
 docker run只是單獨執行一個container 而使用docker service則可以依據設定自動處理多個container
 當發生問題時可以重啟 自行尋找node來上架容器 並可以進行不中斷更新
 
-
-docker secret ls 查看secret物件
+docker secret ls 查看secret物件
 docker secret rm my_secret_data 刪除secret物件
 printf "This is a secret" | docker secret create my_secret_data - 使用'-'參數 將standard input輸入到my_secret_data中 
 docker secret create .env ./.env 直接用特定檔案建立secret物件 物件也要同名才能直接給後端抓取
@@ -5116,7 +5175,7 @@ docker container exec container_id ls -l 在container中執行linus指令
 docker container exec container_id cat >text.txt 建立空白文件
 docker container exec container_id cat text.txt 顯示此文件內容
 
-docker attach continaer_id 連接到container的配置的處理進程(STDOUT...) 不是ssh
+docker attach continaer_id 連接到container的配置的處理進程(STDOUT...) 不是ssh
 docker exec -it 9ad62459bfdc bash 進入container的ssh
 docker exec -it 9ad62459bfdc sh 在container當前的workdir在開啟ssh
 
@@ -5129,7 +5188,7 @@ docker tag django_todo:latest <Docker Hub username>/django_todo:latest
 docker push <Docker Hub username>/django_todo:latest 放在docker hub
 docker push asia.gcr.io/<project-id>/server 也可放在google docker registry
 
-docker只涉及連到本地機的port 與IP位址無關
+docker只涉及連到本地機的port 與IP位址無關
 決定外界使否可連線或連到哪個ip位址則由django manage.py決定
 
 containerized app是具有RESTful風格的管理系統 可使用標準HTTP方法進行操作
@@ -5228,8 +5287,8 @@ kops delete cluster \  用於刪除cluster
 > --state=s3://k8s-demo-qwer \ 
 
 ### 建立k8s的service物件：
-kubectl run hello-minikube --image=gcr.io/google_containers/echoserver:1.8 --port=8080  
-跑docker-image並設置port 其中hello-minikube為我們自己決定的物件名稱 用於之後的操作
+kubectl run hello-minikube --image=gcr.io/google_containers/echoserver:1.8 --port=8080  
+跑docker-image並設置port 其中hello-minikube為我們自己決定的物件名稱 用於之後的操作
 
 $ kubectl run -i --tty alpine --image=alpine --restart=Never -- sh
 執行alpine並開啟shell --tty(Teletype) 指的是unix系統的終端機
@@ -5296,7 +5355,7 @@ kubectl describe pods mypod 查看pods中mypod的物件訊息
 kubectl port-forward mypod 8000:3000 表示將pod內部的3000port 映射到本機端的8000port
 
 每個pod都會有一個專屬的ClusterIP 只有再同一個cluster中才能透過此ip做訪問
-每個pod內部可能有多個container 設置不同的containerPort 用於區分在pod中的container
+每個pod內部可能有多個container 設置不同的containerPort 用於區分在pod中的container
 同一個pod通常會存放功能相近的container 或 多個需要頻繁進行溝通的container 應使用pod內部溝通
 當需要分成不同的pod並進行負載平衡 則使用不同pod彼此訪問
 pod內部溝通：等同 localhost/port_number 即在同一個本地端作業
@@ -5305,7 +5364,7 @@ pod內部溝通：等同 localhost/port_number 即在同一個本地端作業
 而且pod物件會透過deployment部署多pod備用：
 此時如果相同功能分成不同pod時 就必須整組pod一起部署
 
-pod是k8s的基本單位 每個pod都應該能透過request溝通來滿足使用需求
+pod是k8s的基本單位 每個pod都應該能透過request溝通來滿足使用需求
 pod內部會有多個container用於安裝虛擬環境所需的程式包
 這些container如果是從docker hub下載的 會需要設定環境變數Environment Variables
 這些環境變數會放在secret中供其他pod取用 (spec.containers.env)
@@ -5463,7 +5522,7 @@ env:
 - name: SECRET_USERNAME  # 同理可設置多組環境變數
   valueFrom:
     secretKeyRef:
-      name: mysecret  # 從secret物件中抓取
+      name: mysecret  # 從secret物件中抓取
       key: username
 - name: SECRET_PASSWORD
   valueFrom:
@@ -5634,8 +5693,8 @@ npm install --save-dev(等同-D) 會在package.json中的"devDependencies" 表�
 ex:sass套件是為將sass檔轉換成css檔所用 如此就只需要在"devDependencies"
 
 npm run test 會執行寫在package.json下script屬性下的'test'指令 (npx test)
-好處是只會在專案環境下執行 此模組與全域環境無關
-node test_basic.js 則會執行當前所有資料夾的js檔 
+好處是只會在專案環境下執行 此模組與全域環境無關
+node test_basic.js 則會執行當前所有資料夾的js檔 
 
 - - ---------------------------------------------------
 ## scss:
@@ -5690,7 +5749,7 @@ try-except:raise則表示再丟一個exception給上一層 (若不用raise則表
 像是utils.py不處理exception 而是raise ClientError('error message') 給 consumers.py
 
 不要不指定exception (except:) 會導致所有例外都被用同一種方式回應
-except:只能用於測試階段 正式上線就就必須捕抓完整的例外
+except:只能用於測試階段 正式上線就就必須捕抓完整的例外
 
 此外盡量不要用在同一個try:區塊 標記多種exception
 except HTTPError as e:
@@ -5754,14 +5813,14 @@ map(lambda x: x * 2, [1, 2, 3, 4, 5])  # output:[2, 4, 6, 8, 10]
 map()可針對參數做映射 故最後回傳的大小長度都會跟放入的參數相同
 
 lambda能與zip()一同使用 但易讀性較差
-即： map(lambda t: t[0]*t[1], zip(input_a, input_b)) 
+即： map(lambda t: t[0]*t[1], zip(input_a, input_b)) 
 不如用：[x*y for x,y in zip(input_a, input_b)]
 
 lambda也能處理多個變數 必須在其後擴充相同長度的參數
 map(lambda x, y: x + y, [1, 3, 5, 7, 9], [2, 4, 6, 8, 10])
 
 all()和any()都必須放可迭代物件
-any([-1,0,[]]) # output:True  ( list中只要有一個True any()為True)
+any([-1,0,[]]) # output:True  ( list中只要有一個True any()為True)
 all([-1,0,[]]) # output:False  ( list中必須全為True all()為True )
 
 zip()則用於同時處理多個可迭代物件 可將其組合成tuple並供使用
@@ -5782,9 +5841,9 @@ webSocket是比較新的技術：為一種互動通訊的技術 在TCP連接上�
 若都是由client端來發送訊息 (即websocket和ajax都能實現的功能)
 則websocket講究時效性 但client端發送訊息(用chatSocket.send) 
 此時要等server端的應用層做出回應(ChatConsumer.receive)
-ajax則用{success：function(res){...},onerror:function(){...}}直接調用返回函數
+ajax則用{success：function(res){...},onerror:function(){...}}直接調用返回函數
 websocket若要有success:和onerror:功能 則可用websocket.onerror捕抓所有異常
-websocket不需要傳送http_header 所以效率較高應優先使用
+websocket不需要傳送http_header 所以效率較高應優先使用
 
 故若從server返回的訊息是固定的(即系統上的回應) 則應該使用ajax 
 另外傳輸多媒體等大文件時因為會佔用websocket 更仍應採用ajax
@@ -5792,12 +5851,12 @@ websocket若要有success:和onerror:功能 則可用websocket.onerror捕抓所�
 但若從server返回的訊息是不固定的(其他使用者的即時回應) 則才用websocket
 
 早期常見獲得real-time update的方法：(不使用websocket的狀況下)
-polling輪詢：實現輪詢的底層需要用setTimeout()或setInterval()做定期發送ajax
+polling輪詢：實現輪詢的底層需要用setTimeout()或setInterval()做定期發送ajax
 setInterval()因為一開始就定好執行時間點 會導致不能因應實際回傳的時間做調整
 setTimeout()可重複調用來取代setInterval() 因此大多時間是直接用setTimeout()
 
-streaming(comet)：如同彗星後端一樣把request拉的很長不結束 
-等同是server端一直做polling來傳輸待機訊號 直到真正需要用到時才傳資料
+streaming(comet)：如同彗星後端一樣把request拉的很長不結束 
+等同是server端一直做polling來傳輸待機訊號 直到真正需要用到時才傳資料
 
 long-polling長輪詢:結合polling和comet衍生而來 改善頻繁發送ajax
 而是改發一個長時間待機的ajax直到server端有資料要傳時 才切斷發一個新的ajax
@@ -5939,7 +5998,7 @@ setTimeout()所使用的方法等同python的asyncio.create_task() 相當于另�
 因此setTimeout()中的參數time只能代表最少需要等待的時間 實際上有可能超過此時間
 (因為同步事件還未完成 或其他在佇列的事件未完成)
 
-由於JS是單線程語言(single thread)：此時若沒有用非同步處理 則會導致執行程序阻塞(blocking)
+由於JS是單線程語言(single thread)：此時若沒有用非同步處理 則會導致執行程序阻塞(blocking)
 實現非同步的原理：JS是單線程 但瀏覽器是多線程 
 故若JS要進行非同步方法就是請求瀏覽器 時間到時將要執行的方法放入event_loop等待單線程處理
 而setTimeout()是webAPI 不會影響到JS主程式 故可以設置等待時間延後執行
@@ -6005,9 +6064,9 @@ socket.onmessage = event => {
 
 message常用屬性：
 message.type 可用於決定JS的處理方式 為字串形式
-message.ms 從1970年開始算起的毫秒數 故每一時間的數值都不同可用於辨識
+message.ms 從1970年開始算起的毫秒數 故每一時間的數值都不同可用於辨識
 
-document.forms會選取所有html內部的<form>元素 回傳array
+document.forms會選取所有html內部的<form>元素 回傳array
 var selectForm = document.forms[i] //故必須用i指定
 
 
@@ -6074,7 +6133,7 @@ history.go(0) 等同 window.location.reload() 會連js或css檔都重新載入
 history.go(-1) 等同 history.back()
 history.go(1) 等同 history.forward()
 
-document.hidden // boolean值 為使用者是否正在當前頁面(可能正在其他分頁)
+document.hidden // boolean值 為使用者是否正在當前頁面(可能正在其他分頁)
 不同瀏覽器其屬性名不同 可能為webkitHidden, mozHidden, msHidden, oHidden (目前新版本已經都有支持)
 一般的作法是遍及prefix = ['', 'webkit', 'moz', 'ms', 'o'] 
 for (let i = 0; i < prefixes.length; i++) {
@@ -6085,12 +6144,12 @@ for (let i = 0; i < prefixes.length; i++) {
 
 document.visibilityState // 可能值為'visible', 'hidden', 'prerender'
 'visible'表示瀏覽器正在當前頁面且未縮到最小化(可用tab選取) 
-'hidden'則瀏覽器不在當前頁面 即在此頁面不能使用tab選取
+'hidden'則瀏覽器不在當前頁面 即在此頁面不能使用tab選取
 'prerender'表示網頁正在生成 當開啟網頁時會先是prerender狀態
 
 以上可用於寫visibilitychange事件：
 因為各家瀏覽器變數名稱不同 需加上前綴 prefix = ['', 'webkit', 'moz', 'ms', 'o'] 
-document.addEventListener("visibilitychange", function(){  // 當打開其他分頁時 縮小化的標題會變更
+document.addEventListener("visibilitychange", function(){  // 當打開其他分頁時 縮小化的標題會變更
     document.title = document[getVisibilityState()]+"狀態";
 });
 
@@ -6108,12 +6167,12 @@ localStorage.name = 'jason' 或 localStorage['name'] = 'jason'
 
 window.sessionStorage： (與window.localStorage幾乎相同 方法都相同)
 差別在於sessionStorage在頁面關閉時便會刪除且不同窗口不會共享 localStorage則不會過期也可共享
-(sessionStorage因表示只在瀏覽器開啟有效 這點與session相同故命名之)
+(sessionStorage因表示只在瀏覽器開啟有效 這點與session相同故命名之)
 使用localStorage聊天室關閉後再開 仍保持在相同畫面
 通常localStorage與sessionStorage會依據需求混搭使用 再搭配localData將資料存入
 
 
-可用localDataFlush()做同步 將localData的資料轉往localStorage 
+可用localDataFlush()做同步 將localData的資料轉往localStorage 
 (flush即是將臨時狀態的資料同步到永久狀態)
 getLocalData()則反之 將瀏覽器的localStorage轉往localData的
 
@@ -6130,7 +6189,7 @@ localStorage只能儲存字串:一個中文字佔3個字節 英文字母與數�
 document.cookie="name=jason;age=20;domain=example.com;path=/;max-age=3600;expires=Tue, 19 Jan 2038 03:14:07 GMT "
 將key-value與cookie的prop放在一起 故要小心key的命名不能與prop重複
 path指定哪些路徑可以存取cookie 若為path=/表示全站都可以存取
-domain可指定除本身網域之外的其他網域共同使用此cookie
+domain可指定除本身網域之外的其他網域共同使用此cookie
 
 
 max-age和expires都表示過期時間 
@@ -6152,8 +6211,8 @@ document.cookie與django的request.COOKIE之差異：
 
 4種存放資料的方式:
 cookie:存放資料大小約4kb左右 且最多只能有20個 (依瀏覽器而異)
-故較適合存取session標籤 通常有時間週期 過期後便無法在使用此session
-sid在cookie中便可直接用key/value來找 此外session需有資料庫才能用
+故較適合存取session標籤 通常有時間週期 過期後便無法在使用此session
+sid在cookie中便可直接用key/value來找 此外session需有資料庫才能用
 sid =request.COOKIE['sessioid']
 s = Session.objects.get(pk=sid)
 
@@ -6175,8 +6234,8 @@ django會負責處理sessionid的加密 在server端只要直接用request.sessi
 
 ## webStorage:
 無大小與數量限制 分為localStorage和sessionStorage 
-不同於cookie以string方式儲存 webStorage則以key/value的方式儲存
-不同於cookie在httpRequest的header中攜帶 webStorage只會在client端存取
+不同於cookie以string方式儲存 webStorage則以key/value的方式儲存
+不同於cookie在httpRequest的header中攜帶 webStorage只會在client端存取
 不同於cookie需要每次檢查request webStorage本身就支援事件通知機制
 
 網頁動畫或互動較適合使用webStorage 
@@ -6215,7 +6274,7 @@ localData:直接存在js文檔之中
 但弱勢動態生成的新元素則用此方法較好 可以減少再用jquery做搜尋的時間
 
 <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-IE的版本兼容設定：IE=edge表示由用戶當前的最高IE版本決定 並會自動使用chrome的框架
+IE的版本兼容設定：IE=edge表示由用戶當前的最高IE版本決定 並會自動使用chrome的框架
 
 <meta name="google-site-verification" content="zdvMUg9S3bTS8OmA2wBC29J-0UPCIsE6XSHqSOjyJSo">
 向Google Search Console提交網站時 需要確認是網站擁有者 
@@ -6411,22 +6470,22 @@ container通常放於body的下一層 會與彈出視窗modal或導覽選單nav�
 @import, @media, @font-face :at-rules
 "@"表示特殊說明 與其他html標籤類別都沒有關係
 
-xs:為手機直立的寬度  直接width:100%即可 不用設固定寬度 一般長度為372px => 120px * 3.1倍 
+xs:為手機直立的寬度  直接width:100%即可 不用設固定寬度 一般長度為372px => 120px * 3.1倍 
 xm:為手機橫放的寬度  @media (min-width: 576px)  => 120px * 4.8倍
 md:平板電腦的寬度  @media (min-width: 768px),  => 120px * 6.4倍
 lg:一般電腦的寬度  @media (min-width: 992px),  => 120px * 8.3倍
 xL:超大型電腦螢幕的寬度  @media (min-width: 1200px)  => 120px * 10倍
 
-full-scream就是1440px * 1080px 為4:3長寬比 (為應付全螢幕 瀏覽器背景要能有此大小)
+full-scream就是1440px * 1080px 為4:3長寬比 (為應付全螢幕 瀏覽器背景要能有此大小)
 但一般瀏覽器會有上層UI介面 故為1440px * 900px 為8:7長寬比
-上層的UI介面約為180px 而瀏覽器右側slide為32px 
+上層的UI介面約為180px 而瀏覽器右側slide為32px 
 
 瀏覽器的最小寬度為500px 故logo大致上不能超過這個大小 500px * 500px
 youtube的video元素之高度為528px 當瀏覽器大於最小寬度時稍為放大一點 528px * 528px 
 google的輸入欄最小寬度為436px 故當瀏覽器在最小寬度時應再縮小一點 436px * 436px
 
 同理grid模式的row,col也會有{breakpoint}系統 但響應式設計不太一樣
-以col-xs為例：只要大於xs的尺寸大小 就會變垂直排列以避免方格變形(類似於手機的排版方式)
+以col-xs為例：只要大於xs的尺寸大小 就會變垂直排列以避免方格變形(類似於手機的排版方式)
 
 大致邏輯是xxx-{breakpoint} 表示只適用於大於此{breakpoint}尺寸的裝置
 故-xs為其預設(即col-xs-4 等同 col-4) 即可適用於所有大於xs尺寸的裝置 
@@ -6436,8 +6495,8 @@ google的輸入欄最小寬度為436px 故當瀏覽器在最小寬度時應再�
 @media (min-width: 768px){  // 最小寬度為768px以上的裝置
   width:744px;
 }
-當大於768px(mg+pa+內部寬度)時會做width:744px;(pa+內部寬度)
-(注意：media的width指的是瀏覽器視窗總寬度 而css中的width則指的是該元素不包含margin的寬度)
+當大於768px(mg+pa+內部寬度)時會做width:744px;(pa+內部寬度)
+(注意：media的width指的是瀏覽器視窗總寬度 而css中的width則指的是該元素不包含margin的寬度)
 亦即margin最小為24 而隨螢幕寬度放大 margin也會隨之放大
 
 故反之還有：
@@ -6446,7 +6505,7 @@ google的輸入欄最小寬度為436px 故當瀏覽器在最小寬度時應再�
 
 margin 元素與外部元素之間的邊界間距 padding 元素與內部內容之間的邊界間距
 何時使用 差別只在於width會把padding算進去 且 元素的border的位置會不同
-margin用於全裝置統一留空的部分 而padding則用來微調不同裝置填空的部分
+margin用於全裝置統一留空的部分 而padding則用來微調不同裝置填空的部分
 對於有背景色的元素而言border相當重要 此時mg,pa就不能混用
 
 border 則是元素外框 用來設定邊框寬度與樣式 (border之內就算是content)
@@ -6456,7 +6515,7 @@ padding-right:15px 和 padding-left:15px
 同理row,col也基本是透過margin,padding做調節
 
 border與outline的差異：
-border可設置圓角 屬於元素的邊框線 而outline用於點擊後顯目元素 屬於元素的外框線
+border可設置圓角 屬於元素的邊框線 而outline用於點擊後顯目元素 屬於元素的外框線
 
 <div class="container custom-container-width">  第一個class後面加上空格隔開 放入特定屬性
 .container.custom-container-width {
@@ -6478,7 +6537,7 @@ row alignment system：row的重點在對齊方式
 <div class="row justify-content-between"> 表示一樣是元素分開排列 但靠右側和左側
 
 justify則為主軸相關main axis(左右) align開頭都是副軸相關cross axis(上下)
-亦即將同一寬度的元素歸為content 而讓多個元素等高對齊則用items
+亦即將同一寬度的元素歸為content 而讓多個元素等高對齊則用items
 
 (不常用)justify-items：此時主軸上的元素已有所在區塊 justify-items用於做靠右或靠左或置中
 (不常用)align-content：此時副軸上已有多行元素 align-content用於整體靠上或靠下或置中
@@ -6509,7 +6568,7 @@ p-5: 3 * 1rem = 48px
 rem的大小會直接比對瀏覽器的textContent字體大小(font-size)
 其目的是為配合多種不同裝置尺寸大小
 
-em則是rem的過期用法 會直接比對父元素的textContent字體大小
+em則是rem的過期用法 會直接比對父元素的textContent字體大小
 但因為巢狀結構下過於複雜而被淘汰
 rem則是比對根元素的textContent字體大小 無論在哪個結構中都會是一樣的標準
 
@@ -6601,7 +6660,7 @@ navbar-brand, navbar-text, nav-link...等皆為navbar選項元件 可放在：
 而navbar-collapse元素的內部 則需用navbar-nav元素和navbar-item元素組成
 並將navbar選項元件放入navbar-item元素中
 
-collapse屬性表示此元素會回應collapse事件 navbar-collapse屬性則為在navbar的佈局
+collapse屬性表示此元素會回應collapse事件 navbar-collapse屬性則為在navbar的佈局
 通常兩者同時出現 同樣的方式還出現在accordion元件中：<div class='accordion-collapse collapse'> 
 
 ## bootstrap_list:
@@ -6736,7 +6795,7 @@ $('#upload-photo-input').data(url:'upload/photo_nocrop')
 此方法的好處是讓任何html元素都能自存資料
 
 另外:<div data-last-value='45'> 
-// 從html到js時會將'-'拿掉 $('div').data('lastValue') == 45
+// 從html到js時會將'-'拿掉 $('div').data('lastValue') == 45
 
 
 input::-webkit-file-upload-button {  //Chrome and Opera
@@ -6745,7 +6804,7 @@ input::-webkit-file-upload-button {  //Chrome and Opera
   cursor: pointer;
 }
 用<input>的pseudo element 可改變預設的上傳按鈕外型
-
+
 <div class="form-group">
   <label for="exampleFormControlSelect1">Example select</label>
   <select class="form-control" id="exampleFormControlSelect1">
@@ -6858,13 +6917,13 @@ data-bs-target="#myModal" 觸發標記為<div class="modal" id='myModal'>的moda
 
 另可再JS中用主動顯示或主動退出 以取代html中的<button data-bs-toggle='modal'>
 $('.form_modal').modal('show') 或 $('.form_modal').modal('hide')
-bootstrap的許多插件都會使用到jquery 因此bootstrap會針對特定元件擴充jquery功能
+bootstrap的許多插件都會使用到jquery 因此bootstrap會針對特定元件擴充jquery功能
 
 若不使用jquery的話 則需要創建bootstrap的Modal實例 (反而更麻煩)
 var myModal = new bootstrap.Modal(document.getElementById('myModal'), options)
 
 
-除此之外也可讓modal當作事件來觸發：
+除此之外也可讓modal當作事件來觸發：
 $('.form_modal').on('show.bs.modal', function(e) { // 退出用'hide.bs.modal'取代
   // DO Something      
 });
@@ -6909,10 +6968,10 @@ data-bs-parent="#accordionExample" 可使其做為同個模組來管理
 data-bs-toggle="tooltip" 滑鼠懸浮在上面就會觸發
 data-bs-placement="top" title="顶部的 Tooltip" 另有data-bs-placement,title來決定樣式
 
-aria-label="collapseOne" 通常填入本身的id名稱或此元素用途的敘述作為label
+aria-label="collapseOne" 通常填入本身的id名稱或此元素用途的敘述作為label
 aria-labelledby="headingOne" 通常填入控制項或補語元素的id作為label
 兩者都提供視覺障礙者讀屏功能 
-aria-label就是朗讀字串 而aria-labelledby則朗讀此id元素的textContent
+aria-label就是朗讀字串 而aria-labelledby則朗讀此id元素的textContent
 如果兩者都存在 則電腦的讀屏功能會優先朗讀aria-labelledby
 
 <div id="collapseOne" class="accordion-collapse collapse show" ...> 為開啟狀態
@@ -7028,7 +7087,7 @@ d-print-block d-print-none 用於有列印需求的網頁:
 <div class="d-print-none">Screen Only (Hide on print only)</div>
 表示網頁有顯示 但列印時隱藏
 
-<div class="visible">看得到</div> visible為預設 所有元素都預期為可見的 
+<div class="visible">看得到</div> visible為預設 所有元素都預期為可見的 
 <div class="invisible">看不到</div> invisible則可以不變動佈局的情況下 讓元素無法被看見
 
 display的五大屬性：
@@ -7048,7 +7107,7 @@ flex內部的元素會沿著flex-direction屬性(row 水平佈局)方向繼續�
 (flex-direction分為四種：row, row-reverse, column, column-reverse)
 
 flex-direction 決定row當主軸 則column自動變為交叉軸 (只有flexbox才有用到主軸與交叉軸)
-且所有同row的內部元素都會拉到等高以方便溢出後換行 (即align-items:stretch為預設值)
+且所有同row的內部元素都會拉到等高以方便溢出後換行 (即align-items:stretch為預設值)
 flex-wrap:wrap 溢出後不會換行 為預設值
 flex-wrap:nowrap 溢出後自動換行
 
@@ -7058,7 +7117,7 @@ flex-flow:row nowrap; 此為預設值
 另一個好處是：
 flex元素才能做justify-content和align-items 可方便內部元素做定錨
 但內部元素不能自行用position:absolute做定錨設置 必須透過flex父元素來設置位置 
-此外flex元素不影響position:relative的whtrblz屬性值仍有效 兩者可連用
+此外flex元素不影響position:relative的whtrblz屬性值仍有效 兩者可連用
 
 flex-grow與flex-shrink：
 flex-grow用於決定子元素如何平分flexbox中剩餘空間
@@ -7070,7 +7129,7 @@ flex-grow用於決定子元素如何平分flexbox中剩餘空間
 flex-shrink則是當多個子元素的總寬度超過flexbox的所有空間時 如何壓縮子元素的寬度
 .box1{flex-shrink:0;}
 .box2{flex-shrink:1;}
-此時box1不做任何壓縮 box2則會壓縮大剛好等於flexbox的所有空間
+此時box1不做任何壓縮 box2則會壓縮大剛好等於flexbox的所有空間
 預設值為flex-shrink:1 表示所有子元素的壓縮比例都相同
 
 
@@ -7084,7 +7143,7 @@ flex-shrink則是當多個子元素的總寬度超過flexbox的所有空間時 �
 
 
 ~float佈局模式： (目前已被flex取代)
-最早期的用法為使圖片在文章內部區域浮動 文字不會因為圖片而被遮住
+最早期的用法為使圖片在文章內部區域浮動 文字不會因為圖片而被遮住
 <div class="container">
   Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus imper
   <img class="float-right" src="...">
@@ -7174,7 +7233,7 @@ thumbnail縮圖會有1px的邊框
 }
 
 .background{
-  overflow:hidden; 隱藏內部元素長度超過區塊得部分
+  overflow:hidden; 隱藏內部元素長度超過區塊得部分
 }
 
 .avatar{
@@ -7188,7 +7247,7 @@ thumbnail縮圖會有1px的邊框
   (justify-content和align-items都只能用在flex元素 留有空格做佈局 這也是flex內部元素不會將父元素填滿的原因)
 
   text-align:center; 不僅適用於文字置中 也適用於任何行內子元素(inline)
-  (text-align:justify左右兩邊都對齊 常用於將inline元素平均分配在content上)
+  (text-align:justify左右兩邊都對齊 常用於將inline元素平均分配在content上)
 }
 
 align-items用於父元素 可將內部所有的子元素做排序 
@@ -7216,10 +7275,10 @@ justify-content適用於內部有多個block的時候(<div>) 此外justify-conte
 
 .pos_rlt{
   position:relative; 由調整元素的預設位置(static)而來 使whtrblz等屬性有效
-  (position:static 即為元素的預設位置 此時whtrblz等任何屬性皆無效)
+  (position:static 即為元素的預設位置 此時whtrblz等任何屬性皆無效)
   top:20px; 表示與原先的預設位置的偏移距離 即元素會往下偏移20px
 } 
-此外其他同層元素仍受relative的元素的原始預設位置所影響 而非新的偏移位置
+此外其他同層元素仍受relative的元素的原始預設位置所影響 而非新的偏移位置
 即relative的元素仍會佔據原本的預設空間
 
 .pos_abs{
@@ -7236,7 +7295,7 @@ justify-content適用於內部有多個block的時候(<div>) 此外justify-conte
 
 若absolute的父元素沒有被定位 則等同定位於<body>：此時效果會跟fixed相同
 因為手機裝置幾乎不支援fixed 故可以用absolute定位於<body>來替代
-(只要position:static皆為未被定位 即position預設的屬性即為未定位)
+(只要position:static皆為未被定位 即position預設的屬性即為未定位)
 用absolute做定位最好用單一元素 且此元素應大小固定 例如<nav>, <footer>, <header>...等
 
 這點對於巢狀結構極為重要 
@@ -7285,7 +7344,7 @@ height:100vh和width:100vw: 常用於響應式設計
 
 .line_space{
   white-space: normal; 連續空白字元會被合併為單一空白字元 而換行只在空間限制時發生
-  (white-space: nowrap 內部字串即使在空間限制時仍不換行)
+  (white-space: nowrap 內部字串即使在空間限制時仍不換行)
   (white-space: pre-wrap 連續空白字元會被保留 且在換行字元,<br>與空間限制時都會發生)
 }  
 以上三者常用於處裡元素內的換行功能 通常用於<p>元素上 且有時會相互抵觸 

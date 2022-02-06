@@ -8,6 +8,7 @@
 #
 .gcloudignore
 .dockerignore
+Dockerfile
 
 # If you would like to upload your .git directory, .gitignore file or files
 # from your .gitignore file, remove the corresponding line below:
@@ -20,28 +21,22 @@ __pycache__/
 # Ignored by the build system
 /setup.cfg
 
+# MAC-OS & VScode 
 .DS_Store
 .idea/
 .vscode/
 jsconfig.json
 
-Dockerfile
-
-gae.env
-gce.env
-local.env
-
-localhost_uwsgi.ini
+# .env
+*.env
 
 #tutorial & notes
 term/
 tutorial.md
 datingApp_data.md
 
-#redis
+#redis & SQL
 dump.rdb
-
-#SQL
 db.sqlite3
-pgdb*
-whole*
+pgdb*.sql
+whole*.json
