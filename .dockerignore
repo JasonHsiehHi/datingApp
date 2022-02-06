@@ -28,3 +28,6 @@ dump.rdb
 db.sqlite3
 pgdb*.sql
 whole*.json
+
+# nginx
+datingApp_nginx/
