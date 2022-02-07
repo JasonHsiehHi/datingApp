@@ -104,7 +104,7 @@ class Dialogue(models.Model):
 
 
 class City(models.Model):
-    name = models.CharField(max_length=25, unique=True)  # to_field:name
+    name = models.CharField(max_length=25, unique=True)  # other model:foreignKey to_field:name
 
     roomNum = models.IntegerField(default=0)
     femaleNumForMale = models.IntegerField(default=0)

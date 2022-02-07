@@ -11,7 +11,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 if settings.ADMIN_ENABLED:
-    urlpatterns += [path('y5eEpiyx4mkkNe3D/', admin.site.urls)]
+    urlpatterns += [path(settings.ADMIN_PATH, admin.site.urls)]
 
 if settings.DEBUG:  # 僅在開發期間使用 為開啟static和media檔案
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

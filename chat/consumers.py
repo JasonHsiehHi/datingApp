@@ -106,7 +106,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     self.channel_name
                 )
 
-    # receive from client side first
+    ######## receive from client side first ########
     async def receive_json(self, content):
         self.start = time.time()  # 僅用於測試
 
@@ -172,7 +172,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             else:
                 print(self.uuid + ' insert a wrong call: ' + call)
 
-    # functions called by receive_json to response client side
+    ######## functions called by receive_json to response client side ########
     async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'
         # todo 驗證資料來堤防用戶console操作
         self.player_data = await utils.refresh_player(self.player_data)
@@ -226,6 +226,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_send(self.room_id, {
                 'type': 'game_over'
             })
+            await utils.delete_room_by_player(self.player_data)
             await utils.set_player_fields(self.player_data,
                                           {'status': 0, 'room': None, 'tag_int': None, 'tag_json': None})
         else:  # make someone out
@@ -327,7 +328,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.receive_json(kwargs)
 
 
-    # functions received from other chatConsumers
+    ######## functions received from other chatConsumers ########
     async def is_on(self, event):
         if self.uuid != event['from']:
             m = 'CONN' if event['boolean'] else 'DISCON'
@@ -440,7 +441,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await utils.set_player_fields(self.player_data, {'tag_json': self.player_data.tag_json})
 
     async def game_over(self, event):
-        await self.channel_layer.group_discard(
+        await self.channel_layer.group_discard(  # everyone in game all need to discard
             'room-'+str(self.room.id),
             self.channel_name
         )
@@ -452,7 +453,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def out_or_in(self, event):
         onoff_dict = event['onoff']
         if onoff_dict[self.uuid] == -1:
-            await self.channel_layer.group_discard(
+            await self.channel_layer.group_discard(  # only someone who is out needs to discard
                 'room-' + str(self.room.id),
                 self.channel_name
             )

@@ -55,9 +55,9 @@ def deduce(request):
 
             if name == answer_dict[uuid]:
                 if name == '與偵探發生關係':  # everyone are out
-                    room.onoff_dict = {key: -1 for key in dict(room.onoff_dict)}
                     players.exclude(uuid=self_player.uuid).update(status=0, room=None, tag_int=None, tag_json=None)
                     out_list = list(deduce_dict.keys())
+                    room.onoff_dict = {key: -1 for key in dict(room.onoff_dict)}
                     room.save()
                     return JsonResponse({"result": True, "over": True, "out_players": out_list})
 
@@ -87,7 +87,7 @@ def clue(request, uuid):
         message = request.POST['clue-input']
         self_player = request.user.profile
         if self_player.tag_int != 1:
-            pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
+            return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
         detective = Player.objects.get(uuid=uuid)
         detective.tag_json['message'].append(message)
         detective.save()
@@ -104,7 +104,7 @@ def inquire(request, uuid):
     if request.is_ajax and request.method == "GET":
         self_player = request.user.profile
         if self_player.tag_int != 0:
-            pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
+            return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
 
         room = self_player.room
         names = [li[0] for key, li in dict(room.answer).items() if key != uuid and li[1] != ' ']
@@ -152,7 +152,8 @@ def prolog(request):
             role_dialogs.append([text1, False, "s"])
             role_dialogs.append([text2, False, "s"])
 
-        return JsonResponse({"result": True, "role": role_dialogs})
+        return JsonResponse({"result": True, "role": role_dialogs,
+                             "tag_int": self_player.tag_int, "tag_json": self_player.tag_json})
     else:
         print("error: it's not through ajax.")
 

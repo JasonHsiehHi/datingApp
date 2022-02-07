@@ -214,8 +214,8 @@ var WSManager = function(){
             }))
         }
     }
-    // 在後端仍需檢驗資料的正確性
-    function cs(call, ...KwJSON){
+
+    function cs(call, ...KwJSON){  // after ajax for GET or POST is success, the player still need to call other players.
         var json = { 
             'call':call 
         };
@@ -837,9 +837,9 @@ var checkGate = function(){
     function tut(isDirected=false){
         var dialog;
         if (localData.city.length===0)
-            dialog = ['請先點擊左上角圓圈圖示來開啟選單，前往你想交友的<span class="a-point">城市</span>！', !1];
+            dialog = ['請先點擊左上角圓圈圖示來開啟選單，前往你想交友的<span class="a-point">城市</span>！', !1];
         else if(localData.name.length===0)
-            dialog = ['同樣點擊左上角圓圈圖示來開啟選單，輸入你在遊戲中的<span class="a-point">暱稱</span>。 <span class="a-point">暱稱</span>不會綁定，每場遊戲開始前都能更改。', !1];
+            dialog = ['同樣點擊左上角圓圈圖示來開啟選單，輸入你在遊戲中的<span class="a-point">暱稱</span>。 <span class="a-point">暱稱</span>不會綁定，每場遊戲開始前都能更改。', !1];
         else if(loginData.isLogin === !1)
             dialog = ['在開始劇本殺遊戲前，必須先登入帳號！請點選右上角人頭圖示<span class="a-point">註冊</span>或<span class="a-point">登入</span>帳號。', !1];
         else{
@@ -866,8 +866,8 @@ var checkGate = function(){
                     showNotice(data['msg']);
                 }
             },
-            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     }
 

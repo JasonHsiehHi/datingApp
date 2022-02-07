@@ -469,6 +469,7 @@ def start_game(request):
 
         # 判斷遊戲人數是否足夠
         players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))  # todo 創房者獲取資料後 其他人才離線 問題
+        # con't replace isPrepared=True by status=2 because isPrepared is relative to on/off
         # 改為用isAdult和isHetero判斷 直到成功建立者的game作為room的game
         male_players = players.filter(gender='m')
         female_players = players.filter(gender='f')
@@ -502,6 +503,7 @@ def start_game(request):
                 player.room = room  # todo 等待期間的玩家都不能存取資料庫以避免建房者發生錯誤 用player.status禁止上傳
                 player.game = game
                 player.status = 2
+                player.isPrepared = False
                 player.waiting_time = None
                 player.save()
 
@@ -599,6 +601,9 @@ def leave_game(request):
             room.save()
 
             player.status = 0
+            player.tag_int = None
+            player.tag_json = None
+            # can't do (player.room = None) because need player.room to do ChatConsumer.call_leave_game()
             player.save()
 
             # todo 更新city的room數量

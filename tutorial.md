@@ -679,20 +679,21 @@ class BookAdmin(admin.ModelAdmin):
   (當field為ManyToManyField時 為避免資料過多導致讀寫成本 會建議改用method取代原本的field)
   list_display = ('id', 'name', 'display_author', 'genre')
 
-  並在models.py中的Book類別加上：
+  display_genre.short_description = 'Genre'  # 在select頁面 用'Genre'取代'display_genre'名稱
+
+  (並在models.py中的Book類別加上：)
   def display_genre(self):
     return ', '.join(genre.name for genre in self.genre.all()[:3]) # 只讀取前三項
-
-  display_genre.short_description = 'Genre'  # 在select頁面 用'genre'取代'display_genre'名稱
-
-list_display的第一項用來取代model的__str__ 如果沒有額外定義ModelAdmin 則用__str__代表record
+  
+  
+list_display的第一項用來取代model的__str__ (如果沒有額外定義ModelAdmin 則用__str__代表record)
 admin上的ForignKey顯示方式並不一定是pk(與資料庫不同) 而是以__str__為主 
 
   list_filter = ('genre',)  # 可加上過濾功能 通常只用於choice的資料欄
   search_fields = ('name',)  # 同樣放在select頁面 加上搜尋功能以避免資料量過多的時候
   ordering = ('-genre',)  # 針對字串開頭來做排序 '-'可用於反序
 
-  fields = ['name','id']  # 不同於list_display在select頁面 fields則在update頁面(add或change)用於改變排版順位
+  fields = ['name','id']  # 不同於list_display在select頁面 fields則在update頁面(add或change)用於改變排版順位 (預設為按照model順序並全部顯示)
   
   fieldsets = (  # 同樣只是改變排版順位 用於取代fields
     (None, {  # 除了欄位排序外還有大標題可以選 也可以為空(None)
@@ -704,7 +705,8 @@ admin上的ForignKey顯示方式並不一定是pk(與資料庫不同) 而是以_
   )
   exclude = ('create_date', )  ＃ 則為不要顯示的屬性 常用於系統預設的資訊 不充許修改
 
-  inlines = [BooksInstanceInline]  # update頁面的內聯list 在Book類別的頁面可以編輯BooksInstance類別 常用於fk的field
+  在Book類別的頁面可以編輯BooksInstance類別：(常用於fk的field)
+  inlines = [BooksInstanceInline]  # update頁面的內聯list
 
 class BooksInstanceInline(admin.TabularInline):  # 也可用admin.StackedInline(垂直) 但排版不好看 故一般用admin.TabularInline(水平)
   model = BookInstance

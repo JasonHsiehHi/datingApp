@@ -31,7 +31,9 @@ ALLOWED_HOSTS = [
 ]
 
 ROOT_URLCONF = 'datingApp.urls'
+
 ADMIN_ENABLED = bool(os.getenv('ADMIN_ENABLED'))
+ADMIN_PATH = os.getenv('ADMIN_PATH')
 
 # Application definition
 INSTALLED_APPS = [
@@ -172,8 +174,7 @@ else:
 
 STATIC_URL = os.getenv('STATIC_URL')
 
-# that haven't been used
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'media'  # that haven't been used
 
 MEDIA_URL = os.getenv('MEDIA_URL')
 
@@ -193,7 +194,16 @@ CERTAIN_TIME_FOR_DELETE_PHOTO = 24 * 15  # the all photos in room are removed ev
 MAXIMUM_FOR_DELETE_PHOTO = 30  # each players in single room at most save 30 pieces of photo
 
 # for chat app - roomtime
-ROOMTIME_MIN = '{"1": 60, "2": 20, "3": 15, "4": 12, "5": 10, "6": 8, "7": 8, "8": 8}'
+ROOMTIME_MIN = {  # only 2 players in game, they(could be male and female) can stay in room 60 mins
+    2: int(os.getenv('ROOMTIME_MIN_2_PLR')),
+    3: int(os.getenv('ROOMTIME_MIN_3_PLR')),
+    4: int(os.getenv('ROOMTIME_MIN_4_PLR')),
+    5: int(os.getenv('ROOMTIME_MIN_5_PLR')),
+    6: int(os.getenv('ROOMTIME_MIN_6_PLR')),
+    7: int(os.getenv('ROOMTIME_MIN_7_PLR')),
+    8: int(os.getenv('ROOMTIME_MIN_8_PLR')),
+    100: 1  # for test mode
+}
 
 # for SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
