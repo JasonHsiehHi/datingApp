@@ -332,7 +332,7 @@ best_ratio為[5,1] threshold_ratio為[3,1]
 嫌疑人
 其中只有一位是真正發生關係的渣男
 
-
+// old version
 ["以下劇本是由<span class='a-point'>偵探</span>的視角進行",0,"s"],
 ["",0,"w"],
 ["===大學畢業晚會===",0,"s"],
@@ -365,7 +365,7 @@ best_ratio為[5,1] threshold_ratio為[3,1]
 ["(這個男生是誰呀？ 完全記不起來...... 總之先回去那間酒吧看看吧)",0,"m"],
 ["",0,"w"]
 
-
+// old version
 role-偵探： (group=1)
 ["妳是這場遊戲的<span class='a-point'>偵探</span>", 0,"s"],
 ["<span class='a-point'>審問</span>：<br>
@@ -384,7 +384,7 @@ role-其他人： (group=0)
 
 
 
-以下劇本是由<span class="a-point">偵探</span>的視角進行
+以下劇本是由偵探的視角進行：
 
 ===畢業晚會結束===
 我：(突然有人叫住我...)
@@ -411,13 +411,98 @@ role-其他人： (group=0)
 好姐妹：哈哈哈我也沒仔細看！ 喝到最後很多人都茫了～
 我：(這個男生是誰呀？ 完全記不起來...... 總之先回去那間酒吧看看吧)
 
-左側是昨晚與妳待在酒吧的<span class='a-point'>嫌疑人</sapn>：
-只有其中一位是真正發生關係的渣男，請選擇任何一位嫌疑人單獨進行<span class='a-point'>審問</sapn>吧！
+左側是昨晚與妳待在酒吧的<span class='a-point'>嫌疑人</span>：
+只有其中一位是真正發生關係的渣男，請選擇任何一位嫌疑人單獨進行<span class='a-point'>審問</span>吧！
+
+
 
 '昨晚與偵探發生關係'
 
+(新版)以下是與嫌疑人相關的線索：(每一件事都應該與偵探相關 且改以嫌疑人視角來敘述)
 
-以下是與嫌疑人相關的線索：
+'吐在偵探的衣服上'
+[["<span class='a-point'>朋友</span>：最後一杯了！敬所有的畢業生！",0,"a"],
+["<span class='a-point'>我</span>：我不行了...... 呃....嘔....唔.......",0,"a"],
+["<span class='a-point'>偵探</span>：你在幹嘛！？ 太扯了吧...",0,"a"]]
+
+
+'請偵探喝了一杯酒'
+[["<span class='a-point'>我</span>：這杯我請妳吧！",0,"a"],
+["<span class='a-point'>偵探</span>：不行～ 我從不讓男生請客的！",0,"a"],
+["<span class='a-point'>我</span>：不好意思！ 她的這杯算我的！",0,"a"],
+["<span class='a-point'>偵探</span>：誒～ 幹嘛這樣！",0,"a"]]
+
+
+'靠在偵探的肩膀上睡著了'
+[["<span class='a-point'>我</span>：我不行了 真的太睏了 先睡了.......",0,"a"],
+["<span class='a-point'>偵探</span>：誒 你往別的地方靠拉",0,"a"],
+["<span class='a-point'>我</span>：zzz......",0,"a"],
+["<span class='a-point'>偵探</span>：你再不起來 我就真的要生氣了哦",0,"a"]]
+
+
+'被偵探打翻了餐點'
+[["<span class='a-point'>我</span>：誒 小姐小心後面！ ",0,"a"],
+["<span class='a-point'>偵探</span>：抱歉！抱歉！ 我沒有注意到！ 薯條都打翻了...",0,"a"],
+["<span class='a-point'>我</span>：.........",0,"a"],
+["<span class='a-point'>偵探</span>：我在賠給你吧",0,"a"]]
+
+
+'打牌輸給了偵探'
+[["<span class='a-point'>我</span>：這一次妳沒救了！ 我不相信妳的牌會比我大",0,"a"],
+["<span class='a-point'>偵探</span>：哈哈哈 敢不敢賭大一點的 玩刺激一點的？",0,"a"],
+["<span class='a-point'>我</span>：什麼 你要賭什麼？",0,"a"]]
+
+
+'向偵探搭訕要聯絡方式'
+[["<span class='a-point'>我</span>：妳好～妳好～ 不好意思～ 我也常來這裡喝 以前好像沒看過妳？",0,"a"],
+["<span class='a-point'>偵探</span>：你好～ 我今天第一次來",0,"a"],
+["<span class='a-point'>我</span>：是哦！ 想說這麼可愛的女孩子我怎麼以前都沒發現哈哈",0,"a"]]
+
+
+'與偵探的好姐妹一起出去'
+[["<span class='a-point'>我</span>：等等要出去走走解酒嗎？",0,"a"],
+["<span class='a-point'>偵探的好姐妹</span>：好呀？ 真的只有解酒嗎哈哈",0,"a"],
+["<span class='a-point'>我</span>：哈哈出去走走才是重點",0,"a"],
+["<span class='a-point'>偵探</span>：你們要去哪？",0,"a"],
+["<span class='a-point'>偵探的好姐妹</span>：哎呀～小孩子不用管",0,"a"]]
+
+
+'幫偵探找不見的手機'
+[["<span class='a-point'>偵探</span>：奇怪 我的手機呢？ 剛剛還在桌上的",0,"a"],
+["<span class='a-point'>我</span>：不見了嗎？ 會不會放在廁所？",0,"a"],
+["<span class='a-point'>偵探</span>：應該不會 你幫我找找拉 應該在吧台那邊？",0,"a"]]
+
+
+'與偵探玩大冒險'
+[["<span class='a-point'>我</span>：今天大家都喝醉了！",0,"a"],
+["<span class='a-point'>偵探</span>：喝醉了萬歲！",0,"a"],
+["<span class='a-point'>我</span>：所以大家不管講了什麼都要當作沒聽到！",0,"a"],
+["<span class='a-point'>偵探</span>：沒聽到萬歲！",0,"a"]]
+
+
+'與偵探一起玩飛鏢'
+[["<span class='a-point'>我</span>：太扯了吧！ 我連輸三場了",0,"a"],
+["<span class='a-point'>偵探</span>：有人要請客了哦？～",0,"a"],
+["<span class='a-point'>我</span>：不行 我今天太醉了",0,"a"],
+["<span class='a-point'>偵探</span>：誒 不要找藉口拉",0,"a"]]
+
+
+'喝醉後向偵探表白'
+[["<span class='a-point'>我</span>：終於找到藉口 趁著醉意上心頭",0,"a"],
+["<span class='a-point'>偵探</span>：唱老歌哦！",0,"a"],
+["<span class='a-point'>我</span>：表達我所有感受～",0,"a"],
+["<span class='a-point'>偵探</span>：你到底要講什麼拉～ 傻眼",0,"a"]]
+
+
+'跟偵探借手機'
+[["<span class='a-point'>我</span>：誒 你們上週不是去海邊玩嗎？",0,"a"],
+["<span class='a-point'>偵探</span>：對呀",0,"a"],
+["<span class='a-point'>我</span>：是哦！有拍照片嗎？",0,"a"],
+["<span class='a-point'>偵探</span>：有呀！ 你想看哦？",0,"a"]]
+
+
+
+(舊版)以下是與嫌疑人相關的線索：(沒有與偵探相關)
 
 酒吧外面有嘔吐物，如果不是我，就是有人酒量不好吐了滿地。
 '在酒吧外面吐了滿地'
@@ -485,7 +570,6 @@ role-其他人： (group=0)
 籃球系隊隊長
 排球系隊隊長
 酒吧老闆
-酒吧吧檯
 
 
 目前只開放成人模式

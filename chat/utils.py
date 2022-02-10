@@ -82,13 +82,15 @@ def get_match_players(player):
 @database_sync_to_async
 def delete_room_by_player(player):
     room = player.room
-    room.delete()
+    if room is not None:
+        room.delete()
 
 
 @database_sync_to_async
 def delete_match_by_player(player):
     match = player.match
-    match.delete()
+    if match is not None:
+        match.delete()
 
 
 @database_sync_to_async

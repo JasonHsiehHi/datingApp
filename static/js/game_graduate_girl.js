@@ -13,8 +13,18 @@ var gameCheckGate = function(){
     function mat(isDirected=true){
         var li = [...loginData.player_list];
         li.remove(loginData.uuid);
-        var name_list = li.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
-        var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 目前待在房間中', !1];
+        li_others = [...li];
+
+        for(let [key, value] of Object.entries(loginData.onoff_dict)){
+            (value !== 1) && li.remove(key);
+        }
+        if (0 === li.length){
+            var name_list = li_others.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
+            var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 不在房間裡...', !1];
+        }else{  // 0 !== li.length
+            var name_list = li.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
+            var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 目前待在房間中', !1];
+        }
         (!0 === isDirected) && theUI.showSys(dialog[0]);
         return dialog
     }
@@ -24,15 +34,14 @@ var gameCheckGate = function(){
         return text
     }
 
-    function eve(isDirected=false){
-        var li = loginData['event_content'].filter(text => text !== ' ');
-        var dialog = ['提示線索：<br><em>' + li.join('<br>')+'</em>', !1];
-        (!0 === isDirected) && theUI.showMsg(dialog[0]);
-        return dialog
+    function eve(isDirected=false, interval=1500){  // be used by prolog()
+        var dialogs = loginData['event_content'];
+        (!0 === isDirected) && theUI.showStoryAsync(dialogs, interval);
+        return dialogs
     }
 
-    function rol(self_group){
-        var dialog = role_desc[self_group];
+    function rol(self_group){  // only be used by prolog()
+        var dialog = role_desc_dialogs[self_group];
         return dialog
     }
 
@@ -46,10 +55,16 @@ var gameCheckGate = function(){
                     loginData.tag_int = data.tag_int;
                     loginData.tag_json = data.tag_json;
                     var li = [...story_dialogs];
+
                     var event = eve();
-                    $('#game-event').html(event[0]);
-                    li.push(...data.role, rol(self[3]), [...event, 'a']);
-                    theUI.showStoryAsync(li), theUI.storeChatLogs(li, li.length, 'gameLogs');
+                    li.push(...data.role_dialogs);
+                    (0 !== event.length) && li.push(["以下情節是由不同嫌疑人<span class='a-point'>"+data.role+"</span>的視角進行：",0,"s"], ...event);
+                    li.push(["你的角色可以使用：",0,"s"],...rol(self[3]));
+
+                    theUI.showStoryAsync(li, interval=2000, callback=function(){
+                        theUI.unreadTitle(!0);
+                    }) 
+                    theUI.storeChatLogs(li, li.length, 'gameLogs');
                 }else{
                     showNotice(data['msg']);
                 }
@@ -259,8 +274,8 @@ function loadRoleData(){  // according to individual role, to display different 
         }
         i++;
     }
-    var event = gameGate.event();
-    $('#game-event').html(event[0]);
+
+    $('#game-event').html(role_desc[self[3]]);
 
     if (self[3] === 1){
         $('#start-btn').text('推 理'), deduceMethod();
@@ -274,21 +289,21 @@ function loadRoleData(){  // according to individual role, to display different 
 function refreshGameTag(self_group, other_uuid){  // only be called on status=2 
     var css_id = position[other_uuid];
     if (self_group === 1){
-        (null !== loginData.tag_json) && (1 === loginData.tag_json[other_uuid]) && disabledElmtCss(css_id+'-btn');
+        (null !== loginData.tag_json) && (1 === loginData.tag_json[other_uuid]) && (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
     }
     else{ // self_group === 0
         switch(loginData.tag_int){
             case null:
                 break;
-            case 0:  // tag_int=0 havn't inquired yet.
-                (1 === others[other_uuid][3]) && disabledElmtCss(css_id+'-btn');
+            case 0:  // tag_int=0 havn't inquired and clue yet. Besides, player can't clue before inquire.
+                (1 === others[other_uuid][3]) && disabledElmtCss(css_id+'-btn');  
                 break;
             case 1:  // tag_int=1 have inquired done.
-                (1 === others[other_uuid][3])? enabledElmtCss(css_id+'-btn'): disabledElmtCss(css_id+'-btn');
+                (1 === others[other_uuid][3])? enabledElmtCss(css_id+'-btn'): (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
 
                 break;
             case 2:  // tag_int=2 have inquired and clue to detective.
-                disabledElmtCss(css_id+'-btn');
+                disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用');
                 break;
         }
     }
@@ -345,8 +360,9 @@ function refreshPlayers(){  // refresh players on/off, only be called by refresh
                 $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
                 $(css_id).find('.a-onoff').text('(離線)');
 
-                disabledElmtCss(css_id+'-btn');
-                (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !0, theUI.showSys(name +' 目前為離線狀態...'));
+                disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('離線');
+                
+                (loginData.status === 3 && loginData.player_list.includes(uuid)) && (toggle.discon = !0);
                 break;
             case 1:
                 ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
@@ -354,7 +370,8 @@ function refreshPlayers(){  // refresh players on/off, only be called by refresh
                 $(css_id).find('.a-onoff').text('');
 
                 enabledElmtCss(css_id+'-btn');
-                (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !1);
+
+                (loginData.status === 3 && loginData.player_list.includes(uuid)) && (toggle.discon = !1);
                 break;
             case -1:
                 (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
@@ -362,8 +379,9 @@ function refreshPlayers(){  // refresh players on/off, only be called by refresh
                 $(css_id).find('.a-onoff').text('(已退出)');
                 $(css_id).find('.a-circle').text('');
 
-                disabledElmtCss(css_id+'-btn');
-                (!0 === loginData.player_list.includes(uuid)) && (toggle.discon = !0, theUI.showSys(name +' 已離開房間。 玩家可按"離開"鍵 離開目前的房間'));
+                disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已退出');
+
+                (loginData.status === 3 && loginData.player_list.includes(uuid)) && (toggle.discon = !0);
                 
                 if (self[3] === 1){  // for action btn
                     $(css_id+'-deduce-input').removeAttr('required').attr('disabled', true).removeClass('gameevent-options');

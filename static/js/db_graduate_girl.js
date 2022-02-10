@@ -1,5 +1,5 @@
 const story_dialogs = [
-["以下劇本是由<span class='a-point'>偵探</span>的視角進行", !1,"s"],
+["以下劇本是由<span class='a-point'>偵探</span>的視角進行：", !1,"s"],
 ["", !1,"w"],
 ["===大學畢業晚會===", !1,"s"],
 ["<span class='a-point'>我</span>：(今天是我們最後一天待在學校了 突然有點感傷...)", !1,"a"],
@@ -33,16 +33,25 @@ const story_dialogs = [
 ["<span class='a-point'>我</span>：(這個男生是誰呀？ 完全記不起來...... 總之先回去那間酒吧看看吧)", !1,"a"],
 ["", !1,"w"]];
 
-const role_desc = {
-    1:["<span class='a-point'>審問</span>：<br>" + 
-    "左側名單是昨晚與妳待在酒吧的<span class='a-point'>嫌疑人</span>，只有其中一位是真正發生關係的<span class='a-point'>渣男</span>，請選擇任何一位嫌疑人單獨進行<span class='a-point'>審問</span>吧！<br>" +
-    "<span class='a-point'>推理</span>：<br>" +
-    "每一輪最後偵探將進行<span class='a-point'>推理</span>，若成功識別個別<span class='a-point'>嫌疑人</span>昨晚酒後失態所做的事，則該名嫌疑人失敗出局，直到找出嫌疑人中的<span class='a-point'>渣男</span>則偵探勝利，成功破案遊戲結束。",0,"s"],
-    0:["<span class='a-point'>調查</span>：<br>" +
-    "你可以<span class='a-point'>調查</span>左側名單上的嫌疑人，查看對方昨晚可能做的事，藉此協助<span class='a-point'>偵探</span>辦案。<br>" +
-    "若<span class='a-point'>偵探</span>成功找出嫌疑人中的渣男，則其餘嫌疑人勝利，成功洗刷罪名。 反之嫌疑人中的渣男未被找出，則渣男勝利，成功躲過。<br>" +
-    "<span class='a-point'>線索</span>：<br>" +
-    "可向<span class='a-point'>偵探</span>傳送一句話做為線索，除此之外偵探會對每一位嫌疑人進行審問，你必須想辦法不讓<span class='a-point'>偵探</span>識別昨晚自己酒後失態所做的事，若被成功識別則該名嫌疑人失敗出局。<br>",0,"s"]
+const role_desc_dialogs = {
+    1:[
+        ["<span class='a-point'>審問</span>：" + 
+        "左側名單是昨晚與妳待在酒吧的<span class='a-point'>嫌疑人</span>，只有其中一位是真正發生關係的<span class='a-point'>渣男</span>，請選擇任何一位嫌疑人單獨進行<span class='a-point'>審問</span>吧。",0,"s"],
+        ["<span class='a-point'>推理</span>：" +
+        "每一輪最後偵探將進行<span class='a-point'>推理</span>，若成功識別個別<span class='a-point'>嫌疑人</span>昨晚所做的事，則該名嫌疑人失敗出局，直到找出嫌疑人中的<span class='a-point'>渣男</span>則偵探勝利，成功破案遊戲結束。",0,"s"]],
+    0:[
+        ["<span class='a-point'>調查</span>：" +
+        "你可以<span class='a-point'>調查</span>左側名單上的嫌疑人，可查看對方昨晚可能做的事。",0,"s"],
+        [ "<span class='a-point'>線索</span>：" +
+        "可向<span class='a-point'>偵探</span>傳送一句話做為<span class='a-point'>線索</span>。除此之外偵探會對每一位嫌疑人進行審問，你必須想辦法不讓<span class='a-point'>偵探</span>識別自己昨晚所做的事，若被成功識別則該名嫌疑人失敗出局。",0,"s"]]
 };
 
+const role_desc = {
+    1:[""],
+    0:["若偵探成功找出嫌疑人中的渣男，則其餘嫌疑人勝利，成功洗刷罪名。 <br> 反之嫌疑人中的渣男未被找出，則渣男勝利，成功躲過。"]
+};
 
+const end_dialogs = [
+
+
+];

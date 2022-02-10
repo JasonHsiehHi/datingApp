@@ -84,7 +84,8 @@ class GameRole(models.Model):  # 角色數量一定要多過遊戲人數 才不�
 
 class GameEvent(models.Model):
     name = models.CharField(max_length=30)
-    content = models.TextField(null=True, blank=True)
+    # content = models.TextField(null=True, blank=True)
+    content = models.JSONField(null=True, blank=True)
     game = models.ForeignKey('Game', null=True, blank=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)
 

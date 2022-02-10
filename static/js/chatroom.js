@@ -15,7 +15,7 @@ function chatroomWS(){
         };
 
         chatSocket.onclose = function(e) {
-            console.log('WS disconnected. code:'+e.code+"  ,reason:"+e.reason), chatSocket = null;
+            console.log("WS disconnected. code:"+e.code+"  ,reason:"+e.reason), chatSocket = null;
             (!1===loginData.isBanned) && setTimeout(chatroomWS, 15000);
             // todo 最後用theUI.showSys來表示已經斷線且目前連不上
         };
@@ -28,19 +28,27 @@ function chatroomWS(){
                         theUI.showWritingNow(data.wn);
                     break;
                 case 'ST':
+                    // opposite players are still in connection
                     var elmt;
-                    while(localData.elmt_for_status.length>0){
-                        elmt = localData.elmt_for_status.pop();
-                        theUI.showStatus(elmt, data.num);
+                    while(term.elmt_for_status.length>0){  
+                        elmt = term.elmt_for_status.pop();
+                        theUI.showStatus(elmt, data.st_type);
                     }
-                    localStorage.elmt_for_status = '[]';
+                    
+                    // opposite players have been disconnected
+                    if (localData.text_in_discon.length>0){
+                        var discon_index = -(localData.text_in_discon.length+1);  // counting backwards from last one
+                        $('#diaolg').find('.a-chat:has(.a-dialogdiv.a-self)').gt(discon_index).each(function(a){ 
+                            theUI.showStatus($(this), data.st_type);
+                        })
+                    }
                     break;
                 
                 case 'MSG':
                     var text_only = $('#snippet').html(data.msg).text();
                     var dialog = [text_only, false, 'a'];  // data.isImg is false, sending_img hasn't been available.
                     theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);                        
-                    theWS.statusRespWs(data.sender, 2);
+                    theWS.statusRespWs(data.sender, 2);  // have received msg and then response st_type:2(已送達)
                     break;
 
                 case 'MSGS':
@@ -48,7 +56,7 @@ function chatroomWS(){
                     theUI.showMsgsAsync(data.msgs, 0, function(){
                         theUI.storeChatLogs(dialog, dialog.length);
                     });
-                    theWS.statusRespWs(data.sender, 2);
+                    theWS.statusRespWs(data.sender, 2); // have received msgs and then response st_type:2(已送達)
                     break;
 
                 case 'ERROR':
@@ -113,9 +121,9 @@ function chatroomWS(){
                     var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
 
-                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender))
+                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !0;
- 
+                    }
                     break;
                 case 'CONN':
                     var css_id = position[data.sender];
@@ -130,7 +138,7 @@ function chatroomWS(){
 
                     if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !1;
-                        if(localData.text_in_discon.length>0){
+                        if(localData.text_in_discon.length > 0){
                             theWS.msgsSendWs(localData.text_in_discon); // todo need to update for multiplayer match
                             localData.text_in_discon=[],localStorage.text_in_discon='[]';
                         }
@@ -189,8 +197,9 @@ var WSManager = function(){
         }
         var elmt, dialog = [$('#snippet').html(msg).text(), isImg, 'm'];
         elmt = theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);
-        theUI.showStatus(elmt, 1);
-        localData.elmt_for_status.push(elmt), localStorage.elmt_for_status = JSON.stringify(localData.elmt_for_status);
+        theUI.showStatus(elmt, 1), term.elmt_for_status.push(elmt);
+
+
     }
     function mss(msg_list){  //  the matcher is disconnected, so send mag_list instead of msg in next connection.
         if(!1 === toggle.discon){
@@ -199,10 +208,10 @@ var WSManager = function(){
             }))
         }
     }
-    function st(sender, num=2){
+    function st(sender, type=2){
         if(!1 === toggle.discon){
             chatSocket.send(JSON.stringify({
-                'st':num,
+                'st':type,
                 'backto':sender
             }))
         }
@@ -243,7 +252,6 @@ function getLocalData(){
         city:'',
         lastSaid: 's',
         text_in_discon: [],
-        elmt_for_status:[],
         imgUrl_adult: '',
         chatLogs:[],
         gameLogs:[]
@@ -256,7 +264,6 @@ function getLocalData(){
             data.city = localStorage.city,
             data.lastSaid = localStorage.lastSaid,
             data.text_in_discon = JSON.parse(localStorage.text_in_discon),
-            data.elmt_for_status = JSON.parse(localStorage.elmt_for_status),
             data.imgUrl_adult = localStorage.imgUrl_adult,
             data.chatLogs = JSON.parse(localStorage.chatLogs),
             data.gameLogs = JSON.parse(localStorage.gameLogs);
@@ -268,7 +275,6 @@ function getLocalData(){
             localStorage.city = '',
             localStorage.lastSaid = 's',
             localStorage.text_in_discon = '[]',
-            localStorage.elmt_for_status = '[]',
             localStorage.imgUrl_adult = '',
             localStorage.chatLogs = '[]',
             localStorage.gameLogs = '[]';
@@ -284,7 +290,8 @@ function getTermData(){
         timerId_clock: null,
         timerId_writing: null,
         chatLogs_remain:0,
-        gameLogs_remain:0
+        gameLogs_remain:0,
+        elmt_for_status:[]
     };
     return term
 }
@@ -416,7 +423,9 @@ function bindMsgSend() {
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
             var text = $("#send-text").val();
-            (void 0 !== text && null !== text &&'' !== text) && (3 === loginData.status) ? theWS.msgSendWs(text) : theUI.showSys('你還未進入房間哦！');
+            if (void 0 !== text && null !== text &&'' !== text){
+                (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? theUI.showSys('你還未進入房間，目前只能使用左側名單的角色功能。') : theUI.showSys('你還未進入房間哦！'));
+            } 
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
         }
@@ -510,8 +519,8 @@ function loginMethodSet(){
                     $('#signup-modal-form p.a-error').text(data['msg']);
                 }
             },
-            error: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            error: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#signup-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
             complete: function(data, code) {  
                 $('#signup-modal-form button[type="submit"]').text('確定').removeAttr('disabled');
             }
@@ -536,8 +545,8 @@ function loginMethodSet(){
                     $('#login-modal-form p.a-error').text(data['msg']);
                 }
             },
-            error: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#login-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 
@@ -558,8 +567,8 @@ function loginMethodSet(){
                     $('#logout-modal-form p.a-error').text(data['msg']);
                 }
             },
-            error: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#logout-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 
@@ -586,8 +595,8 @@ function loginMethodSet(){
                     $('#change-pwd-modal-form p.a-error').text(data['msg'])
                 }
             },
-            error: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#change-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 
@@ -608,8 +617,8 @@ function loginMethodSet(){
                     $('#reset-pwd-modal-form p.a-error').text(data['msg'])
                 }
             },
-            error: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#reset-pwd-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
         
     })
@@ -657,8 +666,8 @@ function profileMethodSet(){
                     $('#name-modal-form p.a-error').text(data['msg']);
                 }
             },
-            error: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#name-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 
@@ -698,8 +707,8 @@ function profileMethodSet(){
                     $('#goto-modal-form p.a-error').text(data['msg']);
                 }
             },
-            error: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#goto-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
     var city_name, option_elmt;
@@ -747,8 +756,8 @@ function leaveMethod(){
                         $('#leave-modal-form p.a-error').text(data['msg']);
                     }
                 },
-                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
                 
             })
         }else if (loginData.status === 2){
@@ -763,8 +772,8 @@ function leaveMethod(){
                         $('#leave-modal-form p.a-error').text(data['msg']);
                     }
                 },
-                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
                 
             })
         }else if (loginData.status === 3){
@@ -779,8 +788,8 @@ function leaveMethod(){
                         $('#leave-modal-form p.a-error').text(data['msg']);
                     }
                 },
-                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+                error: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#leave-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
                 
             })
         } 
@@ -817,8 +826,8 @@ function startMethod(){
                     showNotice(data['msg']);
                 }
             },
-            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
     })
 }
@@ -827,7 +836,7 @@ var checkGate = function(){
     function itr(isDirected=false){
         var dialog;
         if (localData.name.length===0 && loginData.isLogin === !1){
-            dialog = ['歡迎來到A-LARP匿名劇本殺！😂 這是一個由台灣大專院校學生團隊開發的校園交友平台，目前仍處於測試版beta', !1];
+            dialog = ['歡迎來到A-LARP匿名劇本殺！😂 這是一個由台灣大專院校學生團隊開發的校園交友平台，目前仍處於測試版beta', !1];
         }else{
             dialog = ['歡迎回來！',!1];
         }
@@ -843,7 +852,7 @@ var checkGate = function(){
         else if(loginData.isLogin === !1)
             dialog = ['在開始劇本殺遊戲前，必須先登入帳號！請點選右上角人頭圖示<span class="a-point">註冊</span>或<span class="a-point">登入</span>帳號。', !1];
         else{
-            dialog = ['當前所在城市：'+ citySet[localData.city]+'  你的暱稱為：'+ localData.name +'  請點擊左上角圓圈圖示來開啟選單來<span class="a-point">進行遊戲</span>吧！', !1];
+            dialog = ['當前所在城市：<span class="a-point">'+ citySet[localData.city]+'</span>  你的暱稱為：<span class="a-point">'+ localData.name +'</span>  請點擊左上角圓圈圖示來開啟選單來<span class="a-point">進行遊戲</span>吧！', !1];
         }
         (!0 === isDirected) && theUI.showMsg(dialog[0]);
         return dialog
@@ -989,11 +998,11 @@ var chatUI = function(){
         (!0 === isWriting) ? $('#writing').removeClass('d-none'): $('#writing').addClass('d-none');
         toggle.focus === !0 && toggle.scroll === !1 && (now(), ut(!0));
     }
-    function st(myElmt,num){
+    function st(myElmt, type){
         var st ={  // st[0] haven't been used.
             2:'(已送達)',1:'(傳送中)',0:'(傳送失敗)'
         }
-        myElmt.find('.a-status>span:eq(0)').text(st[num]);
+        myElmt.find('.a-status>span:eq(0)').text(st[type]);
     }
     function now(){
         toggle.scroll = !0;

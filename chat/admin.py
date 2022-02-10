@@ -42,7 +42,7 @@ class PlayerAdmin(admin.ModelAdmin):
 
 @admin.register(Dialogue)
 class DialogueAdmin(admin.ModelAdmin):
-    list_display = ('game', 'action', 'sub', 'number')
+    list_display = ('dialog', 'game', 'action', 'sub', 'number')
     list_filter = ('game',)
 
 

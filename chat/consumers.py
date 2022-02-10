@@ -38,12 +38,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     self.channel_name
                 )
 
-                await self.channel_layer.group_send(self.room_id, {
-                    'type': 'is_on',
-                    'boolean': True,
-                    'from': self.uuid
-                })
-
                 if self.player_data.status == 3:  # in match
                     self.match, player_list = await utils.get_match_players(self.player_data)
                     self.match_id = 'match-'+str(self.match.id)
@@ -57,6 +51,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
                     seconds = td.total_seconds()
                     await self.timer_leave(seconds)
+
+                await self.channel_layer.group_send(self.room_id, {
+                    'type': 'is_on',
+                    'boolean': True,
+                    'from': self.uuid
+                })
 
             await self.accept()
         else:
@@ -130,8 +130,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 print("st - 執行時間：%f 秒" % (time.time() - self.start))
                 await self.channel_layer.group_send(self.match_id, {
                     'type': 'update_status',
-                    'num': content['st'],
-                    'backto': content['backto'],
+                    'st_type': content['st'],
+                    'backto': content['backto'],  # the sender's uuid (opposite side in match)
                     't': self.start  # 僅用於測試
                 })
             elif 'msg' in content:
@@ -304,7 +304,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'toMe': True
         })
 
-    async def timer_leave(self, sleep_secs):
+    async def timer_leave(self, sleep_secs):  # when player connect or enter_match, set up the timer
         t = Timer(sleep_secs, async_to_sync(self.timeout_leave))
         t.start()
 
@@ -312,13 +312,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.player_data = await utils.set_player_fields(self.player_data, {'status': 2, 'waiting_time': None})
         self.match, player_list = await utils.get_match_players(self.player_data)
 
-        player_list = self.match.player_list
-        player_list.remove(self.uuid)
+        #player_list.remove(self.uuid)
+        player_list = []
         self.match = await utils.set_match_fields(self.match, {'player_list': player_list})
 
         await self.call_leave_match(True)
 
-    async def timer(self, sleep_secs, **kwargs):
+    async def timer(self, sleep_secs, **kwargs):  # it's been unavailable
         t = Timer(sleep_secs, async_to_sync(self.execute_in_match), kwargs=kwargs)
         t.start()
 
@@ -503,5 +503,5 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             await self.send_json({
                 'type': 'ST',
-                'num': event['num']
+                'st_type': event['st_type']
             })

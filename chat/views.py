@@ -37,6 +37,7 @@ def get_loginData(user, player):
         player_dict['onoff_dict'] = {}
         player_dict['tag_int'] = -1
         player_dict['tag_json'] = ''
+
         player_dict['event_name'] = []
         player_dict['event_content'] = []
     else:
@@ -46,11 +47,13 @@ def get_loginData(user, player):
         player_dict['tag_int'] = player.tag_int
         player_dict['tag_json'] = player.tag_json
 
+        answer = room.answer
         event_names = []
-        event_content = []
-        for li in room.answer.values():
-            event_names.append(li[0]), event_content.append(li[1])
-        shuffle(event_names), shuffle(event_content)
+        for li in answer.values():
+            event_names.append(li[0])
+        shuffle(event_names)
+
+        event_content = answer[str(player_dict['uuid'])][1]
 
         player_dict['event_name'] = event_names
         player_dict['event_content'] = event_content
@@ -488,9 +491,10 @@ def start_game(request):
 
             roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
 
-            role_group = [role.group for role in roles]
-            role_group.extend([0, 0])  # for answer_dict['noplayer']
+            role_group = [role.group for role in roles]  # role_group = [1, 0, 0, 0,...]
+            role_group.extend([0, 0])  # for answer_dict['noplayer0'] and answer_dict['noplayer1']
             event_query = get_event_query(game, role_group)
+            # event_query = {0: [event.name, event.content], 1: [event.name, event.content], ...}
 
             player_dict = {}
             onoff_dict = {}
@@ -545,10 +549,10 @@ def get_roles_of_game(game, gender, num=1):
     return sample(list(roles), num)
 
 
-def get_events_of_game(game, role_group, num=1):
+def get_events_of_game(game, role_group, num=1):  # use role_group to get event instances
     all_events = GameEvent.objects.filter(Q(game=game) & Q(group=role_group))
-    specials = all_events.filter(content=' ')
-    events = all_events.exclude(content=' ')
+    specials = all_events.filter(content=[])  # special event must to be included in game
+    events = all_events.exclude(content=[])
 
     if specials.exists():
         if num-len(specials) >= 1:
@@ -561,7 +565,7 @@ def get_events_of_game(game, role_group, num=1):
 
 
 def get_event_query(game, group_list):  # role_group to event_query: assign event to player for room.answer
-    c = Counter(group_list)
+    c = Counter(group_list)  # c = {0: num_of_0, 1: num_of_1}
     events = []
     for key in c.keys():
         events += get_events_of_game(game, key, c[key])
@@ -569,9 +573,10 @@ def get_event_query(game, group_list):  # role_group to event_query: assign even
     event_query = {}
     for event in events:
         li = event_query.get(int(event.group), None)
-        if li is None:  # 表示還未建立event_query[event.group]
+        if li is None:  # the first time, haven't established event_query[event.group]
             event_query[int(event.group)] = [[event.name, event.content]]
-        else:  # 表示已建立event_query[event.group] 故添加下一個元素
+
+        else:  # have established event_query[event.group] already, so add the next elmt
             event_query[int(event.group)].append([event.name, event.content])
     return event_query
 

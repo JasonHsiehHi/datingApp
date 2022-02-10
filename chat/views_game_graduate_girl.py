@@ -18,6 +18,7 @@ def examine(request, uuid):
         examinee = Player.objects.get(uuid=uuid)
         match = Match.objects.create(room=self_player.room, player_list=[str(examinee.uuid), str(self_player.uuid)])
 
+        onoff_num = 100
         examinee.match = match
         examinee.status = 3
         examinee.waiting_time = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.ROOMTIME_MIN[onoff_num])
@@ -107,7 +108,7 @@ def inquire(request, uuid):
             return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
 
         room = self_player.room
-        names = [li[0] for key, li in dict(room.answer).items() if key != uuid and li[1] != ' ']
+        names = [li[0] for key, li in dict(room.answer).items() if key != uuid and li[1] != []]
         name = names[randint(0, len(names) - 1)]
 
         self_player.tag_int = 1
@@ -137,7 +138,7 @@ def prolog(request):
                 self_player.tag_int = 0
             self_player.save()
 
-        role_dialogs = []
+        role_dialogs = []  # [dialog_content, is_image_or_not, m:me or s:system]
         if self_group == 1:
             role_dialogs.append(["妳是這場遊戲的<span class='a-point'>偵探</span>", False, "s"])
         else:  # self_group == 0:
@@ -146,13 +147,14 @@ def prolog(request):
                 text2 = "(噓！渣男的身份只有你知道，你必須想辦法摘贓給別人！)"
             else:
                 suspects = "嫌疑人"
-                text2 = "(你不是渣男，但是昨晚酒後失態，所以不能讓偵探知道你昨天幹了什麼傻事，並設法協助偵探找出渣男！)"
+                # text2 = "(你不是渣男，但是昨晚酒後失態，所以不能讓偵探知道你昨天幹了什麼傻事，並設法協助偵探找出渣男！)"
+                text2 = "(你不是渣男，你必須設法協助偵探找出其中的渣男！)"
             text1 = "你是這場遊戲的<span class='a-point'>{0}-{1}</span>，你昨晚在酒吧<span class='a-point'>{2}</span>".\
                 format(suspects, self_role, self_event)
             role_dialogs.append([text1, False, "s"])
             role_dialogs.append([text2, False, "s"])
 
-        return JsonResponse({"result": True, "role": role_dialogs,
+        return JsonResponse({"result": True, "role_dialogs": role_dialogs, "role": self_role,
                              "tag_int": self_player.tag_int, "tag_json": self_player.tag_json})
     else:
         print("error: it's not through ajax.")
