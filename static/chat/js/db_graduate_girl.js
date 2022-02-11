@@ -43,7 +43,7 @@ const role_desc_dialogs = {
         ["<span class='a-point'>調查</span>：" +
         "你可以<span class='a-point'>調查</span>左側名單上的嫌疑人，可查看對方昨晚可能做的事。",0,"s"],
         [ "<span class='a-point'>線索</span>：" +
-        "可向<span class='a-point'>偵探</span>傳送一句話做為<span class='a-point'>線索</span>。除此之外偵探會對每一位嫌疑人進行審問，你必須想辦法不讓<span class='a-point'>偵探</span>識別自己昨晚所做的事，若被成功識別則該名嫌疑人失敗出局。",0,"s"]]
+        "<span class='a-point'>調查</span>完之後，可向<span class='a-point'>偵探</span>傳送一句話做為<span class='a-point'>線索</span>。除此之外偵探會對每一位嫌疑人進行審問，你必須想辦法不讓<span class='a-point'>偵探</span>識別自己昨晚所做的事，若被成功識別則失敗出局。",0,"s"]]
 };
 
 const role_desc = {

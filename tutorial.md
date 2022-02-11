@@ -4566,7 +4566,7 @@ python manage.py runserver 192.168.1.1:8000
 port:8000用於查看本地端 每一個port碼都是不同的協定服務 (port,埠)
 FTP:21Port DNS:53Port 
 HTTP:80Port HTTPS:443Port (8000和8080為http的替代端口 8443為https的替代端口)
-一般上網只需要輸入域名就行 因為瀏覽器會自動補足所對應的port碼
+一般上網只需要輸入域名就行 因為瀏覽器會自動補足所對應的port碼
 而server端會針對所提供的服務來監聽所對應的port端口 如架網站就是提供80Port
 除了run server之後 也要一並run docker 開啟對應的container接口
 
@@ -4704,7 +4704,22 @@ awk '{print $1,$4}' log.txt 顯示文本中每排的第1項和第4項
 This's a test    # output:This's 
 
 kill -9 /kill -15
-前者為絕對關機 後者需要時間自動關機：後者比前者好
+前者為絕對關機 後者需要時間自動關機：後者比前者好 (沒有指定程序表示對全部的程序執行 故為關機)
+一般來說kill -15無法成功後才會使用kill -9 (kill -15可已被忽略或被阻塞 但kill -9則一定要立即執行)
+
+SIGKILL和SIGTERN：
+kill的操作方式都是向程序發送訊號 -9為SIGKILL -15為SIGTERN(kill -15也是預設 故可用kill即可)
+kill -l 可查看所有訊號 常見的unix系統層訊號為：SIGTERN, SIGKILL, SIGINT, SIGQUIT
+
+SIGINT則由 ctrl+c 傳送 預設情況下用於終止程序(signal interrupt) 
+但只能處理前台程序(也就是terminal正在運行的程序) 不能處理後台
+
+SIGQUIT由 ctrl+\ 傳送 使程序終止並把其中記憶體數據轉有到硬碟中
+SIGTSTP由 ctrl+z 傳送 能使程序暫停不中止 並把程序從前台轉向後台 
+
+訊號可能進行的操作分為5種： (可用kill -l查看)
+Term表示終止當前進程, Core表示終止當前進程並且Core Dump, Ign表示忽略該信號, Stop表示停止當前進程, Cont表示繼續執行先前停止的進程
+
 
 建立資料夾:
 mkdir Test 在當前目錄建立資料夾
@@ -4749,11 +4764,12 @@ source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機(或�
 修改的文件必須是目前所使用的殼層 可用echo $SHELL查看
 bash:bash_profile , zsh: zshrc
 
-mv A A-new 或 mv A ./folder-new/A-new 更名檔案或移動檔案
-rm 刪除單一檔案 和 rm -rf 刪除整個資料夾
+mv -n A A-new 或 mv A ./folder-new/A-new 更名檔案或移動檔案 且會防止覆蓋(-n)
+cp -rp /source/user /backup/ 將整個檔案(-r)與屬性(-p)做備份到/backup/ 
+rm 刪除單一檔案 和 rm -rf 強制(-f)刪除整個資料夾(-r)
 
-ln A A-ln-hard 為link 即用於將執行檔接到特定資料夾 使其可用terminal指令執行
-ln -s B B-ln-soft 為soft link 當原檔名稱備更改 會導致連接失效
+ln A A-ln-hard 為link 即用於將執行檔接到特定資料夾 使其可用terminal指令執行 但不能對資料夾做連接 (連接已檔案副本的方式存在)
+ln -s B B-ln-soft 為soft link 當原檔名稱備更改 會導致連接失效 可以對資料夾做連接 (連接以路徑的方式存在)
 
 /usr/bin/ 則放系統內建的terminal指令 如ls, cd, echo, touch...等
 /usr/local/bin/ 此資料夾是用來放所有第三方程式的terminal指令
@@ -5065,11 +5081,14 @@ docker run --rm -it container_name python manage.py runserver 0.0.0.0:8000
 因此通常會將必定要進行的指令寫在ENTRYPOINT (像是下載uwsgi等...)
 而CMD會寫入隨情況改變的指令 因為docker run可覆蓋掉cmd但不會影響ENTRYPOINT
 此外docker-entrypoint.sh內部可寫入$PYTHONUNBUFFERED等環境變數 而CMD則不行
+一般來說一個container就代表一個process 也就是CMD所執行的process (因此CMD只能有一個 其餘則放在ENTRYPOINT)
 
 dockerFile的寫法分為 shell form 和 exec form 兩種：前者以command的形式來寫 後者用[]array來寫 
 ENTRYPOINT不能用shell form來寫 會導致CMD指令被覆蓋掉 (shell form則是每行獨立)
 有時CMD可以只寫參數 而沒有執行指令： CMD ['-i','-t']  (exec form以array表示 即ENTRYPOINT將後面的CMD指令連用)
 好處是docker run --command 可以只寫附加的參數 而沒有執行指令(放在ENTRYPOINT中)
+
+
 
 #docker-entrypoint.sh 通常會將docker的前置作業寫入entrypoint 不同於直接寫在dockerFile的RUN是為了架設環境
 #!/bin/bash # 用於指令shell script 可取代/bin/bash -c指令
@@ -5195,10 +5214,13 @@ docker只涉及連到本地機的port 與IP位址無關
 
 containerized app是具有RESTful風格的管理系統 可使用標準HTTP方法進行操作
 所有container都會有一個用於連接的端口 用以接收外部的request請求
-每個container只進行一種服務 one process in one container
-container中的data不會保存下來 All data in the container is not preserved
 只要能使用request的方式訪問的資源或應用 都適合包裝成container
 
+每個container只進行一種服務 one process in one container
+因container即process，因此合理的設計方法會是一個 container 只執行一個 process 
+但有時可透過管理程序軟體(supervisord)協助操作 將類似的功能綁成一個container
+
+container中的data不會保存下來 All data in the container is not preserved
 不能使用container來儲存資料 也正因為如此更能確保容器化的運作機制 
 (如果要保留資料則要使用Volumes Component)
 

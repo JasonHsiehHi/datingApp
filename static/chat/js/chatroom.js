@@ -71,13 +71,13 @@ function chatroomWS(){
                     break;
 
                 case 'OUT':  // 通知其他人離開遊戲
+                    loginData.onoff_dict[data.sender] = -1;
                     var css_id = position[data.sender];  // position is from game_{gamename}.js
                     (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off').text('');
                     var name = $(css_id).find('.a-title').text();
                     $(css_id).find('.a-title').attr('data-bs-original-title', name + '(已退出)');
                     refreshGameSingle('OUT', css_id);
 
-                    loginData.onoff_dict[data.sender] = -1;
                     var sender_name = loginData.player_dict[data.sender][0],
                         sender_role = loginData.player_dict[data.sender][2];
                     theUI.showSys('<span class="a-point">'+sender_name+'('+sender_role+')</span>' + ' 已離開遊戲。');
@@ -111,14 +111,15 @@ function chatroomWS(){
                     }); 
                     break;
                 case 'DISCON':
+                    loginData.onoff_dict[data.sender] = 0;
                     var css_id = position[data.sender];
                     (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
                     var name = $(css_id).find('.a-title').text();
                     $(css_id).find('.a-title').attr('data-bs-original-title', name + '(離線)');
+                    
                     (2 === loginData.status) && refreshGameSingle('DISCON', css_id);
 
-                    loginData.onoff_dict[data.sender] = 0;
-                    var sender_name = loginData.player_dict[data.sender][0];
+                    // var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
 
                     if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
@@ -126,14 +127,15 @@ function chatroomWS(){
                     }
                     break;
                 case 'CONN':
+                    loginData.onoff_dict[data.sender] = 1;
                     var css_id = position[data.sender];
                     ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
                     var name = $(css_id).find('.a-title').text();
                     $(css_id).find('.a-title').attr('data-bs-original-title', name);
+                    
                     (2 === loginData.status) && refreshGameSingle('CONN', css_id);
 
-                    loginData.onoff_dict[data.sender] = 1;
-                    var sender_name = loginData.player_dict[data.sender][0];
+                    // var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
 
                     if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
@@ -1203,7 +1205,7 @@ Array.prototype.remove = function(val) {
 var loginData = JSON.parse(document.getElementById('loginData').textContent),
     TITLE = "A-LARP - 匿名劇本殺 | 2022年台灣校園交友平台",
     unreadMsg = 0,
-    place_url = '/static/img/mark/',
+    place_url = '/static/chat/img/mark/',
     chatSocket = null,
     theWS = WSManager(),
     theUI = chatUI(), 

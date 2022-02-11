@@ -7,34 +7,34 @@
     <meta name="description" content="ACard(AnonCard)：2021年台灣校園交友平台，讓妳在任何城市與命中注定的他相遇！ 簡單易上手，取代繁瑣的資料填寫！ 完全地匿名性交友，不透露任何個人資料！">
 
     {%load static%}
-    <script src="{% static 'js/jquery-3.6.0.min.js'%}"></script>
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css'%}"/>
-    <script src="{% static 'js/bootstrap.bundle.min.js'%}"></script>
+    <script src="{% static 'chat/js/jquery-3.6.0.min.js'%}"></script>
+    <link rel="stylesheet" href="{% static 'chat/css/bootstrap.min.css'%}"/>
+    <script src="{% static 'chat/js/bootstrap.bundle.min.js'%}"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/jquery-ui.min.css'%}"/>
-    <script src="{% static '/js/jquery-ui.min.js'%}"></script>
-    <script src="{% static '/js/jquery.fileupload.js'%}"></script>
+    <link rel="stylesheet" href="{% static 'chat/css/jquery-ui.min.css'%}"/>
+    <script src="{% static 'chat/js/jquery-ui.min.js'%}"></script>
+    <script src="{% static 'chat/js/jquery.fileupload.js'%}"></script>
 
-    <link rel="stylesheet" href="{% static 'css/chatroom.css'%}"/>
+    <link rel="stylesheet" href="{% static 'chat/css/chatroom.css'%}"/>
     
-    <script src="{% static 'js/db.js'%}"></script>
+    <script src="{% static 'chat/js/db.js'%}"></script>
     {{ login_dict|json_script:"loginData" }}
-    <script src="{% static 'js/chatroom.js'%}"></script>
+    <script src="{% static 'chat/js/chatroom.js'%}"></script>
     {% block script_file %}{% endblock %}
 </head>
 <body>
     <div class="a-background" id="background">
         {% block background %}
-        <img src="/static/img/myBg1.jpeg" alt="background">
+        <img src="/static/chat/img/myBg1.jpeg" alt="background">
         {% endblock %}
         <div class="a-mark" id='mark-before'>
-            <img src='/static/img/mark/logo_acard.png' alt='mark'>
+            <img src='/static/chat/img/mark/logo_acard.png' alt='mark'>
         </div>
         <div class="a-mark d-none" id='mark-after'>
-            <img src='/static/img/mark/logo_acard.png' alt='mark'>
+            <img src='/static/chat/img/mark/logo_acard.png' alt='mark'>
         </div>
         <div class="a-mark a-invisible-frame" id="circle">
-            <img src='/static/img/mark/circle.png' alt='mark'>
+            <img src='/static/chat/img/mark/circle.png' alt='mark'>
         </div>
     </div>
 

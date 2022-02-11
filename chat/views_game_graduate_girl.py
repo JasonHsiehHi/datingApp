@@ -18,7 +18,6 @@ def examine(request, uuid):
         examinee = Player.objects.get(uuid=uuid)
         match = Match.objects.create(room=self_player.room, player_list=[str(examinee.uuid), str(self_player.uuid)])
 
-        onoff_num = 100
         examinee.match = match
         examinee.status = 3
         examinee.waiting_time = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.ROOMTIME_MIN[onoff_num])

@@ -21,6 +21,8 @@ jquery 3.6.0 (查看JS檔)
 bootstrap 5.0.2 (查看JS檔)
 postgreSQL 13.5 
 uwsgi 2.0.20 (brew info uwsgi)
+daphne 3.0.2 
+supervisor 4.2.4
 nginx 1.20.2 (container nginx:stable)
 docker 20.10.7 (docker version)
 npm 6.14.12 (npm -v)
@@ -45,7 +47,7 @@ selenium 4以上
 上限前JS必須進行編碼做防盜措施
 放上ga
 GCE上線部署
-用GCE使用https
+用GCE使用https和 確認GCE上域名可以使用 用戶進入：域名->port443->port80
 pgsql要使用外接硬碟存放資料
 架設監控系統以防突發狀況：除了application外 要能處理流量問題以及DDOS防治問題
 創辦獨立遊戲開發團隊：使用patron, facebook, instagram 

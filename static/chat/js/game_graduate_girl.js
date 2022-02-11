@@ -52,8 +52,9 @@ var gameCheckGate = function(){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.tag_int = data.tag_int;
-                    loginData.tag_json = data.tag_json;
+                    loginData.tag_int = data.tag_int, loginData.tag_json = data.tag_json;
+                    refreshGameTagAll(self[3]);
+
                     var li = [...story_dialogs];
 
                     var event = eve();
@@ -61,7 +62,7 @@ var gameCheckGate = function(){
                     (0 !== event.length) && li.push(["以下情節是由不同嫌疑人<span class='a-point'>"+data.role+"</span>的視角進行：",0,"s"], ...event);
                     li.push(["你的角色可以使用：",0,"s"],...rol(self[3]));
 
-                    theUI.showStoryAsync(li, interval=2000, callback=function(){
+                    theUI.showStoryAsync(li, interval=1600, callback=function(){
                         theUI.unreadTitle(!0);
                     }) 
                     theUI.storeChatLogs(li, li.length, 'gameLogs');
@@ -286,20 +287,20 @@ function loadRoleData(){  // according to individual role, to display different 
     }
 }
 
-function refreshGameTag(self_group, other_uuid){  // only be called on status=2 
-    var css_id = position[other_uuid];
+function refreshGameTag(self_group, player_uuid){  // refreshGameSingle() can call refreshGameTag() instead of refreshGameTags()
+    var css_id = position[player_uuid];
     if (self_group === 1){
-        (null !== loginData.tag_json) && (1 === loginData.tag_json[other_uuid]) && (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
+        (null !== loginData.tag_json) && (1 === loginData.tag_json[player_uuid]) && (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
     }
     else{ // self_group === 0
         switch(loginData.tag_int){
             case null:
                 break;
             case 0:  // tag_int=0 havn't inquired and clue yet. Besides, player can't clue before inquire.
-                (1 === others[other_uuid][3]) && disabledElmtCss(css_id+'-btn');  
+                (1 === others[player_uuid][3]) && disabledElmtCss(css_id+'-btn');  
                 break;
             case 1:  // tag_int=1 have inquired done.
-                (1 === others[other_uuid][3])? enabledElmtCss(css_id+'-btn'): (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
+                (1 === others[player_uuid][3])? enabledElmtCss(css_id+'-btn'): (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
 
                 break;
             case 2:  // tag_int=2 have inquired and clue to detective.
@@ -309,15 +310,16 @@ function refreshGameTag(self_group, other_uuid){  // only be called on status=2
     }
 }
 
-function refreshGameTagAll(self_group){  // only be called on status=2 
+function refreshGameTagAll(self_group){  // only be called on status=2 by refreshGameStatus()
         for (let uuid in position){
-            (1 === loginData.onoff_dict[uuid]) && refreshGameTag(self_group, uuid); // tag_json & tag_int only affect the players online            
+            (1 === loginData.onoff_dict[uuid]) && refreshGameTag(self_group, uuid); 
+            // tag_json & tag_int only affect the players online            
         }
 }
 
-function refreshGameStatus(self_group, status){  // according to dividual role, refresh tag_json and tag_int
-    refreshPlayers();
-    switch (status){ 
+function refreshGameStatus(self_group, status){  // according to dividual role, and refresh status, tag_json and tag_int
+    refreshPlayers();  // first, refresh other players on/off 
+    switch (status){   // second, refresh self status as well as tag_json and tag_int
         case 2:
             refreshGameTagAll(self_group);  // according to current tag_json or tag_int, refresh player css btn
 
@@ -350,9 +352,52 @@ function refreshGameStatus(self_group, status){  // according to dividual role, 
     }
 }
 
-function refreshPlayers(){  // refresh players on/off, only be called by refreshGameStatus
-    var css_id, name;
+function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPlayer() instead of refreshPlayers()
+    var css_id = position[player_uuid]; 
+    var name = $(css_id).find('.a-title').text();
+    switch (loginData.onoff_dict[player_uuid]){
+        case 0:
+            (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
+            $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
+            $(css_id).find('.a-onoff').text('(離線)');
+
+            disabledElmtCss(css_id+'-btn');
+            
+            (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !0);
+            break;
+        case 1:
+            ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
+            $(css_id).find('.a-title').attr('data-bs-original-title', name);
+            $(css_id).find('.a-onoff').text('');
+
+            enabledElmtCss(css_id+'-btn');
+
+            (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !1);
+            break;
+        case -1:
+            (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
+            $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(已退出)');
+            $(css_id).find('.a-onoff').text('(已退出)');
+            $(css_id).find('.a-circle').text('');
+
+            disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已退出');
+
+            (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !0);
+            
+            if (self[3] === 1){  // for action btn
+                $(css_id+'-deduce-input').removeAttr('required').attr('disabled', true).removeClass('gameevent-options');
+                $(css_id+'-deduce-input>option:eq(0)').text('已退出遊戲');
+            }
+            break;
+    }
+
+} 
+
+
+function refreshPlayers(){  // refresh players on/off, only be called by refreshGameStatus()
     for (let uuid in position){
+        refreshPlayer(uuid);
+        /*
         css_id = position[uuid], name = $(css_id).find('.a-title').text();
         switch (loginData.onoff_dict[uuid]){
             case 0:
@@ -360,7 +405,7 @@ function refreshPlayers(){  // refresh players on/off, only be called by refresh
                 $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
                 $(css_id).find('.a-onoff').text('(離線)');
 
-                disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('離線');
+                disabledElmtCss(css_id+'-btn');
                 
                 (loginData.status === 3 && loginData.player_list.includes(uuid)) && (toggle.discon = !0);
                 break;
@@ -389,20 +434,22 @@ function refreshPlayers(){  // refresh players on/off, only be called by refresh
                 }
                 break;
         }
+        */
     }
 }
 
 function refreshGameSingle(ws_type, player_css, ...args){  // refresh one player status, only be called in websocket.onmessage
+    var player_uuid = $(player_css).data('uuid');
     switch (ws_type){  // react the ws_type according to induvidual role
         case 'CONN':
-            enabledElmtCss(player_css+'-btn');
-            refreshGameTag(self[3] , $(player_css).data('uuid'));
+            refreshPlayer(player_uuid), refreshGameTag(self[3] , player_uuid);  
+            // tag_json & tag_int will affect the result only if the player is online.
             break;
         case 'DISCON':
-            disabledElmtCss(player_css+'-btn');
+            refreshPlayer(player_uuid);
             break;
         case 'OUT':
-            disabledElmtCss(player_css+'-btn');
+            refreshPlayer(player_uuid);
             break;
     }
 }
@@ -417,7 +464,6 @@ function showGameNotice(ws_type, ...args){
             break;
     }
 }
-
 
 var GAMETITLE = '畢業後的第一夜',
     gameGate = gameCheckGate(),

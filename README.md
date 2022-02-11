@@ -10,7 +10,9 @@ channel 3.0.3
 channel-redis 3.2.0
 jquery 3.6.0
 bootstrap 5.0.2
-uwsgi
-nginx
+postgreSQL 13.5 
+uwsgi 2.0.20
+daphne 3.0.2 
+supervisor 4.2.4
+nginx 1.20.2
 docker 20.10.7
-npm 6.14.12
