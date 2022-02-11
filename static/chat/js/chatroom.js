@@ -38,9 +38,10 @@ function chatroomWS(){
                     // opposite players have been disconnected
                     if (localData.text_in_discon.length>0){
                         var discon_index = -(localData.text_in_discon.length+1);  // counting backwards from last one
-                        $('#diaolg').find('.a-chat:has(.a-dialogdiv.a-self)').gt(discon_index).each(function(a){ 
+                        $('#dialog').find('.a-chat:has(.a-dialogdiv.a-self):gt('+discon_index+')').each(function(a){
                             theUI.showStatus($(this), data.st_type);
                         })
+                        localData.text_in_discon=[],localStorage.text_in_discon='[]';
                     }
                     break;
                 
@@ -73,16 +74,17 @@ function chatroomWS(){
                 case 'OUT':  // 通知其他人離開遊戲
                     loginData.onoff_dict[data.sender] = -1;
                     var css_id = position[data.sender];  // position is from game_{gamename}.js
-                    (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off').text('');
-                    var name = $(css_id).find('.a-title').text();
-                    $(css_id).find('.a-title').attr('data-bs-original-title', name + '(已退出)');
                     refreshGameSingle('OUT', css_id);
 
                     var sender_name = loginData.player_dict[data.sender][0],
                         sender_role = loginData.player_dict[data.sender][2];
                     theUI.showSys('<span class="a-point">'+sender_name+'('+sender_role+')</span>' + ' 已離開遊戲。');
-                    
+
+                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
+                        toggle.discon = !0;
+                    }
                     break;
+
                 case 'OUTDOWN':  // 通知其他人離開遊戲後自己才能重新導向到/chat                    
                     showNotice('你已離開遊戲'), theUI.showSys('你已離開遊戲。');
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
@@ -110,14 +112,11 @@ function chatroomWS(){
                         window.location.assign(window.location.href);
                     }); 
                     break;
+
                 case 'DISCON':
                     loginData.onoff_dict[data.sender] = 0;
                     var css_id = position[data.sender];
-                    (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
-                    var name = $(css_id).find('.a-title').text();
-                    $(css_id).find('.a-title').attr('data-bs-original-title', name + '(離線)');
-                    
-                    (2 === loginData.status) && refreshGameSingle('DISCON', css_id);
+                    refreshGameSingle('DISCON', css_id);
 
                     // var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
@@ -126,14 +125,11 @@ function chatroomWS(){
                         toggle.discon = !0;
                     }
                     break;
+
                 case 'CONN':
                     loginData.onoff_dict[data.sender] = 1;
-                    var css_id = position[data.sender];
-                    ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
-                    var name = $(css_id).find('.a-title').text();
-                    $(css_id).find('.a-title').attr('data-bs-original-title', name);
-                    
-                    (2 === loginData.status) && refreshGameSingle('CONN', css_id);
+                    var css_id = position[data.sender];                    
+                    refreshGameSingle('CONN', css_id);
 
                     // var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
@@ -142,7 +138,7 @@ function chatroomWS(){
                         toggle.discon = !1;
                         if(localData.text_in_discon.length > 0){
                             theWS.msgsSendWs(localData.text_in_discon); // todo need to update for multiplayer match
-                            localData.text_in_discon=[],localStorage.text_in_discon='[]';
+                            // localData.text_in_discon=[],localStorage.text_in_discon='[]'; move to onmessage:ST
                         }
                     }
                     break;
@@ -604,7 +600,7 @@ function loginMethodSet(){
 
     $('#reset-pwd-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // 資料驗證
+        // todo 驗證資料
 
         $.ajax({
             type: 'POST',
@@ -1053,9 +1049,9 @@ var chatUI = function(){
         var dialog, elmt, isMore, cnt = 0, atmost = (n<=reversed.length)?n-1: reversed.length-1;
         while(cnt<reversed.length && cnt<n){
             dialog = reversed[atmost-cnt];
-            elmt = om(dialog), cnt++;
-            (dialog[2] === 'm') && (cnt>localData.text_in_discon.length) && st(elmt, 2); // some dialogs haven't sent.
-            
+            elmt = om(dialog);
+            (dialog[2] === 'm') && (cnt<=atmost-localData.text_in_discon.length) && st(elmt, 2); // probably some dialogs haven't sent.
+            cnt++;
         }
         (reversed.length>cnt)?(term[log_name+'_remain'] = (reversed.length-cnt), isMore=!0): (term[log_name+'_remain'] = 0, isMore=!1);
         return isMore
@@ -1066,8 +1062,10 @@ var chatUI = function(){
         var dialog, elmt, isMore, cnt = 0;
         while(cnt<reversed.length && cnt<n){
             dialog = reversed[cnt];
-            elmt = om(dialog, 'up'), cnt++;
-            (dialog[2] === 'm') && st(elmt, 2);
+            elmt = om(dialog, 'up');
+            // todo if localData.text_in_discon.length > n, llm() need to adjust.
+            (dialog[2] === 'm') && st(elmt, 2); // probably some dialogs haven't sent.
+            cnt++;
         }
         (reversed.length>cnt)?(term[log_name+'_remain'] = (reversed.length-cnt), isMore=!0): (term[log_name+'_remain'] = 0, isMore=!1);
         return isMore

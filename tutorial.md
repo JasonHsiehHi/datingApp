@@ -1834,6 +1834,8 @@ $('li.class_name') 即為jQuery對象
 $(“li:first”) 等同$(“li”).first() (jquery_filter的舊版用法)
 $(“li:even”)或$(“li:odd”) 即為偶數筆與奇數筆
 $(“li:eq(n)”) 第n筆對象 初始為n=0
+$(“li:gt(n)”) 高過於第n筆資料之集合 (不包含第n筆 greater than)
+$(“li:lt(n)”) 低過於第n筆資料之集合 (不包含第n筆 lower than)
 $("li:not(.intro)") 只扣除.intro該項
 
 $(“li:contains(‘specific_text’)”) 找出內部文字節點中符合‘specific_text’之li元素
