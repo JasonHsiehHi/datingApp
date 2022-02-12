@@ -287,7 +287,7 @@ def signup_send_mail(email):
     url = '/'.join([settings.DOMAIN, 'chat', 'signup', token])
     html_msg = render_to_string('chat/signup_mail.html', {'url': url})
 
-    title = 'A-LARP匿名狼人殺 註冊認證信'
+    title = 'A-LARP匿名劇本殺 註冊認證信'
     msg = ''
     receivers = [email]
     email_from = settings.EMAIL_FROM
@@ -436,7 +436,7 @@ def reset_pwd(request):
 def reset_pwd_send_mail(email, temp_pwd):
     html_msg = render_to_string('chat/reset_pwd_mail.html', {'pwd': temp_pwd})
 
-    title = 'A-LARP匿名狼人殺 重置密碼'
+    title = 'A-LARP匿名劇本殺 重置密碼'
     msg = ''
     receivers = [email]
     email_from = settings.EMAIL_FROM
@@ -538,8 +538,7 @@ def get_game(isAdult, isHetero):
     games = Game.objects.filter(Q(isAdult=isAdult) & Q(isHetero=isHetero))
     game = games[randint(0, len(games) - 1)]
 
-    if settings.DEBUG is True:
-        game = Game.objects.get(id=2)
+    # game = Game.objects.get(id=2)  # for test mode
 
     return game
 

@@ -212,6 +212,7 @@ s.get_decoded()  # 必須再用get_decode()轉成session_dict
 
 messages APP：
 用於網頁的一次性彈出訊息(notification message) 針對使用者行為來給予相對應的訊息(success,info,warning,error等) 
+針對用戶行為直接從後端生成對應資料 常用於需要進行DEBUG的web app
 並與html5相同的semantic element語境化色彩元素(語義化)
 
 在view中加上add_message():
@@ -402,7 +403,10 @@ path('accounts/', include('django.contrib.auth.urls'))  # 授權相關 包含log
 使用path('accounts/', include('django.contrib.auth.urls'))時
 預設templates資料夾應設在最外層
 並在settings.py 的 TEMPLATES中增加：'DIRS': [os.path.join(BASE_DIR, 'templates')]
-另外也可以區分與view.py連動的templates(catalog/templates)
+且每個app都用獨立folder 可以區分與view.py連動的templates(catalog/templates)
+
+除此之外 官方APP(像是django.contrib.admin)的相關template則會放於django的模組包中 
+此時APP_DIRS=True(預設)就會自動尋找
 
 path('book/<int:pk>', views.BookDetailView.as_view(), name='book-detail'),
 <int:pk> 可將pk變數傳給第二參數的view
@@ -4568,6 +4572,7 @@ python manage.py runserver 192.168.1.1:8000
 port:8000用於查看本地端 每一個port碼都是不同的協定服務 (port,埠)
 FTP:21Port DNS:53Port 
 HTTP:80Port HTTPS:443Port (8000和8080為http的替代端口 8443為https的替代端口)
+故8000, 8080, 8443常用於本地端測試
 一般上網只需要輸入域名就行 因為瀏覽器會自動補足所對應的port碼
 而server端會針對所提供的服務來監聽所對應的port端口 如架網站就是提供80Port
 除了run server之後 也要一並run docker 開啟對應的container接口

@@ -1,7 +1,7 @@
 import os
 import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'datingApp.settings')
-django.setup()
+django.setup()  # for import chat.routing(INSTALLED_APPS)
 
 from django.core.asgi import get_asgi_application
 from channels.auth import AuthMiddlewareStack

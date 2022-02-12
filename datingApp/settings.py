@@ -8,12 +8,12 @@ from json import loads
 from pathlib import Path
 
 DEBUG = os.getenv('DEBUG', None)
+
 if DEBUG is None:
     from dotenv import load_dotenv
     load_dotenv()
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.getenv('DEBUG'))
+DEBUG = True if os.getenv('DEBUG') == 'True' else False
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,7 +32,7 @@ ALLOWED_HOSTS = [
 
 ROOT_URLCONF = 'datingApp.urls'
 
-ADMIN_ENABLED = bool(os.getenv('ADMIN_ENABLED'))
+ADMIN_ENABLED = True if os.getenv('ADMIN_ENABLED') == 'True' else False
 ADMIN_PATH = os.getenv('ADMIN_PATH')
 
 # Application definition
@@ -212,7 +212,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('GMAIL')
 EMAIL_HOST_PASSWORD = os.getenv('GMAIL_FOR_MAC_MAIL')
-EMAIL_FROM = 'TEST <'+EMAIL_HOST_USER+'>'
+EMAIL_FROM = 'A-LARP管理員 <'+EMAIL_HOST_USER+'>'
 
 # for chat app - signup
 SECONDS_FOR_CACHE_TOKEN = 1800  # for activate

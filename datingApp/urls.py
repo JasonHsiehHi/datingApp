@@ -13,6 +13,6 @@ from django.conf.urls.static import static
 if settings.ADMIN_ENABLED:
     urlpatterns += [path(settings.ADMIN_PATH, admin.site.urls)]
 
-if settings.DEBUG:  # 僅在開發期間使用 為開啟static和media檔案
+if settings.DEBUG:  # for test mode locally
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

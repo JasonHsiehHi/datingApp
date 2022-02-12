@@ -94,7 +94,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="login-input-password" class="form-label">密碼Password:</label>
-                            <input type="password" class="form-control" id="login-input-password" name="login-input-password" required>
+                            <input type="password" class="form-control" id="login-input-password" name="login-input-password" pattern="^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$" required>
                         </div>
                         <p class='text-danger p-1 a-error'></p>
                     </div>

@@ -137,7 +137,7 @@ function chatroomWS(){
                     if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !1;
                         if(localData.text_in_discon.length > 0){
-                            theWS.msgsSendWs(localData.text_in_discon); // todo need to update for multiplayer match
+                            theWS.msgsSendWs(localData.text_in_discon); // todo: need to update for multiplayer match
                             // localData.text_in_discon=[],localStorage.text_in_discon='[]'; move to onmessage:ST
                         }
                     }
@@ -527,7 +527,7 @@ function loginMethodSet(){
 
     $('#login-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // todo 驗證資料
+        // verify email&password format by html 
         $.ajax({
             type: 'POST',
             url: '/chat/login',
@@ -600,16 +600,15 @@ function loginMethodSet(){
 
     $('#reset-pwd-modal-form').on('submit', function(e) {
         e.preventDefault();
-        // todo 驗證資料
-
+        // verify email format by html
+        $(this).find('.modal-footer button[type="submit"]').text('等待中...').attr('disabled', true);
         $.ajax({
             type: 'POST',
             url: '/chat/reset_pwd',
             data: $(this).serializeArray(),
             dataType: "json",
             success: function(data) {
-                if (!0 === data['result']){  // todo 寄信需要提醒用戶等一下
-
+                if (!0 === data['result']){
                     showNotice('已成功將重設密碼信寄到你的信箱了哦！');
                 }else{
                     $('#reset-pwd-modal-form p.a-error').text(data['msg'])

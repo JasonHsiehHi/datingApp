@@ -4,7 +4,7 @@ from .models import Game, Room, Match, Player, Dialogue, City, GameRole, GameEve
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ('name', 'game_id', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio')
+    list_display = ('name', 'id', 'game_id', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio')
     list_filter = ('isAdult', 'isHetero',)
     search_fields = ('name',)
 
@@ -38,6 +38,7 @@ class PlayerAdmin(admin.ModelAdmin):
                     'waiting_time', 'isPrepared', 'isOn')
     list_filter = ('gender', 'status', 'city', 'room', 'match', 'game', 'isOn')
     search_fields = ('uuid', 'name',)
+    save_as = True
 
 
 @admin.register(Dialogue)
