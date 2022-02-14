@@ -8,6 +8,7 @@ jsconfig.json
 
 # .env
 *.env
+envfile
 
 #for GAE
 app.yaml

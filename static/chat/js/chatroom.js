@@ -85,10 +85,10 @@ function chatroomWS(){
                     }
                     break;
 
-                case 'OUTDOWN':  // 通知其他人離開遊戲後自己才能重新導向到/chat                    
+                case 'OUTDOWN':  // 通知其他人離開遊戲後自己才能重新導向到/chat/                  
                     showNotice('你已離開遊戲'), theUI.showSys('你已離開遊戲。');
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
-                        window.location.href = "/chat"; 
+                        window.location.href = "/chat/"; 
                     }); 
                     break;
 

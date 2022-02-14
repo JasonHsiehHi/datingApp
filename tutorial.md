@@ -3717,6 +3717,8 @@ python manage.py loaddata fixture/whole.json
 並重做makemigrations和migrate
 最後再進到django的shell把ContentType清掉 ContentType.objects.all().delete())
 
+
+
 ## GSQL:
 gcloud sql instances describe pgsql 查看當前的SQL執行個體
 gcloud sql instances create django-sql 直接創建一份 一般也可以直接由GCP上執行
@@ -4228,9 +4230,13 @@ server {
 sudo nginx -t 測試設定檔是否可正常使用 每次執行時都要進行一次
 sudo nginx -s reload 重新讀取conf檔以使更新生效
 sudo nginx -g 'daemon off;' sudo一定要加上 且使用'daemon off;狀態開啟 才比較有關閉
+nginx -s stop 暫停nginx
+nginx -s quit 離開nginx
 brew search nginx 查詢是否有此軟件
 brew info nginx 查看此軟件的相關訊息
 brew install nginx 下載此軟件
+
+nginx-log的位置：usr/local/var/log/nginx/
 
 ## 設置supervisord
 用於自動管理進程 當發生問題時會自動執行相關指令已開啟端口(uwsgic和daphne都需要透過supervisord管理)
@@ -4245,6 +4251,13 @@ supervisorctl restart programxxx 重新啟動該進程 不會重新讀取設定�
 supervisorctl reload 亦重新啟動該進程 但會先停止進程並重讀設定檔 
 supervisorctl update 如果沒有改變則不會停止 
 
+使用supervisord的container時需要修改supervisord.conf：
+nodaemon=true 因為總進程需要讓docker來管理
+/etc 取代 /usr/local/etc , 
+/var 取代 /usr/local/var 確認路徑 因為本機端的路徑會跟container的路徑不同
+
+supervisord-log的位置：usr/local/var/log/supervisord.log(supervisord的主程式 而不是運行的進程)
+supervisord_nginx和supervisord_uwsgi的log位置：datingApp/log/supervisor/
 
 测试用JSP 用於測試最後application server後端收到的資訊:
 request.getScheme() 為所使用的協定(http, https, ws, wss, ftp...)
@@ -4513,7 +4526,7 @@ conda install thepackage (或 pip install thepackage) # 兩者都可以在myenv�
 conda search thepackage
 conda update thepackage
 conda remove thepackage (或 pip uninstall thepackage) 用pip下載就要用pip卸載
-source deactivate
+conda deactivate 
 
 vi test.txt / vim test.txt  # 開啟文件檔
 ## django指令
@@ -4636,6 +4649,14 @@ psql -U postgres -d postgres -h 127.0.0.1 -p 5432 登入pgsql資料庫
 -U 指定用戶, -d 指定資料庫, -h 資料庫服務器IP, -p 端口
 或用pg sql shell輸入相關資料登入 登入資料庫後可以直接使用sql指令進行操作
 
+sudo -u postgres bash 可在terminal中切換postgres使用者 方便進入對應的database
+mac的postgres相關指令位置：/Library/PostgreSQL/13/bin/psql
+mac的postgres資料庫位置：/Library/PostgreSQL/13/data(需要以postgres使用者身份進入)
+內部有pg_hba.conf 和 postgresql.conf 要開放遠端連接就需要使用此
+pg的host based authorization的意思為對host的授權管理
+
+sudo -u postgres /Library/PostgreSQL/13/bin/pg_ctl -D /Library/PostgreSQL/13/data restart 當設定檔變更後必需要進行重啟 此時用此方式
+
 
 ## pip指令
 pip套件管理工具的名稱為python package index(pypi) 本身就是以python寫成的工具
@@ -4735,15 +4756,16 @@ mkdir -m 755 /home/demo/sub1/Test 與上相同 但針對創建的資料夾可以
 
 建立文件三種方式:
 touch output.txt
-cat > output.txt
+cat > output.txt  (> output.log 常可用於刷新log檔案)
 echo "hello world" > output.txt
 
 touch 為keep in touch 即更新文件的意思 故建立後可直接開啟文件
 cat file1.txt file2.txt > file.txt cat原先用於合併多份文件
 cat > filename 表示將空白文件合併進去filename 即為建立文件
-cat filename 則表示顯示該文件後不做任何動作 即不做合併
-echo "hello world" 為在terminal上顯示文本 
+cat filename 則表示顯示該文件後不做任何動作 即不做合併 (若要查看檔案可直接用cat取代vi 更為方便)
+echo "hello world" 為在terminal上顯示文本  
 echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文件
+
 
 echo {ASCII字串} | base64 -D > image.png 亦可用於建立圖檔
 echo $SHELL 查看當前的shell 目前使用:/bin/zsh
@@ -4767,7 +4789,9 @@ ls -l 查看檔案的詳盡資料 包含使用權限等
 ls -l /dev/disk/by-id/google-* 可用星號表示自動匹配任何字串
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
-source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機(或用source ~/.zshrc 一定要做！)
+source ~/.bash_profile 再讓該設定重新生效 如此就不用重開機
+(或用source ~/.zshrc 一定要做！)
+
 修改的文件必須是目前所使用的殼層 可用echo $SHELL查看
 bash:bash_profile , zsh: zshrc
 
@@ -5148,14 +5172,15 @@ docker images 列出目前所有的images
 docker commit -m "Added Git package" -a "Starter" 59f3e3615488 當修改container之後 可用commit更新 讓docker hub與本地端同步 
 但可以會使得原先在service掛載的secret或config無法使用
 
-docker run -p 3000:3000 -it 733776b1db0a 有了id之後便能開始生成container
+docker run -p 3000:3000 -it --rm 733776b1db0a 有了id之後便能開始生成container
 -p表示publish 將容器發布到端口port上 另外-P則表示隨機生成port 如此就不用指定3000:3000
 3000:3000是因為要先連到host實體機的port 再連到host內container的port
-因為一台host機可以有多個container 故需要用兩個一組的port
+(因為一台host機可以有多個container 故需要用兩個一組的port)
 
-Container可被視為一台獨立的電腦 -it：
+Container可被視為一台獨立的電腦 -it --rm：
 -i是interactive可獲取container的STDIN 可輸入但需要用docker container exec
 -t是--tty 為分配一個虛擬終端機（pseudo-tty）並綁定到container上 此時可直接用指令 
+--rm當container執行完畢時可直接刪除 我們只要留image即可 
 
 docker run -p 3000:3000 -d 733776b1db0a
 -d是--detach(分離模式) 表示在背景中執行 且運行時終端機不能對container做任何輸入或輸出操作 此時關閉終端機也不會有問題
@@ -5167,7 +5192,7 @@ docker run --name container名稱 -p 8080:80 -v /html:/usr/share/nginx/html -d n
 docker pull [Image 名稱]:[Image 版本] 取得一個指定版本的image
 等同:docker pull registry.hub.docker.com/ubuntu:latest 會在Docker Hub中找此image
 (一般來說不用自己build一個映像檔 只要用pull就好)
-docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有一個類似的6380)
+docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有一個類似的6380) -d 為daemon 也就是轉到後台操作 不同於-it可在terminal(前台)操作
 
 可在django的settings.py中設定 不需要密碼的redis使用方式：redis://127.0.0.1:6379/0
 需要密碼的redis為：redis://password@127.0.0.1:6379/0
@@ -5175,6 +5200,12 @@ docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有�
 使用channels框架需要在settings.py設置redis端口
 (也可以直接略過pull步驟 docker會幫我們檢查本地端 若沒有會自動pull image)
 
+docker run --user jason 預設的使用者為root 但可用參數修改user(docker containers run as root)
+docker run --env KEY1=VALUE1 可加上環境變數
+docker run --env-file ./envfile 也可用檔案來環境變數 (格式有明確規範 envfile中不能有空格) 
+
+docker cp <container-name>:/path/to/file/in/container . 
+docker cp <file> <container-name>:/path/to/file/in/container 當container中沒有文字編輯器時 可以用docker cp將棋複製到該容器的主機中 等完成編輯後再放回去
 
 docker ps -a 用來找目前正在執行的container -a是all的意思 表示不只正在執行的 (等同docker container ls -a 可省略container)
 docker ps --filter name=redis_server 用篩選找尋特定container (ps為查看目前的的process status)
@@ -5206,6 +5237,9 @@ docker container exec container_id cat text.txt 顯示此文件內容
 docker attach continaer_id 連接到container的配置的處理進程(STDOUT...) 不是ssh
 docker exec -it 9ad62459bfdc bash 進入container的ssh
 docker exec -it 9ad62459bfdc sh 在container當前的workdir在開啟ssh
+
+docker exec -it 9ad62459bfdc bash -c "apt-get update && apt-get install -y vim" 要在container中使用編輯器則必須先做下載安裝(使用apt-get)
+(除了使用vim之外 也可以使用nano 安裝方式相同)
 
 docker stop <ContainerID> 找到id後便可直接關閉
 docker rm <ContainerID> 找到id後可做刪除

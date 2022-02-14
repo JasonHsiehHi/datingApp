@@ -17,6 +17,10 @@ main.py
 
 # .env
 *.env
+envfile
+
+# .log
+**/*.log
 
 #tutorial & notes
 term/
@@ -29,5 +33,7 @@ db.sqlite3
 pgdb*.sql
 whole*.json
 
-# nginx
-datingApp_nginx/
+# localhost test
+local_supervisor_daphne.ini
+local_supervisor_uwsgi.ini
+local_uwsgi.ini
