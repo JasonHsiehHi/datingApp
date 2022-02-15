@@ -23,11 +23,16 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DOMAIN_NAME = os.getenv('DOMAIN_NAME')
 DOMAIN = 'http://' + DOMAIN_NAME
+DOMAIN_IP = os.getenv('DOMAIN_IP', '')
+
+WEB_SERVER_HOST = os.getenv('WEB_SERVER_HOST', '')
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    DOMAIN_NAME
+    WEB_SERVER_HOST,
+    DOMAIN_NAME,
+    DOMAIN_IP
 ]
 
 ROOT_URLCONF = 'datingApp.urls'
@@ -90,21 +95,22 @@ WSGI_APPLICATION = 'datingApp.wsgi.application'
 ASGI_APPLICATION = 'datingApp.asgi.application'
 
 # channel redis
-if DEBUG is True:
+'''
     CHANNEL_LAYERS = {
         'default': {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
-else:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                "hosts": [(os.getenv('CHANNEL_HOST'), 6379)],
-            },
+'''
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(os.getenv('CHANNEL_HOST'), 6379)],
         },
-    }
+    },
+}
 
 # Database
 '''

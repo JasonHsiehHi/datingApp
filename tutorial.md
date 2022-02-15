@@ -3645,7 +3645,7 @@ tar -c 用於壓縮檔案 和 tar -x 用於解壓縮檔案
 三大常用linux作業系統：
 centos 後端常用java或perl 已經不再維護 若要架設web_server 則常採用Apache
 debian 後端常用python或php 若要架設web_server 則常採用Nginx
-ubuntu 後端常用ruby或js 最早為debian的桌面系統 用戶介面漂亮且具有完整的包管理系統(apt) 比起伺服器應用更適合用於桌面系統
+ubuntu 後端常用ruby或js 最早為debian的桌面系統 用戶介面漂亮且具有完整的包管理系統(apt) 比起伺服器應用更適合用於桌面系統
 
 以上為各個作業系統'常用的'後端語言 並不是不能使用其他的
 因此一般認為ubuntu更適合初學者使用 相對操作更為簡單 且開源軟體最多
@@ -3697,7 +3697,7 @@ gsutil rm gs://my-awesome-bucket/kitten.png 刪除
 gsutil defacl set public-read gs://gs-bucket-name 將特定bucket設為公開讀取
 gsutil rsync -R static/ gs://gs-bucket-name/static 上傳整個資料夾到bucket上
 
-在containerOS的VM中 並不會主動安裝GCS 需要進入container中自行安裝 分為3步驟:
+* 在containerOS的VM中 並不會主動安裝GCS 需要進入container中自行安裝 分為3步驟:
 1.docker exec -it container_id bash 進入container的shell
 
 2.apt-get update 套件管理軟體apt-get需要先進行安裝
@@ -3710,9 +3710,10 @@ pip install gsutil 由於已經有pip故可以直接做安裝
 postgresql常用的備份檔案與還原方式：
 pg_dump -U username -d database >db.sql
 psql -U username -d database < db.sql
+
 如果以上方法不成功 可改用django的方式： 
 python manage.py dumpdata > whole.json
-python manage.py loaddata fixture/whole.json
+python manage.py loaddata whole.json
 (過程中把*/migrations/*.py 和 */migrations/*.pyc清除
 並重做makemigrations和migrate
 最後再進到django的shell把ContentType清掉 ContentType.objects.all().delete())
@@ -4621,9 +4622,12 @@ cat ~/.ssh/id_rsa.pub SSH Key
 
 ## redis-server指令
 redis-server用於架設django緩沖系統  (CTRL+D離開)
-pip django-redis 必須安裝django-redis (不同於channel內建的redis庫)
-redis-server 開啟Redis伺服器 才能使用redis-cli指令
+
+pip install django-redis 必須安裝django-redis (不同於channel內建的redis庫)
+
+redis-server 開啟Redis伺服器 才能使用redis-cli指令(不是在django的host開啟 需要在redis的host上開啟)
 redis-server redis.conf 可用conf檔做IP、port、logfile和datafile(dir)的設置
+
 redis-cli 開啟Redis的CLI介面(command-line interface) 可檢查內存的key-value鍵(預設為db0)
 redis-cli -n 1 開啟db1資料庫(redis分為16個資料庫db0~db16) 若不指定-n 則會自動開啟db0
 redis-cli ping 用於驗證redis-server是否可正常使用
@@ -4631,6 +4635,7 @@ redis-cli select 2 移動到其他db資料庫
 redis-cli exit 用於離開redis-cli模式
 redis-cli shutdown 用於停止redis資料庫
 redis-cli dbsize 查看目前有多少鍵總數
+
 redis-cli keys * 常看當前所有鍵
 redis-cli keys cache:* 常看當前名稱對應的所有鍵
 redis-cli del key_name 刪除鍵
@@ -4766,7 +4771,6 @@ cat filename 則表示顯示該文件後不做任何動作 即不做合併 (若�
 echo "hello world" 為在terminal上顯示文本  
 echo "hello world" > output.txt 表示在output.txt上顯示文本 即建立文件
 
-
 echo {ASCII字串} | base64 -D > image.png 亦可用於建立圖檔
 echo $SHELL 查看當前的shell 目前使用:/bin/zsh
 bash或zsh都是可執行的 可輸入/bin/bash 或/bin/zsh 打開terminal
@@ -4785,7 +4789,7 @@ export PATH=$PATH:$HOME/bin/ 設置環境變量 ($PATH:$HOME/bin/ 表示除原�
 echo $PATH 檢查目前的環境變量
 
 ls -a 才能看到所有隱藏的檔案(.bash_profile)
-ls -l 查看檔案的詳盡資料 包含使用權限等
+ 查看檔案的詳盡資料 包含使用權限等
 ls -l /dev/disk/by-id/google-* 可用星號表示自動匹配任何字串
 vi ~/.bash_profile 由於PATH只是區域變數 只要電腦重新開機就會失效 故要寫入bash_profile
 export PATH=$PATH:$HOME/bin/
@@ -4855,6 +4859,9 @@ mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/DEVICE_NAM
 sudo mount -o discard,defaults /dev/DEVICE_NAME /mnt/disks/postgres-disk 將硬碟格式化後 要用mount進行掛載 之後就能在特定位址使用硬碟
  讓linux每次重啟時 能夠自動裝載硬碟
 
+env 可查看環境變數
+echo $[env-name] 也可用 $var-name 列出單一環境變數
+$[env-name] = value 除此之歪還可設值
 
 ## linux目錄
 /etc, /bin, /dev, /lib, /sbin 為linux五個次目錄 
@@ -5155,6 +5162,8 @@ RUN mkdir -p /etc/nginx/sites-enabled/ && \  創建sites-enabled
     ln -s /etc/nginx/sites-available/docker-nginx-dj3.conf /etc/nginx/sites-enabled/  並做soft-link
 CMD ["nginx", "-g", "daemon off;"] nginx會在container中執行 故須設置deamon off 此時container才能管理進程 (讓container不會自動關閉 讓nginx可以留在前台處理(foreground))
 
+如果使用nginx的container：
+nginx.conf所設置的error.log和access.log都已經被導到外部 docker logs container_id
 
 docker version 檢查版本
 docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上名稱
@@ -5163,8 +5172,8 @@ docker build . -t docker-demo-app 建立新的image -t是tag的意思 即打上�
 為避免與本地端原檔混在一起通常會在做一份git clone
 docker tag 59f3e3615488 docker-demo-app 用於建立完後再改名
 
-gcloud auth configure-docker 要上傳前必須用此方法向docker取得憑證
-docker pull busybox 如果沒有標版本號 那就是用busybox:latest
+gcloud auth configure-docker 要上傳前必須用此方法向docker取得憑證 一台電腦只需建立一次
+docker pull busybox 如果沒有標版本號 那就是用busybox:latest (如果registry已經有同名image 則舊的版本號會改為None)
 docker tag busybox asia.gcr.io/my-project/busybox 如果需要放到特定雲端上 就需要先用tag做改名動作
 docker push asia.gcr.io/my-project/busybox
 
@@ -5203,6 +5212,10 @@ docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有�
 docker run --user jason 預設的使用者為root 但可用參數修改user(docker containers run as root)
 docker run --env KEY1=VALUE1 可加上環境變數
 docker run --env-file ./envfile 也可用檔案來環境變數 (格式有明確規範 envfile中不能有空格) 
+
+進入container中後可用linux的env指令查看環境變數
+echo $[env-name] 也可用 $var-name 列出單一環境變數
+$[env-name] = value 除此之歪還可設值
 
 docker cp <container-name>:/path/to/file/in/container . 
 docker cp <file> <container-name>:/path/to/file/in/container 當container中沒有文字編輯器時 可以用docker cp將棋複製到該容器的主機中 等完成編輯後再放回去
@@ -5245,7 +5258,7 @@ docker stop <ContainerID> 找到id後便可直接關閉
 docker rm <ContainerID> 找到id後可做刪除
 docker image rm <ImageID>  同理也可以把存放在本地端的image刪除
 
-docker login  登入後才可以上傳到docker hub中
+docker login  登入後才可以上傳到docker hub中：
 docker tag django_todo:latest <Docker Hub username>/django_todo:latest
 docker push <Docker Hub username>/django_todo:latest 放在docker hub
 docker push asia.gcr.io/<project-id>/server 也可放在google docker registry
