@@ -3571,7 +3571,8 @@ apt-get與pipㄧ樣都是套件管理工具 Linux系統較常使用apt-get
 
 IaaS(Infrastructure as a Service)
 主要包含：虛擬伺服器VPS, 虛擬雲端VPC兩大功能
-VPS只用於個人 而VPC用於公司或開發團隊 提供分配或調整各項運算資源
+VPS只用於單一host (不實用 因一般架網仍需要多台host協助完成)
+而VPC用於多台host (可用於公司或開發團隊 提供分配或調整各項運算資源)
 IaaS即提供伺服器,貯存與機房等硬體設備 使用者可以自行架設作業系統與主要應用程式
 
 PaaS(Platform as a Service)
@@ -3679,7 +3680,7 @@ gcloud auth list 列出有效帳戶名稱
 gcloud config list 列出專案ID名稱與預設地區等資訊
 
 siege指令 用於做server的壓力測試： (用於測試autoscaling是否正常)
-sudo apt-get -y install siege
+sudo apt-get -y install siege (-y 表示對所有詢問(y/n)都回答y)
 siege -c 250 http://34.120.153.46
 
 ## GAE:
@@ -3690,7 +3691,7 @@ Liveness checks 檢查VM和VM中的container是否正在運行 當未達標準�
 Readiness checks 是否已準備接受流入的request 當未達標準時不會進入用於執行的個體池pool of instances
 
 ## GCS:
-gsutil ls -l gs://my-awesome-bucket 查看專案目前的googlestorage值區 -l為詳細資料
+ls -l gs://my-awesome-bucket 查看專案目前的googlestorage值區 -l為詳細資料
 gsutil cp data gs://gs-bucket-name/ 上傳
 gsutil cp gs://my-awesome-bucket/kitten.png Desktop/kitten2.png 下載
 gsutil rm gs://my-awesome-bucket/kitten.png 刪除
@@ -3714,11 +3715,16 @@ psql -U username -d database < db.sql
 如果以上方法不成功 可改用django的方式： 
 python manage.py dumpdata > whole.json
 python manage.py loaddata whole.json
-(過程中把*/migrations/*.py 和 */migrations/*.pyc清除
-並重做makemigrations和migrate
-最後再進到django的shell把ContentType清掉 ContentType.objects.all().delete())
-
-
+(過程中把*/migrations/*.py 和 */migrations/*.pyc清除並重做makemigrations和migrate
+find . -path '*/migrations/*.py' -not -name '__init__.py' -delete
+find . -path '*/migrations/*.pyc' -delete
+python manage.py makemigrations
+python manage.py migrate
+最後再進到django的shell把ContentType清掉:
+python manage.py shell
+from django.contrib.contenttypes.models import ContentType 
+ContentType.objects.all().delete()
+)
 
 ## GSQL:
 gcloud sql instances describe pgsql 查看當前的SQL執行個體
@@ -3742,10 +3748,10 @@ gcloud container clusters get-credentials autopilot-cluster-1-clone-1 \ 連結�
 VPC不同於固定的外部IP位置 需要透過GCP的公有端點來做通訊 GCP會提供DNS來做轉換
 
 VPC能讓不同的專案使用共同的內網資源:
-gcloud compute shared-vpc enable sharedvpc-1 將sharedvpc-1專案設為host project
+gcloud compute shared-vpc enable sharedvpc-1  將sharedvpc-1專案設為host-project
 gcloud compute shared-vpc associated-projects add sharedvpc-2 \
---host-project sharedvpc-1 將sharedvpc-2轉案設為連結至host project的service project 
-gcloud compute shared-vpc list-associated-resources sharedvpc-1 列出所有連結至host project的專案
+--host-project sharedvpc-1  將sharedvpc-2轉案設為連結至host-project的service project
+gcloud compute shared-vpc list-associated-resources sharedvpc-1  列出所有連結至host-project的專案
 
 創建VPC時同需再同一個專案具有唯一性的名稱
 gcloud compute networks create NETWORK \
@@ -3755,28 +3761,34 @@ gcloud compute networks create NETWORK \
 當使用GCP的default網路 就是在所有地區都添加子網(auto mode)
 asia-east1:110.140.0.0/20, us-central1:10.128.0.0/20, europe-west1:10.132.0.0/20... 實際上根本用不到
 
-gcloud compute networks list 查看當前網路
-gcloud compute networks subnets list 表示當前所有的子網路
-gcloud compute networks subnets list-usable 表示當前專案可用的子網路
+gcloud compute networks list  查看當前網路
+gcloud compute networks subnets list  表示當前所有的子網路
+gcloud compute networks subnets list-usable  表示當前專案可用的子網路
 
-建立負載平衡器：需要接上backend-services和backend-buckets 並設定fronted-config
+* 建立負載平衡器：需要接上backend-services和backend-buckets 並設定fronted-config 
+(可以與nginx混用 目前大多用nginx完成backend-services和backend-buckets)
+
+1.在子網路中取得一組靜態IP
 gcloud compute addresses create shared-vpcip \
---subnet projects/sharedvpc-1/regions/asia-east1/subnetworks/default 在子網路中取得一組靜態IP
+--subnet projects/sharedvpc-1/regions/asia-east1/subnetworks/default 
 
-gcloud compute backend-services create web-backend-service \ 創建後端服務 為使loadBalancer 可已將流量引入後端(不引入後端而直接讀取靜態資料為backend-buckets )
+2.創建後端服務 為使loadBalancer可以將流量引入後端 (不引入後端而直接讀取靜態資料為backend-buckets)
+gcloud compute backend-services create web-backend-service \  
 --protocol=HTTP \
 --port-name=http \
 --health-checks=http-basic-check \
 --global
 
-gcloud compute backend-services add-backend web-backend-service \ 將後端服務加在instance-group上
+3.將後端服務加在instance-group上
+gcloud compute backend-services add-backend web-backend-service \ 
 --instance-group=lb-backend-example \
 --instance-group-zone=us-east1-b \
 --global
 
-(!)gcloud compute load-balancer create loadbalancer-1 \ 最後再將後端與前端接在loadbalancer-1即可
+4.最後再將後端與前端接在loadbalancer-1即可
+(!)gcloud compute load-balancer create loadbalancer-1 \ 
 --backend-services=web-backend-service \
---fronted-addresses=shared-vpcip \ 表示這隻loadbalancer的IP位置
+--fronted-addresses=shared-vpcip \ 表示loadbalancer個體的IP位置
 --fronted-port=80 \
 
 子網路遮罩(subnet mask) 用來標示單一網路IP位址內的主機所在位址
@@ -3813,6 +3825,8 @@ gcloud compute instances create-with-container busybox-vm \ 用容器化的開�
 --container-command \ 等同docker run -c 
 --container-stdin \ 等同docker run -i 可以開啟交互模式
 --container-tty \  等同docker run -t 在交互模式下可使用指令
+--container-restart-policy=always \ 等同 docker run --restart=always 無論如何都會重啟(一般server使用此設定來守護進程 是GCE的預設) 
+其他的選項有: --restart=on-failure:10 (以非0狀態(0 exit code)退出時才會重啟 但10次以上就不重啟) 和 --restart=no (任何狀態退出都不自動重啟 適用於本機端使用的container程序 也是原本docker的預設)
 
 vCPU:被實現為計劃按需運行的線程 指的是虛擬CPU 直到有工作負載時才會分配到可運行的真正物理CPU 對使用VM的用戶來說vCPU就等同真的CPU
 運算最佳化：用於遊戲類型應用 需要大量突現即時性顯示的功能
@@ -3826,10 +3840,13 @@ vCPU:被實現為計劃按需運行的線程 指的是虛擬CPU 直到有工作�
 --disk-name=disk1 \ 仍可放入其他disk 通常會把data-disk和boot-disk分開 當需要使用備用機台時則直接將data-disk掛上去
 
 gcloud compute instances create gcelab-1 gcelab-2 充許一次創建多個相同設定的VM機台
-gcloud compute instances create gcepreempt \  建立搶佔式VM機台 (用比原價便宜的價格來使用閒置主機 此為臨時性 不能保存資料：通常是為讓臨時性的大量運算可以移轉到非主要機台上)
+gcloud compute instances create gcepreempt \  建立搶佔式VM機台 (用比原價便宜的價格來使用閒置主機 此為臨時性且可能被突然中斷 不能保存資料：通常是為讓臨時性的大量運算可以移轉到搶佔式機台上)
 --preemptible \
 --no-restart-on-failure \ 
 --maintenance-policy=terminate
+
+當前的GCE版本：--provisioning-model=SPOT 取代 --preemptible 將搶佔式機台稱作SPOT虛擬機
+如果不使用則為STANDARD虛擬機 --provisioning-model=STANDARD(GCE預設的虛擬機)
 
 gcloud compute instances update-container VM_NAME \ 事後需要更新容器時可以使用
 --container-image gcr.io/cloud-marketplace/google/nginx1:latest
@@ -3856,8 +3873,11 @@ network tag：設定所要套用的防火牆 防火牆會放在VPC網路之下 �
 VM創建完畢都會自動生成一組在該區域region中的內部IP與外部IP
 內部IP創建時會連同內部VPC一起創建 而外部IP的相關設定可由GVPC調整 
 內部VPC中會有多個預設的防火牆firewall 當要使用時在目標上加標記即可 (或可用VPC內部所有個體全部套用)
-VM最常加上的標記:http-server和 https-server(分別為預設防火墻的標記：default-allow-http和 default-allow-https) 
+VM最常加上的標記:http-server和 https-server(分別為預設防火墻標記：default-allow-http和 default-allow-https) 
 防火牆也可決定充許IP範圍：但通常針對外網輸入則會設為0.0.0.0 只有內網輸入才會另外訂出IP範圍
+
+防火牆規則的預設為對外輸出(outgoing)完全開放 並可增加規則封鎖；對內輸入(incoming)則完全禁止 必須增加規則開放
+因此GCP的VPC才會有預設的內網完全開放流入規則 和 http/https的流入規則
 
 default-allow-internal(預設防火牆)
 限定內網IP範圍10.128.0.0/9 (前9位固定 則第二組只要大於128即可 即第九位為1)
@@ -3869,11 +3889,12 @@ default-allow-ssh(預設防火牆)
 default-allow-rdp(預設防火牆)
 為port3389 為遠端桌面協定(Remote Desktop Protocol) 類似於SSH 但專用於微軟系統
 
-當application server有使用uWSGI做unix socket時 就需要用自製的防火墻開放port8003,port8004... 此時不能只用http-server和 https-server
+當application server有使用uWSGI做unix socket時 就需要用自製的防火墻開放port8003,port8004...
+此時不能只用http-server和 https-server (如果沒有nginx_host 並直接對外開放的情形) 
 
-gcloud compute instances start gcelab 啟動VM機台
-gcloud compute instances stop gcelab 停止VM機台 (並不是所有GCP服務都能停止 有些必須直接刪除)
-gcloud compute ssh gcelab 直接開啟VM機台的SSH
+gcloud compute instances start gcelab  啟動VM機台
+gcloud compute instances stop gcelab  停止VM機台 (並不是所有GCP服務都能停止 有些必須直接刪除)
+gcloud compute ssh gcelab  直接開啟VM機台的SSH
 
 gcloud compute disks create mydisk --size=200GB --zone us-centrall-c 建立永久性磁碟 mydisk是磁碟名稱
 當需要更多儲存空間來架設環境, 存放資料庫或運行主程式時 則需要再多一個硬碟
@@ -3915,7 +3936,11 @@ on host maintenance:機台定期維護時直接關機 或 將服務做遷移(預
 automatic restart:機台硬體出現突發狀況則直接重開機(預設) 與否
 
 Security主機安全性設定：
-shielded VM: 主機開機時的安全檢查機制
+shielded VM: 主機開機時的安全檢查機制 分為三項:
+--no-shielded-secure-boot 確保VM啟動時不會受到惡意軟體攻擊 -> 預設不開
+--shielded-vtpm 用於驗證VM啟動前和啟動的完整性(虛擬信任平台模組) -> 預設開
+--shielded-integrity-monitoring 透過監控來確保VM開即執行階段的完整性 -> 預設開
+
 SSH key: 除了用GCP登入外 當用本地端連上SSH時需要有固定的key
 
 Sole Tenency用戶群節點： (node一般就是指host)
@@ -4039,7 +4064,7 @@ application server負責business logic的執行和database的存取
 (application server無法直接與client端溝通 只能接受web server的request並回傳response)
 
 ubuntu安裝方式uwsgi方式:
-sudo apt-get install build-essential python-dev python-pip
+sudo apt-get install -y build-essential python-dev python-pip
 sudo pip install uwsgi 表示為python的套件 故也可以直接放在requirements.txt中
 
 django一定需要搭配uWSGI 因為django自帶的server效能太差
@@ -5081,10 +5106,8 @@ git merge upstream/master 同理fetch完後來做merge合併
 README.md 為使用markdown語法撰寫
 
 - - ---------------------------------------------------
-# containerized app使用 (docker和kubernetes)
-
-
-## docker指令
+* containerized app使用 (docker和kubernetes)
+# docker指令
 Dockerfile中的內容：(Dockerfile不用加副檔名)
 Dockerfile用於在本地端建立專用的container 
 通常包含軟體需求(FROM),所在目錄(WORKDIR),對外埠號(EXPOSE), 前置執行指令(RUN)與最後執行指令(CMD)
@@ -5093,6 +5116,7 @@ Dockerfile用於在本地端建立專用的container
 FROM: python:3.8.3-alpine 所用程式版本(從Docker Hub抓base image)
 LABEL maintainer="example@gmail.com" 存放相關資訊
 WORKDIR: /usr/src/app 在開啟container的機台中設置work directory 不存在時會自動建立 表示在此層執行RUN (/usr/src/app慣用位置 或直接用/app)
+如果沒特別指定WORKDIR 那就會放在根目錄/
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1  建立機台的環境變數 若有多項可以分開書寫
@@ -5102,7 +5126,8 @@ COPY ./requirements.txt /usr/src/app 將requirements.txt複製到container中 �
 COPY . /usr/src/app 複製當前專案到container的特定位置 (專案的根目錄 會與Dockerfile同一層)
 COPY static /etc/static/ 用於複製整個資料夾 當指定目標為資料夾時 會將內部的內容複製過去
 
-ADD http://example.com/big.tar.xz /usr/src/things/ 與COPY相同都是複製 但ADD用於複製遠端檔案
+ADD http://example.com/big.tar.xz /usr/src/thin
+gs/ 與COPY相同都是複製 但ADD用於複製遠端檔案
 
 RUN pip install --upgrade pip 
 RUN pip install -r requirements.txt  用pip對requirments.txt進行安裝
@@ -5110,15 +5135,26 @@ RUN pip install -r requirements.txt  用pip對requirments.txt進行安裝
 VOLUME /app 當docker run --mount時會將檔案掛載在container中的此位址
 
 EXPOSE 8000  container所接受的port
-ENTRYPOINT [ "/bin/bash, "-c", "echo $HOME"]
-ENTRYPOINT [ "/bin/bash", "docker-entrypoint.sh"] 可執行sh檔內部的指令 (此於常見寫法)
+
+ENTRYPOINT [ "/bin/sh", "-c", "echo $HOME"] -c為cmd-string 表示可向echo放入參數 如果之後沒有參數則不用使用bash -c
+
+COPY docker-entrypoint.sh /
+ENTRYPOINT [ "/docker-entrypoint.sh"] (docker-entrypoint.sh的第一行必須為 #!/bin/sh)
+
 CMD python manage.py runserver 0.0.0.0:8000 最後用cmd執行runserver即可 
+
 指的是container的最後一行指令 也可以直接在shell用docker run取代：
 docker run --rm -it container_name python manage.py runserver 0.0.0.0:8000
 
-因此通常會將必定要進行的指令寫在ENTRYPOINT (像是下載uwsgi等...)
+RUN和ENTRYPOINT之差異：
+CMD指令可被覆蓋：故通常會將必定要進行的指令寫在ENTRYPOINT (像是下載uwsgi等...)
 而CMD會寫入隨情況改變的指令 因為docker run可覆蓋掉cmd但不會影響ENTRYPOINT
-此外docker-entrypoint.sh內部可寫入$PYTHONUNBUFFERED等環境變數 而CMD則不行
+
+當需要環境變數時：此外docker-entrypoint.sh內部可寫入$ENV_NAME等環境變數 而CMD則不行
+
+當有些指令只在特定host才能執行時：此時就不能使用RUN 而要用ENTRYPOINT寫入shell腳本
+因為這樣才能成功建立 之後在讓特定的host使用即可
+
 一般來說一個container就代表一個process 也就是CMD所執行的process (因此CMD只能有一個 其餘則放在ENTRYPOINT)
 
 dockerFile的寫法分為 shell form 和 exec form 兩種：前者以command的形式來寫 後者用[]array來寫 
@@ -5129,7 +5165,7 @@ ENTRYPOINT不能用shell form來寫 會導致CMD指令被覆蓋掉 (shell form�
 
 
 #docker-entrypoint.sh 通常會將docker的前置作業寫入entrypoint 不同於直接寫在dockerFile的RUN是為了架設環境
-#!/bin/bash # 用於指令shell script 可取代/bin/bash -c指令
+#!/bin/sh # 用於指令shell script 可取代/bin/bash -c指令
 
 #Collect static files
 echo "Collect static files"
@@ -5143,7 +5179,11 @@ python manage.py makemigrations
 echo "Apply database migrations"
 python manage.py migrate
 
-exec "$@"  # 執行CMD指令
+exec "$@"  # 執行CMD指令：如果CMD為exec form形式 (像是：['nginx', '-g', 'daemon off;'] 就需要用此方法引入)
+(但CMD為shell form形式則不需要 像是：CMD nginx -g "daemon off;")
+
+習慣上如果有用ENTRYPOINT的話 那就會用exec "$@"引入CMD指令(exec form)
+反之沒有使用ENTRYPOINT 則直接用CMD(shell form)
 
 requirment.txt可用pip list --format=freeze > requirements.txt導出(比pip freeze更好 因為會審略掉多餘的安裝資訊 只留下版本號)
 (pip list --format=json > requirements.txt 則轉成json格式)
@@ -5161,6 +5201,14 @@ COPY docker-nginx-dj3.conf /etc/nginx/sites-available
 RUN mkdir -p /etc/nginx/sites-enabled/ && \  創建sites-enabled
     ln -s /etc/nginx/sites-available/docker-nginx-dj3.conf /etc/nginx/sites-enabled/  並做soft-link
 CMD ["nginx", "-g", "daemon off;"] nginx會在container中執行 故須設置deamon off 此時container才能管理進程 (讓container不會自動關閉 讓nginx可以留在前台處理(foreground))
+
+nginx加上ssl的方法：(使用certbot自動更新簽證)
+RUN apt-get update && apt-get install -y software-properties-common
+RUN add-apt-repository ppa:certbot/certbot
+RUN apt-get update && apt-get install -y python-certbot-nginx 下載certbot
+
+RUN sudo certbot --nginx -n --agree-tos -d mywebsite.tw -d www.mywebsite.tw -m myemail@gmail.com --redirect 直接執行certbot即可
+
 
 如果使用nginx的container：
 nginx.conf所設置的error.log和access.log都已經被導到外部 docker logs container_id
@@ -5278,6 +5326,9 @@ container中的data不會保存下來 All data in the container is not preserved
 不能使用container來儲存資料 也正因為如此更能確保容器化的運作機制 
 (如果要保留資料則要使用Volumes Component)
 
+如果要將pgsql移植到不同的VM上：可以直接將persistent disk掛上去便可直接使用 (但為避免發生問題 不能同時讓2個以上VM做掛載)
+此外不能在VM運行時掛上persistent disk 會導致硬碟被同步化：只能在VM停止的時後掛上才能確保disk的資料不受影響
+
 Docker Compose是docker的延伸工具 可組合多個功能的container來提供完整服務
 Kubernetes也是container的集中管理工具 並由google進行維護
 兩者都必須要使用YAML(批次腳本) 此外許多指令也與docker相同
@@ -5313,13 +5364,12 @@ metadata:
   name: compute-quotas
   namespace: hellospace
 
-創建 Namespace：
+### 創建 Namespace：
 並加上compute-quotas和object-quotas兩個ResourceQuota物件來資源分配：
 apiVersion: v1
 kind: Namespace
 metadata:
   name: hellospace
----
 apiVersion: v1
 kind: ResourceQuota
 metadata:
@@ -5331,7 +5381,7 @@ spec:
     requests.memory: 1Gi
     limits.cpu: "1"
     requests.memory: 10Gi
----
+
 apiVersion: v1
 kind: ResourceQuota
 metadata:
@@ -5576,7 +5626,6 @@ spec:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 50
-
 
 
 ### k8s的secrets物件：

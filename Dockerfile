@@ -10,7 +10,7 @@ RUN pip install -r requirements.txt
 VOLUME /app
 
 EXPOSE 8003 8089
-# ENTRYPOINT [ "/bin/bash", "docker-entrypoint.sh"]
+# ENTRYPOINT [ "/app/datingApp/docker-entrypoint.sh"]
 
 # for test on local host
 # CMD python manage.py runserver 0.0.0.0:8000

@@ -1,6 +1,7 @@
 function chatroomWS(){
     if (null===chatSocket){
-        var wsUrl = 'ws://'+window.location.host+'/ws/chat/'; 
+        var ws_name = ("https:" === window.location.protocol)? 'wss://': 'ws://';
+        var wsUrl = ws_name + window.location.host+'/ws/chat/'; 
         if (!window.WebSocket){  // todo 改用protocols_whitelist替代
             console.log('瀏覽器版本不支援或已關閉websocket功能');
             return false
