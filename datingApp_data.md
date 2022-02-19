@@ -43,14 +43,13 @@ selenium 4以上
 完成遊戲background
 完成goto-place
 修改checkGate和gameCheckGate
-
-上限前JS必須進行編碼做防盜措施
-放上ga
+成功用https取代http和確認GCE上域名可以使用
 GCE上線部署
-用GCE使用https和 確認GCE上域名可以使用 用戶進入：域名->port443->port80
 pgsql要使用外接硬碟存放資料
-架設監控系統以防突發狀況：除了application外 要能處理流量問題以及DDOS防治問題
-創辦獨立遊戲開發團隊：使用patron, facebook, instagram 
+放上ga
+
+
+真正使用域名登入進行測試
 
 例行檢查項目：
 手機與其他瀏覽器的RWD調整
@@ -66,9 +65,14 @@ pgsql要使用外接硬碟存放資料
 
 
 未來完成：
+JS進行編碼做防盜措施
+創辦獨立遊戲開發團隊：使用patron, facebook, instagram 
 完成 settings-form換成start-game的選項
 篩選不符合條件的瀏覽器 通知
 流量超載就自動斷線 通知
+研究nginx的優化方式
+架設監控系統以防突發狀況
+處理流量問題以及DDOS防治問題
 
 
 # 2022年 競爭對手 LARP

@@ -6,12 +6,12 @@
     <title>A-LARP - 匿名劇本殺 | 2022年校園匿名交友平台</title>
     <meta name="description" content="A-LARP 匿名劇本殺：2022年台灣校園匿名交友平台，讓妳在任何城市與命中注定的他相遇！ 簡單易上手，取代繁瑣的資料填寫！ 完全地匿名性交友，不透露任何個人資料！">
 
-    <meta property="og:image" content="https://anonlarp.com/static/chat/img/mark/logo_acard.png">
+    <meta property="og:image" content="https://www.anonlarp.com/static/chat/img/mark/logo_acard.png">
     <meta property="og:image:type" content="png">
     <meta property="og:title" content="A-LARP 匿名劇本殺：校園匿名交友平台">
     <meta property="og:description" content="2022年台灣校園匿名交友平台，讓妳在任何城市與命中注定的他相遇！ 簡單易上手，取代繁瑣的資料填寫！ 完全地匿名性交友，不透露任何個人資料！">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://anonlarp.com/chat/">
+    <meta property="og:url" content="https://www.anonlarp.com/chat/">
 
     {%load static%}
     <script src="{% static 'chat/js/jquery-3.6.0.min.js'%}"></script>
@@ -28,6 +28,16 @@
     {{ login_dict|json_script:"loginData" }}
     <script src="{% static 'chat/js/chatroom.js'%}"></script>
     {% block script_file %}{% endblock %}
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0V9B3WVXF9"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-0V9B3WVXF9');
+    </script>
 </head>
 <body>
     <div class="a-background" id="background">

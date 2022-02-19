@@ -3697,13 +3697,14 @@ gsutil cp gs://my-awesome-bucket/kitten.png Desktop/kitten2.png 下載
 gsutil rm gs://my-awesome-bucket/kitten.png 刪除
 gsutil defacl set public-read gs://gs-bucket-name 將特定bucket設為公開讀取
 gsutil rsync -R static/ gs://gs-bucket-name/static 上傳整個資料夾到bucket上
+gsutil -m cp -r gs://gs-bucket-name/static . 下載整個資料夾到本地端
 
 * 在containerOS的VM中 並不會主動安裝GCS 需要進入container中自行安裝 分為3步驟:
 1.docker exec -it container_id bash 進入container的shell
 
 2.apt-get update 套件管理軟體apt-get需要先進行安裝
-apt-get install gcc python-dev python-setuptools libffi-dev 
-apt-get install python3-pip 如果遇到沒有python的環境則需要用apt-get先安裝python 才能用pip
+apt-get install -y gcc python-dev python-setuptools libffi-dev 
+apt-get install -y python3-pip 如果遇到沒有python的環境則需要用apt-get先安裝python 才能用pip
 pip install gsutil 由於已經有pip故可以直接做安裝
 
 3.gsutil config 使用config完成gcloud帳號授權後即可使用
