@@ -229,6 +229,14 @@ messages.add_message(request, messages.INFO, 'Hello world.')
 </ul> 
 {% endif %}
 
+可在module_name自建context_processors.py：
+from django.conf import settings
+def site(request):
+    return {'SITE_URL': settings.SITE_URL}  # 用於提供變數給templates
+
+並要在TEMPLATES中的context_processors參數加上：
+"module_name.context_processors.site" 才能使用
+
 contenttypes APP：
 所有創建的model都是ContentType的實例 
 任何model的物件都能用ContentType的方法來取的

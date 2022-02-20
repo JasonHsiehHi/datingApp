@@ -296,7 +296,7 @@ function refreshGameStatus(self_group, status){  // refresh status, tag_json and
         case 2:
             refreshGameTagAll(self_group);  // according to current tag_json or tag_int, refresh player css btn
 
-            setNavTitle('劇本：<span class="a-point">'+ GAMETITLE +'</span>');
+            setNavTitle('劇本:<span class="a-point">'+ GAMETITLE +'</span>');
 
             (localData.chatLogs.length>0) && theUI.clearChatLogs('chatLogs'); 
             if (localData.gameLogs.length === 0){  // the first time to enter game
@@ -314,7 +314,7 @@ function refreshGameStatus(self_group, status){  // refresh status, tag_json and
                 (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
             }
 
-            setNavTitle('審問中... 剩餘時間：<span class="a-point a-clock"></span>'), theUI.showClock(loginData.waiting_time, !0);
+            setNavTitle('審問中 剩餘時間:<span class="a-point a-clock"></span>'), theUI.showClock(loginData.waiting_time, !0);
 
             var isMore = theUI.loadChatLogs('chatLogs');  // chat record dialogs are on status=3 only
             (!0 === isMore) && appearElmtCss('#show-more');

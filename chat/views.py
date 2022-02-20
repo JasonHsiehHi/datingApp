@@ -586,6 +586,7 @@ def leave(request):
             player = request.user.profile
             player.status = 0
             player.waiting_time = None
+            player.isPrepared = False
             player.save()
             return JsonResponse({"result": True})
         else:
