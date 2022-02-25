@@ -20,15 +20,16 @@ class GameEventAdmin(admin.ModelAdmin):
     list_display = ('name', 'content', 'group', 'game')
     list_filter = ('game', )
 
+
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ('create_date', 'city', 'game', 'onoff_dict')
+    list_display = ('id', 'create_date', 'city', 'game', 'onoff_dict')
     ordering = ('-create_date',)
 
 
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ('room', 'player_list')
+    list_display = ('id', 'room', 'player_list')
 
 
 @admin.register(Player)

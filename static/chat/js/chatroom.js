@@ -683,6 +683,7 @@ function profileMethodSet(){
         }
         var formArray = $(this).serializeArray();
         formArray[1] = ({name:"goto-input",value: cityId});
+        $(this).find('input[name="goto-input"]').val('');
         $.ajax({
             type: 'POST',
             url: '/chat/post_place',
@@ -699,7 +700,6 @@ function profileMethodSet(){
                         li.splice(0,0,['已抵達<span class="a-point">'+ citySet[city] +'</span>了😎',!1], theGate.tutor()); // insert msg into data.dialog
                         theUI.showMsgsAsync(li);
                     });
-                    $(this).find('input[name="goto-input"]').val('');
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
                     $('#goto-modal-form p.a-error').text(data['msg']);

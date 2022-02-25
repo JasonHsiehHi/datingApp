@@ -513,7 +513,10 @@ def start_game(request):
 
                 uuid = str(player.uuid)
                 player_dict[uuid] = [player.name, player.gender, role.name, role.group]
-                onoff_dict[uuid] = 1
+                if player.isOn is True:
+                    onoff_dict[uuid] = 1
+                else:
+                    onoff_dict[uuid] = 0
                 answer_dict[uuid] = event_query[int(role.group)].pop()
 
             room.player_dict = player_dict

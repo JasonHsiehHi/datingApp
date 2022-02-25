@@ -70,7 +70,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.player_data = await utils.refresh_player(self.player_data)
         if self.player_data.status == 1:
             self.player_data = await utils.set_player_fields(
-                self.player_data, {'isPrepared': False, 'waiting_time': None, 'isOn': False})
+                self.player_data, {'isOn': False})
         else:
             self.player_data = await utils.set_player_fields(self.player_data, {'isOn': False})
 
@@ -119,38 +119,29 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 return False
 
             if 'wn' in content:
-                print("wn - 執行時間：%f 秒" % (time.time() - self.start))
                 await self.channel_layer.group_send(self.match_id, {
                     'type': 'is_writing',
                     'boolean': content['wn'],
-                    'from': self.uuid,
-                    't': self.start  # 僅用於測試
+                    'from': self.uuid
                 })
             elif 'st' in content:
-                print("st - 執行時間：%f 秒" % (time.time() - self.start))
                 await self.channel_layer.group_send(self.match_id, {
                     'type': 'update_status',
                     'st_type': content['st'],
-                    'backto': content['backto'],  # the sender's uuid (opposite side in match)
-                    't': self.start  # 僅用於測試
+                    'backto': content['backto']  # the sender's uuid (opposite side in match)
                 })
             elif 'msg' in content:
-                print("msg - 執行時間：%f 秒" % (time.time() - self.start))
                 await self.channel_layer.group_send(self.match_id, {
                     'type': 'chat_message',
                     'message': content['msg'],
                     'isImg': content['isImg'],
-                    'from': self.uuid,
-                    't': self.start  # 僅用於測試
+                    'from': self.uuid
                 })
             elif 'msgs' in content:
-                print("msgs - 執行時間：%f 秒" % (time.time() - self.start))
-
                 await self.channel_layer.group_send(self.match_id, {
                     'type': 'chat_messageList',
                     'messages': content['msgs'],
-                    'from': self.uuid,
-                    't': self.start  # 僅用於測試
+                    'from': self.uuid
                 })
 
         else:
@@ -469,7 +460,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def chat_message(self, event):
         if self.uuid != event['from']:
-            print("chat_message - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'MSG',
@@ -480,7 +470,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def chat_messageList(self, event):
         if self.uuid != event['from']:
-            print("chat_messageList - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'MSGS',
@@ -490,7 +479,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def is_writing(self, event):
         if self.uuid != event['from']:
-            print("is_writing - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'WN',
@@ -499,7 +487,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def update_status(self, event):
         if self.uuid == event['backto']:
-            print("update_status - 執行時間：%f 秒" % (time.time() - event['t']))
 
             await self.send_json({
                 'type': 'ST',

@@ -34,7 +34,7 @@ var gameCheckGate = function(){
         return text
     }
 
-    function eve(isDirected=false, interval=1500){  // be used by prolog()
+    function eve(isDirected=false, interval=2000){  // be used by prolog()
         var dialogs = loginData['event_content'];
         (!0 === isDirected) && theUI.showStoryAsync(dialogs, interval);
         return dialogs
@@ -62,7 +62,7 @@ var gameCheckGate = function(){
                     (0 !== event.length) && li.push(["以下情節是由不同嫌疑人<span class='a-point'>"+data.role+"</span>的視角進行：",0,"s"], ...event);
                     li.push(["你的角色可以使用：",0,"s"],...rol(self[3]));
 
-                    theUI.showStoryAsync(li, interval=1600, callback=function(){
+                    theUI.showStoryAsync(li, interval=4000, callback=function(){
                         theUI.unreadTitle(!0);
                     }) 
                     theUI.storeChatLogs(li, li.length, 'gameLogs');
@@ -319,8 +319,10 @@ function refreshGameStatus(self_group, status){  // refresh status, tag_json and
             var isMore = theUI.loadChatLogs('chatLogs');  // chat record dialogs are on status=3 only
             (!0 === isMore) && appearElmtCss('#show-more');
             gameGate.matcher();
+            (loginData.player_list.length === 1) && theUI.showSys('目前房間內剩你一人'); // 合併到gameGate.matcher();
 
             (self_group === 1) && disabledElmtCss('#start-btn');
+            
             break;
     }
 }
