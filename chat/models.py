@@ -10,7 +10,7 @@ class Room(models.Model):
 
     player_dict = models.JSONField(null=True, blank=True, default=dict)
     onoff_dict = models.JSONField(null=True, blank=True, default=dict)
-    answer = models.JSONField(null=True, blank=True, default=dict)
+    answer = models.JSONField(null=True, blank=True, default=dict)  # change 'answer' to 'secret_dict'
 
     def __str__(self):
         return "room-%s" % self.id
@@ -19,6 +19,7 @@ class Room(models.Model):
 class Match(models.Model):
     room = models.ForeignKey('Room', null=True, blank=True, on_delete=models.SET_NULL, default=None)
     player_list = models.JSONField(null=True, blank=True, default=list)
+    secret = models.JSONField(null=True, blank=True, default=dict)
 
     def __str__(self):
         return "match-%s" % self.id
@@ -38,8 +39,8 @@ class Player(models.Model):
     isBanned = models.BooleanField(default=False)
 
     city = models.ForeignKey('City', null=True, blank=True, on_delete=models.SET_NULL, default=None, to_field='name')
-    room = models.ForeignKey('Room', null=True, blank=True, on_delete=models.SET_NULL, default=None)
-    match = models.ForeignKey('Match', null=True, blank=True, on_delete=models.SET_NULL, default=None)
+    room = models.ForeignKey('Room', null=True, blank=True, on_delete=models.SET_NULL, default=None, related_name='players')
+    match = models.ForeignKey('Match', null=True, blank=True, on_delete=models.SET_NULL, default=None, related_name='players')
 
     user = models.OneToOneField(User, null=True, blank=True, on_delete=models.SET_NULL, default=None, related_name='profile')
     gender = models.CharField(max_length=1, choices=GENDER_TYPE, null=True, blank=True)
@@ -48,7 +49,7 @@ class Player(models.Model):
     isHetero = models.BooleanField(null=True, blank=True, default=True)
     game = models.ForeignKey('Game', null=True, blank=True, on_delete=models.SET_NULL, default=None, to_field='game_id')
 
-    waiting_time = models.DateTimeField(null=True, blank=True)
+    waiting_time = models.DateTimeField(null=True, blank=True)  # change 'waiting_time' to 'timer'
     isPrepared = models.BooleanField(default=False)
     isOn = models.BooleanField(default=False)
 
@@ -64,9 +65,12 @@ class Game(models.Model):
     game_id = models.CharField(max_length=25, unique=True)
     isAdult = models.BooleanField()
     isHetero = models.BooleanField()
-    best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要 異性為[5,1] 同性為[5:0]
-    threshold_ratio = models.JSONField(max_length=10)  # 有分最合適比例與及格配對比例兩種 差別在於等待時間
+    best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要(ex:異性為[5,1] 同性為[5:0])
+    threshold_ratio = models.JSONField(max_length=10)  # 最合適比例 與 及格配對比例 兩種：差別在於等待時間
     story = models.JSONField(null=True, blank=True)
+
+    noplayerNum = models.IntegerField(default=0)
+    showGender = models.BooleanField()
 
     def __str__(self):
         return self.game_id
@@ -84,7 +88,6 @@ class GameRole(models.Model):  # 角色數量一定要多過遊戲人數 才不�
 
 class GameEvent(models.Model):
     name = models.CharField(max_length=30)
-    # content = models.TextField(null=True, blank=True)
     content = models.JSONField(null=True, blank=True)
     game = models.ForeignKey('Game', null=True, blank=True, on_delete=models.SET_NULL, default=None)
     group = models.IntegerField(default=0)

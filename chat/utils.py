@@ -67,10 +67,13 @@ def set_match_fields(match, fields: dict):
 
 
 @database_sync_to_async
-def get_room_players(player):
+def get_room_players(player, hasPlayerList=True):
     room = player.room
     game = room.game
-    return room, game, list(room.player_set.all())  # player太多會有效率問題
+    if hasPlayerList is True:
+        return room, game, list(room.players.all())  # player太多會有效率問題
+    else:
+        return room, game
 
 
 @database_sync_to_async

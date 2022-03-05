@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
+
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 
@@ -7,21 +8,20 @@ from datingApp import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.sessions.models import Session
+from .models import Player, City, Game, Dialogue, Room
 from django.core.cache import cache
-from .models import Player, City, Room, Game, GameRole, GameEvent, Dialogue
+
 from django.forms.models import model_to_dict
 from django.db.models import Q
 from random import randint, sample, shuffle
-from collections import Counter
 
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
+import re
 
 from datetime import datetime, timezone
 from uuid import uuid4
 from hashlib import md5
-
-import re
 
 from django.db import connection
 
@@ -38,25 +38,12 @@ def get_loginData(user, player):
         player_dict['tag_int'] = -1
         player_dict['tag_json'] = ''
 
-        player_dict['event_name'] = []
-        player_dict['event_content'] = []
     else:
         player_dict['game'] = str(room.game)
         player_dict['player_dict'] = room.player_dict
         player_dict['onoff_dict'] = room.onoff_dict
         player_dict['tag_int'] = player.tag_int
         player_dict['tag_json'] = player.tag_json
-
-        answer = room.answer
-        event_names = []
-        for li in answer.values():
-            event_names.append(li[0])
-        shuffle(event_names)
-
-        event_content = answer[str(player_dict['uuid'])][1]
-
-        player_dict['event_name'] = event_names
-        player_dict['event_content'] = event_content
 
     if match is None:
         player_dict['player_list'] = []
@@ -463,17 +450,19 @@ def start_game(request):
 
         # 自己登記遊戲
         self_player.game = game
+        self_player.status = 1
         self_player.isPrepared = True
         self_player.waiting_time = datetime.now(tz=timezone.utc)
-        self_player.status = 1
         self_player.save()
 
         # todo 更新city的等待人數
 
         # 判斷遊戲人數是否足夠
-        players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))  # todo 創房者獲取資料後 其他人才離線 問題
-        # con't replace isPrepared=True by status=2 because isPrepared is relative to on/off
-        # 改為用isAdult和isHetero判斷 直到成功建立者的game作為room的game
+        # todo 是否能夠不訪問Player資料庫的情況判斷人數是否充足
+        players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))
+        # can't replace isPrepared=True by status=2 because isPrepared is relative to on/off
+        # todo 改為用isAdult和isHetero判斷 直到成功建立者的game再作為room的game
+
         male_players = players.filter(gender='m')
         female_players = players.filter(gender='f')
         maleNeeded = game.best_ratio[0]
@@ -482,105 +471,40 @@ def start_game(request):
         # 人數足夠 建立房間
         if len(male_players) >= maleNeeded and len(female_players) >= femaleNeeded:
             room = Room.objects.create(game=game, city=self_player.city)
+            # arrange players in gender order
             if self_player.gender == 'm':
                 players = list(female_players.order_by('waiting_time'))[:femaleNeeded] + \
-                          [self_player] + list(male_players.order_by('waiting_time'))[:maleNeeded-1]
-            else:
-                players = [self_player] + list(female_players.order_by('waiting_time'))[:femaleNeeded-1] + \
+                          [self_player] + list(male_players.order_by('waiting_time'))[:maleNeeded - 1]
+            else:  # self_player.gender == 'f'
+                players = [self_player] + list(female_players.order_by('waiting_time'))[:femaleNeeded - 1] + \
                           list(male_players.order_by('waiting_time'))[:maleNeeded]
 
-            roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
-
-            role_group = [role.group for role in roles]  # role_group = [1, 0, 0, 0,...]
-            role_group.extend([0, 0])  # for answer_dict['noplayer0'] and answer_dict['noplayer1']
-            event_query = get_event_query(game, role_group)
-            # event_query = {0: [event.name, event.content], 1: [event.name, event.content], ...}
-
-            player_dict = {}
-            onoff_dict = {}
-            answer_dict = {  # noplayer can not take special event, so pop() first
-                'noplayer0': event_query[0].pop(),
-                'noplayer1': event_query[0].pop()
-            }
-            shuffle(event_query[0])
-            for player, role in zip(players, roles):
+            for player in players:
                 player.room = room  # todo 等待期間的玩家都不能存取資料庫以避免建房者發生錯誤 用player.status禁止上傳
-                player.game = game
                 player.status = 2
                 player.isPrepared = False
                 player.waiting_time = None
                 player.save()
 
-                uuid = str(player.uuid)
-                player_dict[uuid] = [player.name, player.gender, role.name, role.group]
-                if player.isOn is True:
-                    onoff_dict[uuid] = 1
-                else:
-                    onoff_dict[uuid] = 0
-                answer_dict[uuid] = event_query[int(role.group)].pop()
+            return JsonResponse({"result": True, "start": True,
+                                 "game": str(game.game_id), "msg": '遊戲人數齊全，等待加載...'})
 
-            room.player_dict = player_dict
-            room.onoff_dict = onoff_dict
-
-            room.answer = answer_dict
-            room.save()
-
-            # todo 更新city的room數量
-
-            return JsonResponse({"result": True, "start": True, "msg": '遊戲人數齊全，等待加載...'})
         # 人數不足 等待
         else:
-            return JsonResponse({"result": True, "start": False, "msg": '請等待其他玩家進入遊戲',
-                                 "waiting_time": self_player.waiting_time})
+            # todo 使用game.threshold_ratio
+            return JsonResponse({"result": True, "start": False,
+                                 "msg": '請等待其他玩家進入遊戲', "waiting_time": self_player.waiting_time})
 
     else:
         print("error: it's not through ajax.")
 
 
 def get_game(isAdult, isHetero):
-    games = Game.objects.filter(Q(isAdult=isAdult) & Q(isHetero=isHetero))
-    game = games[randint(0, len(games) - 1)]
+    # games = Game.objects.filter(Q(isAdult=isAdult) & Q(isHetero=isHetero))
+    # game = games[randint(0, len(games) - 1)]
 
-    # game = Game.objects.get(id=2)  # for test mode
-
+    game = Game.objects.get(id=3)  # designate the game instead of selecting randomly
     return game
-
-
-def get_roles_of_game(game, gender, num=1):
-    roles = GameRole.objects.filter(Q(game=game) & Q(gender=gender))
-    return sample(list(roles), num)
-
-
-def get_events_of_game(game, role_group, num=1):  # use role_group to get event instances
-    all_events = GameEvent.objects.filter(Q(game=game) & Q(group=role_group))
-    specials = all_events.filter(content=[])  # special event must to be included in game
-    events = all_events.exclude(content=[])
-
-    if specials.exists():
-        if num-len(specials) >= 1:
-            result = list(specials) + sample(list(events), num - len(specials))
-        else:
-            result = list(specials)
-    else:
-        result = sample(list(events), num)
-    return result
-
-
-def get_event_query(game, group_list):  # role_group to event_query: assign event to player for room.answer
-    c = Counter(group_list)  # c = {0: num_of_0, 1: num_of_1}
-    events = []
-    for key in c.keys():
-        events += get_events_of_game(game, key, c[key])
-
-    event_query = {}
-    for event in events:
-        li = event_query.get(int(event.group), None)
-        if li is None:  # the first time, haven't established event_query[event.group]
-            event_query[int(event.group)] = [[event.name, event.content]]
-
-        else:  # have established event_query[event.group] already, so add the next elmt
-            event_query[int(event.group)].append([event.name, event.content])
-    return event_query
 
 
 def leave(request):
@@ -588,8 +512,8 @@ def leave(request):
         if request.user.is_authenticated:
             player = request.user.profile
             player.status = 0
-            player.waiting_time = None
             player.isPrepared = False
+            player.waiting_time = None
             player.save()
             return JsonResponse({"result": True})
         else:

@@ -27,10 +27,6 @@
     <script src="{% static 'chat/js/db.js'%}"></script>
     {{ login_dict|json_script:"loginData" }}
     <script src="{% static 'chat/js/chatroom.js'%}"></script>
-    <!--
-    <script src="{% static 'chat/js/phaser.min.js'%}"></script>
-    -->
-
     {% block script_file %}{% endblock %}
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
@@ -358,10 +354,7 @@
         </div>
         
     </div>
-    <!--
-    <div id="phaser-chatroom"></div>
-    <script src="{% static 'chat/js/phaser_chatroom.js'%}"></script>
-    -->
+
     <div class="a-section a-height">
         <div class="a-container a-clr">
             <div class="outer-scrollbar">
@@ -390,5 +383,6 @@
             <input class="d-none form-control" id="send-img" type="file" name="send-img" data-url="upload_photo" accept="image/*" multiple>
         </div>
     </form>
+    {% block script %}{% endblock %}
 </body>
 </html>

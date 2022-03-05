@@ -100,14 +100,14 @@ function chatroomWS(){
                     }); 
                     break;
 
-                case 'LEAVE': // 通知其他人離開match
+                case 'LEAVE': // 通知其他人 '自己即將離開'
                     loginData.player_list = data['player_list'];
                     var name = loginData.player_dict[data.sender][0];
                     var empty_msg = (loginData.player_list.length === 1)?'房間內剩你一人':'';
                     showNotice(name + ' 已離開房間...' + empty_msg), theUI.showSys('<span class="a-point">'+name+ '</span>'+' 已離開房間...'+empty_msg);
                     break;
 
-                case 'LEAVEDOWN': // 通知其他人離開match後自己離開
+                case 'LEAVEDOWN': // 通知其他人 '自己即將離開' 後再自己離開
                     (!0 === data['timeout'])?showNotice('時間到！ 即將自動關閉房間...'):showNotice(' 你已離開房間...');;
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
                         window.location.assign(window.location.href);
@@ -157,32 +157,12 @@ function chatroomWS(){
                     break;
 
                 case 'INFORM':
-                    var msg = $('#snippet').html(data['msg']).text();
-                    showNotice(msg);
-                    break;
-                case 'MESSAGE':
-                    if (true === data.toMe){
-                        showNotice('訊息成功送達！');
-                    }else{
-                        var begin_str = gameGate.message();
-                        if (loginData.status === 2){
-                            for (let msg of data['msgs']){
-                                msg = $('#snippet').html(begin_str + msg).text();
-                                theUI.showMsg(msg);
-                            }
-                        }
-                        var dialogs = data['msgs'].map(msg => [$('#snippet').html(begin_str + msg).text(), !1, 'a']);
-                        if (1===dialogs.length)
-                            theUI.storeChatLogs(dialogs[0], 1, 'gameLogs');
-                        else
-                            theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
-                    }
+                    informGameMessage(data);
                     break;
             }
         };
     }
 }
-
 
 var WSManager = function(){
     function ms(msg, isImg=false){
@@ -253,7 +233,8 @@ function getLocalData(){
         text_in_discon: [],
         imgUrl_adult: '',
         chatLogs:[],
-        gameLogs:[]
+        gameLogs:[],
+        answers:{}
     };
 
     if ('undefined' !== typeof(Storage)){
@@ -265,7 +246,8 @@ function getLocalData(){
             data.text_in_discon = JSON.parse(localStorage.text_in_discon),
             data.imgUrl_adult = localStorage.imgUrl_adult,
             data.chatLogs = JSON.parse(localStorage.chatLogs),
-            data.gameLogs = JSON.parse(localStorage.gameLogs);
+            data.gameLogs = JSON.parse(localStorage.gameLogs),
+            data.answers = JSON.parse(localStorage.answers);
 
         }else{
             localStorage.isSaved = 'true',
@@ -276,7 +258,8 @@ function getLocalData(){
             localStorage.text_in_discon = '[]',
             localStorage.imgUrl_adult = '',
             localStorage.chatLogs = '[]',
-            localStorage.gameLogs = '[]';
+            localStorage.gameLogs = '[]',
+            localStorage.answers = '[]';
         }
     }else{
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
@@ -403,17 +386,19 @@ function refreshStatus(status){  // handle all UI work about status
             disabledElmtCss('#goto-btn'), disabledElmtCss('#name-btn');
             disabledElmtCss('#normal-radio'), disabledElmtCss('#adult-radio'), disabledElmtCss('#male-radio'), disabledElmtCss('#female-radio');
             enabledElmtCss('#leave-btn');
-            // navtitle and chatlog is controlled by refreshGameStatus() 
-            // becasuse some data varies due to role
             break;
     }
 }
 
-function refreshGameStatus(){  // will be overloaded by game_{gamename}.js
+function showGameNotice(){  // will be overloaded by game_{gamename}.js
     console.log("will be overloaded by game_{gamename}.js");
 }
 
 function refreshGameSingle(){  // will be overloaded by game_{gamename}.js
+    console.log("will be overloaded by game_{gamename}.js");
+}
+
+function informGameMessage(){  // will be overloaded by game_{gamename}.js
     console.log("will be overloaded by game_{gamename}.js");
 }
 
@@ -429,12 +414,12 @@ function bindMsgSend() {
             $("#send-text").blur(), $("#send-text").focus();
         }
     })
-    $("#send-text").on('input',function(a){
+    $("#send-text").on('input',function(a){  // writes something in <input>
         if (3 === loginData.status){
             (!1 === toggle.writing) && (theWS.writingNowWs(!0), toggle.writing = !0);
 
             (null !== term.timerId_writing) && clearTimeout(term.timerId_writing);
-            term.timerId_writing = setTimeout(function(){ theWS.writingNowWs(!1); },10000);  // 當時間超過10秒再發送 theWS.writingNowWs(!1)
+            term.timerId_writing = setTimeout(function(){ theWS.writingNowWs(!1); },10000);  // when it's over 10 seconds, theWS.writingNowWs(!1)
         }
     })
     $("#send-text").on('focus',function(a){
@@ -815,7 +800,7 @@ function startMethod(){
             success: function(data) {
                 if (!0 === data['result']){
                     if (!0 === data['start']){
-                        theWS.callSendWs('start_game');
+                        prepareMethod(data['game']);
                     }else{
                         loginData.status = 1, refreshStatus(loginData.status); // into waiting phase
                     }
@@ -827,6 +812,21 @@ function startMethod(){
             error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
+    })
+}
+
+function prepareMethod(game_id){
+    $.ajax({
+        type: 'GET',
+        url: '/chat/prepare_game/'+game_id,
+        dataType: "json",
+        success: function(data) {
+            if (!0 === data['result']){
+                theWS.callSendWs('start_game');
+            }
+        },
+        error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
+        timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
     })
 }
 

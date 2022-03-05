@@ -187,7 +187,13 @@
     border-color: #2690bf;
 }
 
-.a-circle.a-off, .a-circle.a-male.a-off, .a-circle.a-female.a-off{
+.a-circle.a-nogender{
+    background: #ffdf59;
+    color: #80702d;
+    border-color: #80702d;
+}
+
+.a-circle.a-off, .a-circle.a-male.a-off, .a-circle.a-female.a-off, .a-circle.a-nogender.a-off{
     background: #97989c;
     color: #c8c8c8;
     border-color: #c8c8c8;

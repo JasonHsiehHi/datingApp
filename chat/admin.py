@@ -4,7 +4,8 @@ from .models import Game, Room, Match, Player, Dialogue, City, GameRole, GameEve
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ('name', 'id', 'game_id', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio')
+    list_display = ('name', 'id', 'game_id', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio',
+                    'noplayerNum', 'showGender')
     list_filter = ('isAdult', 'isHetero',)
     search_fields = ('name',)
 
@@ -23,13 +24,13 @@ class GameEventAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ('id', 'create_date', 'city', 'game', 'onoff_dict')
+    list_display = ('id', 'create_date', 'city', 'game', 'onoff_dict', 'player_dict', 'answer')
     ordering = ('-create_date',)
 
 
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ('id', 'room', 'player_list')
+    list_display = ('id', 'room', 'player_list', 'secret')
 
 
 @admin.register(Player)

@@ -29,13 +29,19 @@ var gameCheckGate = function(){
         return dialog
     }
 
-    function mes(){  // be used by chatSocket.onmessage data.type='INFORM'
+    function mes(){  // be used by chatSocket.onmessage data.type='MESSAGE'
         var text = '某人向妳提供線索：'
         return text
     }
 
-    function rol(self_group, isDirected=false, interval=3000){  // only be used by prolog()
-        var dialogs = role_desc_dialogs[self_group];
+    function eve(isDirected=false, interval=3000){  // be used by prolog()
+        var dialogs = event_dialogs;
+        (!0 === isDirected) && theUI.showStoryAsync(dialogs, interval);
+        return dialogs
+    }
+
+    function rol(self_group, isDirected=false, interval=3000){  // be used by prolog()
+        var dialogs = role_desc_dialogs[self_group];  // from db_male_or_female.js, different contents by role
         (!0 === isDirected) && theUI.showStoryAsync(dialogs, interval);
         return dialogs
     }
@@ -43,25 +49,18 @@ var gameCheckGate = function(){
     function prl(){
         $.ajax({
             type: 'GET',
-            url: '/chat/start_game/graduate_girl/prolog',
+            url: '/chat/start_game/male_or_female/prolog',
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.tag_int = data.tag_int, loginData.tag_json = data.tag_json;
+                    loginData.tag_json = data.tag_json, loginData.tag_int = data.tag_int;
                     refreshGameTagAll(self[3]);
+                    var li = [...story_dialogs];  // from db_male_or_female.js, same contents for everyone
 
-                    var li = [...story_dialogs];
-                    li.push(...data.role_dialogs);
-                    var event = data.event_dialogs;
-                    (0 !== event.length) && li.push(["以下情節是由不同嫌疑人<span class='a-point'>"+data.role+"</span>的視角進行：",0,"s"], ...event);
-                    li.push(["你的角色可以使用：",0,"s"],...rol(self[3]));
+                    localData.answers['timetable'] = data.timetable, localStorage.answers = JSON.stringify(localData.answers);
+                    replyMethod();
 
-                    if (self[3] === 1) {
-                        localData.answers['all_events'] = data.all_events, localStorage.answers = JSON.stringify(localData.answers);
-                        $('#start-btn').text('推 理'), deduceMethod();
-                    } 
-
-                    theUI.showStoryAsync(li, interval=4000, callback=function(){
+                    theUI.showStoryAsync(li, interval=3000, callback=function(){
                         theUI.unreadTitle(!0);
                     }) 
                     theUI.storeChatLogs(li, li.length, 'gameLogs');
@@ -77,6 +76,7 @@ var gameCheckGate = function(){
     return {
         player:pla,
         matcher:mat,
+        event:eve,
         role:rol,
         message:mes,
         prolog:prl
@@ -102,7 +102,7 @@ function deduceMethod(){
         }
         $.ajax({
             type: 'POST',
-            url: '/chat/start_game/graduate_girl/deduce',
+            url: '/chat/start_game/male_or_female/deduce',
             data: formArray,
             dataType: "json",
             success: function(data) {
@@ -120,7 +120,7 @@ function deduceMethod(){
     })
     function setOptions(){
         seletedEvent = {};
-        var set = new Set(localData.answers['all_events']);
+        var set = new Set(eventSet);
         set.delete('偵探本人');
         for (let name of set){
             $('.gameevent-options').append('<option value='+name+'>'+name+'</option>');
@@ -150,7 +150,7 @@ function examineMethod(css_id, player_uuid){
     $(css_id).on('click',function(e){
         $.ajax({
             type: 'GET',
-            url: '/chat/start_game/graduate_girl/examine/' + player_uuid,
+            url: '/chat/start_game/male_or_female/examine/' + player_uuid,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
@@ -181,11 +181,60 @@ function clueMethod(css_id, player_uuid){
         var formArray = $(this).serializeArray();
         $.ajax({
             type: 'POST',
-            url: '/chat/start_game/graduate_girl/clue/'+ player_uuid,
+            url: '/chat/start_game/male_or_female/clue/'+ player_uuid,
             data: formArray,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
+                    loginData.tag_int = 2, refreshGameTagAll(0);
+                    theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', [clue_msg]]);  // message format: list([msg1, msg2,...])
+                    $('#modal').modal('hide');
+                }else{
+                    $('#inquire-modal-form p.a-error').text(data['msg']);
+                }
+            },
+            error: function(data) { $('#clue-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+            timeout: function(data) { $('#clue-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        })
+    })
+}
+
+function replyMethod(){
+    $("send-form").on('submit',function(e){
+        e.preventDefault();
+        var msg_text = $(this).find('input[name="send-text"]').val();
+        // 唯有在作答時間內才可回答 而且只能回答一次 (先用前端檢驗一次 到後端還要再檢驗一次)
+        // 需要有timetable 其中不會有問題 但會有現在可回覆(1)或不可回覆(0)
+
+        var now = new Date(), 
+            cnt = 0;
+        var timetable = localData.answers['timetable'];
+        for (let t in timetable){
+            (now > new Date(t)) && (cnt += 1);
+        }
+
+        if (msg_text){
+            theUI.showSys('冷靜，等待下一個問題！');
+            theUI.showSys('你已經回答過問題了哦！');
+            theUI.showSys('問答環節結束！ 請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的離開鍵。');
+
+            return false
+        }
+        
+        var ith = (cnt+1)/2;
+        var formArray = $(this).serializeArray();
+        formArray[3] = ({name:"send-tag", value: ith});
+        $.ajax({
+            type: 'POST',
+            url: '/chat/start_game/male_or_female/reply',
+            data: formArray,
+            dataType: "json",
+            success: function(data) {
+                if (!0 === data['result']){
+
+                    theUI.showSys('感謝你的回答！ 你的答覆已上傳！');
+
+
                     loginData.tag_int = 2, refreshGameTagAll(0);
                     theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', [clue_msg]]);  // message format: list([msg1, msg2,...])
                     $('#modal').modal('hide');
@@ -213,7 +262,7 @@ function inquireMethod(css_id, player_uuid){
         e.preventDefault();
         $.ajax({
             type: 'GET',
-            url: '/chat/start_game/graduate_girl/inquire/' + player_uuid,
+            url: '/chat/start_game/male_or_female/inquire/' + player_uuid,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
@@ -277,11 +326,10 @@ function loadRoleData(){  // according to individual role, to display sidebar
         }
         i++;
     }
-
     $('#game-event').html(role_desc[self[3]]);
 
     if (self[3] === 1){
-        (localData.answers.length > 0) && $('#start-btn').text('推 理'), deduceMethod();  // deduceMethod() move to prolog() cuz some data is from prolog()
+        $('#start-btn').text('推 理'), deduceMethod();
         refreshGameStatus(1, loginData.status);  // refresh self status according to different self_group (role)
     }else{ // self[3] === 0
         $('#start-btn').text('行 動').attr('disabled', true);
@@ -305,8 +353,10 @@ function refreshGameStatus(self_group, status){  // refresh status, tag_json and
                 (!0 === isMore) && appearElmtCss('#show-more');
                 gameGate.player();
             }
-
             (self_group === 1) && enabledElmtCss('#start-btn');
+
+            ('timetable' in localData.answers) && replyMethod();  // 只在status===2被使用 當status===3時則直接用theWS.msgSendWs(text)
+
             break;
         case 3:
             for (let uuid in position){
@@ -320,8 +370,7 @@ function refreshGameStatus(self_group, status){  // refresh status, tag_json and
             gameGate.matcher();
             (loginData.player_list.length === 1) && theUI.showSys('目前房間內剩你一人'); // 合併到gameGate.matcher();
 
-            (self_group === 1) && disabledElmtCss('#start-btn');
-            
+            (self_group === 1) && disabledElmtCss('#start-btn');            
             break;
     }
 }
@@ -333,7 +382,7 @@ function refreshPlayerAll(){  // refresh players on/off, only be called by refre
 }
 
 function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPlayer() instead of refreshPlayers()
-    var css_id = position[player_uuid]; 
+    var css_id = position[player_uuid];
     var name = $(css_id).find('.a-title').text();
     switch (loginData.onoff_dict[player_uuid]){
         case 0:
@@ -375,31 +424,31 @@ function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPla
 function refreshGameTagAll(self_group){  // refresh tag_int&tag_json only be called on status=2 by refreshGameStatus()
     for (let uuid in position){
         (1 === loginData.onoff_dict[uuid]) && refreshGameTag(self_group, uuid); 
-        // tag_json & tag_int only affect the players online            
+        // tag_json & tag_int only affect the players online          
     }
 }
 
 function refreshGameTag(self_group, player_uuid){  // refreshGameSingle() can call refreshGameTag() instead of refreshGameTagAll()
+    // everyone in game is same, so self_group isn't used.
     var css_id = position[player_uuid];
-    if (self_group === 1){
-        (null !== loginData.tag_json) && (1 === loginData.tag_json[player_uuid]) && (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
+    switch(loginData.tag_json[player_uuid]){
+        case null:
+            break;
+        case 0:
+            changeBtnColor(css_id+'-btn', 'btn-warning'), $(css_id+'-btn').text('邀請');  
+            break;
+        case 1:
+            disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已邀請');
+            break;
+        case 2:
+            changeBtnColor(css_id+'-btn', 'btn-danger'), $(css_id+'-btn').text('接受');
+            break;
     }
-    else{ // self_group === 0
-        switch(loginData.tag_int){
-            case null:
-                break;
-            case 0:  // tag_int=0 havn't inquired and clue yet. Besides, player can't clue before inquire.
-                (1 === others[player_uuid][3]) && disabledElmtCss(css_id+'-btn');  
-                break;
-            case 1:  // tag_int=1 have inquired done.
-                (1 === others[player_uuid][3])? enabledElmtCss(css_id+'-btn'): (disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用'));
+}
 
-                break;
-            case 2:  // tag_int=2 have inquired and clue to detective.
-                disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已使用');
-                break;
-        }
-    }
+function changeBtnColor(css_id, class_name){  
+    // class_name:btn-primary, btn-secondary, btn-success, btn-danger, btn-warning, btn-info, btn-light, btn-dark
+    $(css_id).removeClass(), $(css_id).addClass('btn '+ class_name);
 }
 
 function refreshGameSingle(ws_type, player_css, ...args){  // refresh one player status, only be called in websocket.onmessage
@@ -430,6 +479,8 @@ function showGameNotice(ws_type, ...args){
 }
 
 function informGameMessage(data){
+    // tag_int = data.tag 並且在database的player.tag_int也要修改
+
     if (true === data.toSelf){
         showNotice('訊息成功送達！');
     }else{
@@ -445,8 +496,24 @@ function informGameMessage(data){
     }
 }
 
-var GAMETITLE = '畢業後的第一夜',
+function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
+    $("#send-text").on('keypress',function(a){
+        if (13 == a.which || 13 == a.keyCode){
+            a.preventDefault();
+            var text = $("#send-text").val();
+            if (void 0 !== text && null !== text &&'' !== text){
+                (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? $("#send-form").trigger("submit"): theUI.showSys('你還未進入房間哦！'));
+            } 
+            $("#send-text").val('');
+            $("#send-text").blur(), $("#send-text").focus();
+        }       
+    })
+}
+
+var GAMETITLE = '不透露性別配對',
     gameGate = gameCheckGate(),
+    eventSet = loginData['all_events'],
+    event_dialogs = loginData['event_content'],
     seletedEvent = {},
     self = [],
     others = {},

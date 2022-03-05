@@ -8,9 +8,12 @@ from asgiref.sync import async_to_sync
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     # todo 系統會自動重連 會導致一直上下線顯示 或不使用chatlog即可解決
+    # todo 手機只要不在瀏覽器畫面即會做disconnect() 如何處理
 
     async def connect(self, **kwargs):
-        # todo 每次使用consumer時都要做refresh_player 因為views.py也會update資料
+
+        # todo 每次使用consumer時是否都要做refresh_player 因為views.py也會update資料
+
         if self.scope['user'].is_authenticated:
             self.player_data = await utils.get_player(self.scope['user'])
             self.uuid = str(self.player_data.uuid)  # 是否用user.id 取代 player.uuid
@@ -32,11 +35,26 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 self.room_id = 'room-'+str(self.room.id)
 
                 await utils.player_onoff_in_room(self.player_data, 1)
-
                 await self.channel_layer.group_add(
                     self.room_id,
                     self.channel_name
                 )
+
+                answer = self.room.answer
+                if 'timetable' in answer:
+                    timetable = answer['timetable']
+                    now = datetime.now(tz=timezone.utc)
+                    for task in timetable:
+                        t = datetime.strptime(task[0], '%Y-%m-%d %H:%M:%S')
+                        seconds = (t - now).total_seconds()
+                        if seconds > 0:
+                            if task[1] == 'pop_news':
+                                # special code: to send the last one from self.room['answer']['realtime']
+                                await self.timer_execute(seconds, self.timeout_inform_updated)
+
+                            else:  # task[1] format: [msg1, msg2, msg3,...]
+                                msgs_li = task[1]
+                                await self.timer_execute(seconds, self.timeout_inform, msgs_li)
 
                 if self.player_data.status == 3:  # in match
                     self.match, player_list = await utils.get_match_players(self.player_data)
@@ -48,9 +66,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                         self.channel_name
                     )
 
-                    td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
-                    seconds = td.total_seconds()
-                    await self.timer_leave(seconds)
+                    secret = self.match.secret
+                    if 'isTiming' in secret:
+                        td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
+                        seconds = td.total_seconds()
+                        await self.timer_execute(seconds, self.timeout_leave_match)
 
                 await self.channel_layer.group_send(self.room_id, {
                     'type': 'is_on',
@@ -106,13 +126,21 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     self.channel_name
                 )
 
-    ######## receive from client side first ########
+    async def is_on(self, event):
+        """func received from other chatConsumers with connect() and disconnect():  """
+        if self.uuid != event['from']:
+            m = 'CONN' if event['boolean'] else 'DISCON'
+            await self.send_json({
+                'type': m,
+                'sender': event['from']
+            })
+
     async def receive_json(self, content):
-        self.start = time.time()  # 僅用於測試
+        """receive from client side first """
+        # self.start = time.time()  # 僅用於測試
 
         call = content.get('call', None)
         if call is None:
-
             match = getattr(self, 'match', None)
             if match is None:
                 print('{} send msg out of match.'.format(self.uuid))
@@ -158,23 +186,70 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.call_leave_match(isTimeout)
             elif call == 'make_leave':
                 await self.call_make_leave()
-            elif call == 'see_message':
-                await self.call_see_message(content['player'])
+            elif call == 'inform':
+                tag = getattr(content, 'tag', 0)
+                await self.call_inform(content['target'], content['meInGroup'], content['message'], tag)
             else:
                 print(self.uuid + ' insert a wrong call: ' + call)
 
-    ######## functions called by receive_json to response client side ########
-    async def call_start_game(self):  # 建房者要告訴其他人'遊戲開始'
+
+
+    ######## directly-send functions ########
+    async def chat_message(self, event):
+        """func received from other chatConsumers without call_*():  """
+        if self.uuid != event['from']:
+
+            await self.send_json({
+                'type': 'MSG',
+                'msg': event['message'],
+                'isImg': event['isImg'],
+                'sender': event['from']
+            })
+
+    async def chat_messageList(self, event):
+        """func received from other chatConsumers without call_*():  """
+        if self.uuid != event['from']:
+
+            await self.send_json({
+                'type': 'MSGS',
+                'msgs': event['messages'],
+                'sender': event['from']
+            })
+
+    async def is_writing(self, event):
+        """func received from other chatConsumers without call_*():  """
+        if self.uuid != event['from']:
+
+            await self.send_json({
+                'type': 'WN',
+                'wn': event['boolean']
+            })
+
+    async def update_status(self, event):
+        """func received from other chatConsumers without call_*():  """
+        if self.uuid == event['backto']:
+
+            await self.send_json({
+                'type': 'ST',
+                'st_type': event['st_type']
+            })
+
+
+
+    ######## call_* functions ########
+    async def call_start_game(self):  # 遊戲建立者者需告訴所有人'遊戲開始'
+        """func called by receive_json to response client side:  """
+
         # todo 驗證資料來堤防用戶console操作
+
+        # call_start_game() be called by one player only, so refreshing data won't influence performance.
         self.player_data = await utils.refresh_player(self.player_data)
         self.room, game, room_players = await utils.get_room_players(self.player_data)
         self.room_id = 'room-'+str(self.room.id)
         self.game_id = str(game.game_id)
+        # call_*() is responsible to access to database and send data to *();
+        # *() is responsible to execute and reply to client side;
 
-        await self.channel_layer.group_add(
-            self.room_id,
-            self.channel_name
-        )
         for player in room_players:
             await self.channel_layer.group_send(str(player.uuid), {
                 'type': 'start_game',
@@ -185,7 +260,24 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'from': self.uuid
             })
 
-    async def call_leave_game(self):
+    async def start_game(self, event):  # 所有人接收'遊戲開始'訊息 (包含自己)
+        """func received from other chatConsumers with call_*():  """
+        await self.channel_layer.group_add(
+            event['room_id'],
+            self.channel_name
+        )
+
+        await self.send_json({
+            "type": 'START',
+            "game": event['game'],
+            "player_dict": event['player_dict'],
+            "onoff_dict": event['onoff_dict']})
+
+
+
+
+    async def call_leave_game(self):  # 離開者需告知所有人 '自己將離開'
+        """func called by receive_json to response client side:  """
         self.player_data = await utils.refresh_player(self.player_data)
         self.room, game, room_players = await utils.get_room_players(self.player_data)
         self.room_id = 'room-'+str(self.room.id)
@@ -207,7 +299,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         else:
             await utils.set_player_fields(self.player_data, {'room': None})
 
+    async def leave_game(self, event):  # 所有人接收 '離開者將離開' 訊息
+        """func received from other chatConsumers with call_*():  """
+        if self.uuid == event['from']:
+            await self.send_json({
+                "type": 'OUTDOWN'
+            })
+        else:
+            await self.send_json({
+                "type": 'OUT',
+                'sender': event['from']
+            })
+
     async def call_make_out(self):
+        """func called by receive_json to response client side: player can make others be out of game """
         self.player_data = await utils.refresh_player(self.player_data)
         self.room, game, room_players = await utils.get_room_players(self.player_data)
         self.room_id = 'room-'+str(self.room.id)
@@ -226,212 +331,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'onoff': onoff_dict
             })
 
-    async def call_enter_match(self):
-        self.player_data = await utils.refresh_player(self.player_data)
-        self.match, player_list = await utils.get_match_players(self.player_data)
-        self.match_id = 'match-'+str(self.match.id)
-
-        self.in_match = True
-        await self.channel_layer.group_add(
-            self.match_id,
-            self.channel_name
-        )
-        for uuid in player_list:
-            await self.channel_layer.group_send(uuid, {
-                'type': 'enter_match',
-                'match_id': self.match_id,
-                'player_list': player_list,
-                'from': self.uuid
-            })
-        td = self.player_data.waiting_time - datetime.now(tz=timezone.utc)
-        seconds = td.total_seconds()
-        await self.timer_leave(seconds)
-
-    async def call_leave_match(self, isTimeout=False):
-        self.player_data = await utils.refresh_player(self.player_data)
-        self.match, player_list = await utils.get_match_players(self.player_data)
-        self.match_id = 'match-' + str(self.match.id)
-
-        await self.channel_layer.group_send(self.match_id, {
-            'type': 'leave_match',
-            'match_id': self.match_id,
-            'from': self.uuid,
-            'player_list': player_list,
-            'timeout': isTimeout
-        })
-
-        self.in_match = False
-        await self.channel_layer.group_discard(
-            self.match_id,
-            self.channel_name
-        )
-        if len(player_list) == 0:
-            await utils.delete_match_by_player(self.player_data)
-        else:
-            await utils.set_player_fields(self.player_data, {'match': None})
-
-    async def call_make_leave(self):  # haven't been used
-        # add leaver_list to Match model 標記需要離開的人
-        pass
-
-    async def call_inform(self, group_name, message):
-        # 不發生player資料改變 只做資料傳遞
-        # 不能由前端發出 只能在consumer中調用 避免用戶直接透過此方法傳訊
-        await self.channel_layer.group_send(group_name, {
-            'type': 'inform',
-            'msg': message,
-            'from': self.uuid
-        })
-
-    async def call_see_message(self, to_uuid):
-        await self.channel_layer.group_send(to_uuid, {
-            'type': 'see_message',
-            'from': self.uuid,
-            'toMe': False
-        })
-
-        await self.see_message({
-            'from': self.uuid,
-            'toMe': True
-        })
-
-    async def timer_leave(self, sleep_secs):  # when player connect or enter_match, set up the timer
-        t = Timer(sleep_secs, async_to_sync(self.timeout_leave))
-        t.start()
-
-    async def timeout_leave(self):
-        self.player_data = await utils.set_player_fields(self.player_data, {'status': 2, 'waiting_time': None})
-        self.match, player_list = await utils.get_match_players(self.player_data)
-
-        #player_list.remove(self.uuid)
-        player_list = []
-        self.match = await utils.set_match_fields(self.match, {'player_list': player_list})
-
-        await self.call_leave_match(True)
-
-    async def timer(self, sleep_secs, **kwargs):  # it's been unavailable
-        t = Timer(sleep_secs, async_to_sync(self.execute_in_match), kwargs=kwargs)
-        t.start()
-
-    async def execute_in_match(self, **kwargs):
-        in_match = getattr(self, 'in_match', None)
-        if in_match is True:
-            await self.receive_json(kwargs)
-
-
-    ######## functions received from other chatConsumers ########
-    async def is_on(self, event):
-        if self.uuid != event['from']:
-            m = 'CONN' if event['boolean'] else 'DISCON'
-            await self.send_json({
-                'type': m,
-                'sender': event['from']
-            })
-
-    async def start_game(self, event):  # 其他人接收'遊戲開始'訊息
-        if self.uuid == event['from']:
-            await self.send_json({
-                "type": 'START',
-                "game": self.game_id,
-                "player_dict": self.room.player_dict,
-                "onoff_dict": self.room.onoff_dict
-            })
-
-        else:
-            await self.channel_layer.group_add(
-                event['room_id'],
-                self.channel_name
-            )
-
-            await self.send_json({
-                "type": 'START',
-                "game": event['game'],
-                "player_dict": event['player_dict'],
-                "onoff_dict": event['onoff_dict']})
-
-    async def leave_game(self, event):
-        if self.uuid == event['from']:
-            await self.send_json({
-                "type": 'OUTDOWN'
-            })
-        else:
-            await self.send_json({
-                "type": 'OUT',
-                'sender': event['from']
-            })
-
-    async def enter_match(self, event):
-        if self.uuid == event['from']:
-            await self.send_json({
-                "type": 'ENTER',
-                "player_list": event['player_list'],
-            })
-
-        else:
-            in_match = getattr(self, 'in_match', None)
-            if in_match is True:  # to avoid multi-match
-                self.in_match = False
-                await self.channel_layer.group_discard(
-                    self.match_id,
-                    self.channel_name
-                )
-
-            self.in_match = True
-            await self.channel_layer.group_add(
-                event['match_id'],
-                self.channel_name
-            )
-
-            await self.send_json({
-                "type": 'ENTER',
-                "player_list": event['player_list'],
-                'sender': event['from']
-            })
-
-    async def leave_match(self, event):
-        if self.uuid == event['from']:
-            await self.send_json({
-                "type": 'LEAVEDOWN',
-                "timeout": event['timeout']
-            })
-        else:
-            await self.send_json({
-                "type": 'LEAVE',
-                'sender': event['from'],
-                "player_list": event['player_list']
-            })
-
-    async def inform(self, event):
-        if self.uuid != event['from']:
-            await self.send_json({
-                "type": 'INFORM',
-                "msg": event['msg']
-            })
-        else:
-            await self.send_json({
-                "type": 'INFORM',
-                "msg": '通知成功'
-            })
-
-    async def see_message(self, event):
-        if self.uuid == event['from']:
-            if event['toMe'] is True:
-                await self.send_json({
-                    "type": 'MESSAGE',
-                    "toMe": True
-                })
-        else:
-            self.player_data = await utils.refresh_player(self.player_data)
-            msg_li = self.player_data.tag_json['message']
-            await self.send_json({
-                "type": 'MESSAGE',
-                "toMe": False,
-                "msgs": msg_li
-            })
-            self.player_data.tag_json['message'] = []
-            await utils.set_player_fields(self.player_data, {'tag_json': self.player_data.tag_json})
-
     async def game_over(self, event):
+        """func received from other chatConsumers with call_*():  """
         await self.channel_layer.group_discard(  # everyone in game all need to discard
             'room-'+str(self.room.id),
             self.channel_name
@@ -442,6 +343,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         })
 
     async def out_or_in(self, event):
+        """func received from other chatConsumers with call_*():  """
         onoff_dict = event['onoff']
         if onoff_dict[self.uuid] == -1:
             await self.channel_layer.group_discard(  # only someone who is out needs to discard
@@ -458,37 +360,153 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "type": 'ALIVE'
             })
 
-    async def chat_message(self, event):
-        if self.uuid != event['from']:
+    async def call_enter_match(self):  # 開房者要告訴所有人'進入房間'(match)
+        """func called by receive_json to response client side:  """
+        self.player_data = await utils.refresh_player(self.player_data)
+        self.match, player_list = await utils.get_match_players(self.player_data)
+        self.match_id = 'match-'+str(self.match.id)
 
+        for uuid in player_list:
+            await self.channel_layer.group_send(uuid, {
+                'type': 'enter_match',
+                'match_id': self.match_id,
+                'player_list': player_list,
+                'from': self.uuid
+            })
+
+    async def enter_match(self, event):  # 所有人接收'進入房間'訊息
+        """func received from other chatConsumers with call_*():  """
+        in_match = getattr(self, 'in_match', None)
+        if in_match is True:  # to avoid multi-match
+            self.in_match = False
+            await self.channel_layer.group_discard(
+                self.match_id,
+                self.channel_name
+            )
+
+        self.in_match = True
+        await self.channel_layer.group_add(
+            event['match_id'],
+            self.channel_name
+        )
+
+        if self.uuid == event['from']:
             await self.send_json({
-                'type': 'MSG',
-                'msg': event['message'],
-                'isImg': event['isImg'],
+                "type": 'ENTER',
+                "player_list": event['player_list'],
+            })
+        else:
+            await self.send_json({
+                "type": 'ENTER',
+                "player_list": event['player_list'],
                 'sender': event['from']
             })
 
-    async def chat_messageList(self, event):
-        if self.uuid != event['from']:
+    async def call_leave_match(self, isTimeout=False):
+        """func called by receive_json to response client side:  """
+        self.player_data = await utils.refresh_player(self.player_data)
+        self.match, player_list = await utils.get_match_players(self.player_data)
+        self.match_id = 'match-' + str(self.match.id)
 
+        await self.channel_layer.group_send(self.match_id, {
+            'type': 'leave_match',
+            'match_id': self.match_id,
+            'from': self.uuid,
+            'player_list': player_list,
+            'timeout': isTimeout  # isTimeout(bool): leaving match is due to timeout or not
+        })
+
+        self.in_match = False
+        await self.channel_layer.group_discard(
+            self.match_id,
+            self.channel_name
+        )
+        if len(player_list) == 0:
+            await utils.delete_match_by_player(self.player_data)
+        else:
+            await utils.set_player_fields(self.player_data, {'match': None})
+
+    async def leave_match(self, event):
+        """func received from other chatConsumers with call_*():  """
+        if self.uuid == event['from']:
             await self.send_json({
-                'type': 'MSGS',
-                'msgs': event['messages'],
-                'sender': event['from']
+                "type": 'LEAVEDOWN',
+                "timeout": event['timeout']
+            })
+        else:
+            await self.send_json({
+                "type": 'LEAVE',
+                'sender': event['from'],
+                "player_list": event['player_list']
             })
 
-    async def is_writing(self, event):
-        if self.uuid != event['from']:
+    async def call_make_leave(self):  # haven't been used
+        """func called by receive_json to response client side: player can make others leave the match """
+        # todo 玩家可以趕其他人離開match
+        # add leaver_list to Match model 標記需要離開的人
+        pass
 
-            await self.send_json({
-                'type': 'WN',
-                'wn': event['boolean']
+    async def call_inform(self, group_name, meInGroup, message, tag):
+        """func called by receive_json to response client side:  """
+        await self.channel_layer.group_send(group_name, {
+            'type': 'inform',
+            'msgs': message,
+            'from': self.uuid,
+            'tag': tag
+        })
+
+        if meInGroup is False:
+            await self.inform({
+                'msgs': message,
+                'from': self.uuid,
+                'tag': tag
             })
 
-    async def update_status(self, event):
-        if self.uuid == event['backto']:
-
+    async def inform(self, event):
+        """func received from other chatConsumers with call_*():  """
+        if self.uuid == event['from']:
             await self.send_json({
-                'type': 'ST',
-                'st_type': event['st_type']
+                "type": 'INFORM',
+                "toSelf": True,
+                "msgs": ['通知成功'],  # msg format: list [msg1, msg2,...]
+                "tag": event['tag']
             })
+        else:
+            await self.send_json({
+                "type": 'INFORM',
+                "toSelf": False,
+                "msgs": event['msgs'],
+                "tag": event['tag']
+            })
+
+    async def timer_execute(self, sleep_secs, func, *args, **kwargs):
+        # when player connect() successfully, set up the timer
+        t = Timer(sleep_secs, async_to_sync(func(*args, **kwargs)))
+        t.start()
+
+    async def timeout_leave_match(self):
+        self.player_data = await utils.set_player_fields(self.player_data, {'status': 2, 'waiting_time': None})
+        self.match, player_list = await utils.get_match_players(self.player_data)
+
+        player_list = []  # everyone will leave in same time
+        self.match = await utils.set_match_fields(self.match, {'player_list': player_list})
+        await self.call_leave_match(True)
+
+    async def timeout_inform(self, message):
+        '''
+        await self.inform({
+            'msgs': msg_li,
+            'from': self.uuid
+        })
+        '''
+        pass
+
+    async def timeout_inform_updated(self):
+        self.room, game = await utils.get_room_players(self.player_data, False)
+        answer = self.room.answer
+        news = answer.get('realtime', None)
+        if news is not None and len(news) > 0:
+            msgs_li = answer['realtime'][-1]
+            if len(msgs_li) > 1:  # the first msg: ['no_news',]
+                msgs_li = msgs_li[1:]  # from the second, it's the real msgs sent by players
+            await self.timeout_inform(msgs_li)

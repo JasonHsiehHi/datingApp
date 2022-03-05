@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, views_game_graduate_girl
+from . import views
 
 urlpatterns = [
     path('', views.chatroom, name='chatroom'),
@@ -20,11 +20,18 @@ urlpatterns = [
     # path('upload_photo', views.upload_image, name='upload_photo'),
 ]
 
-# game_graduate_girl
+# url for game
+from . import urls_game_male_or_female
+urlpatterns += urls_game_male_or_female.urlpatterns
+
+'''
 urlpatterns += [
-    path('start_game/graduate_girl/prolog', views_game_graduate_girl.prolog, name='prolog'),
-    path('start_game/graduate_girl/deduce', views_game_graduate_girl.deduce, name='deduce'),
-    path('start_game/graduate_girl/examine/<str:uuid>', views_game_graduate_girl.examine, name='examine'),
-    path('start_game/graduate_girl/inquire/<str:uuid>', views_game_graduate_girl.inquire, name='inquire'),
-    path('start_game/graduate_girl/clue/<str:uuid>', views_game_graduate_girl.clue, name='clue')
+    path('start_game/graduate_girl/prolog', views_game_graduate_girl.prolog, name='gg_prolog'),
+    path('start_game/graduate_girl/deduce', views_game_graduate_girl.deduce, name='gg_deduce'),
+    path('start_game/graduate_girl/examine/<str:uuid>', views_game_graduate_girl.examine, name='gg_examine'),
+    path('start_game/graduate_girl/inquire/<str:uuid>', views_game_graduate_girl.inquire, name='gg_inquire'),
+    path('start_game/graduate_girl/clue/<str:uuid>', views_game_graduate_girl.clue, name='gg_clue')
 ]
+'''
+
+

@@ -199,18 +199,6 @@ DELETE_PHOTO_AFTER_TIME = False
 CERTAIN_TIME_FOR_DELETE_PHOTO = 24 * 15  # the all photos in room are removed every 15 days
 MAXIMUM_FOR_DELETE_PHOTO = 30  # each players in single room at most save 30 pieces of photo
 
-# for chat app - roomtime
-ROOMTIME_MIN = {  # only 2 players in game, they(could be male and female) can stay in room 60 mins
-    2: int(os.getenv('ROOMTIME_MIN_2_PLR')),
-    3: int(os.getenv('ROOMTIME_MIN_3_PLR')),
-    4: int(os.getenv('ROOMTIME_MIN_4_PLR')),
-    5: int(os.getenv('ROOMTIME_MIN_5_PLR')),
-    6: int(os.getenv('ROOMTIME_MIN_6_PLR')),
-    7: int(os.getenv('ROOMTIME_MIN_7_PLR')),
-    8: int(os.getenv('ROOMTIME_MIN_8_PLR')),
-    100: 1  # for test mode
-}
-
 # for SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -223,3 +211,24 @@ EMAIL_FROM = 'A-LARP管理員 <'+EMAIL_HOST_USER+'>'
 # for chat app - signup
 SECONDS_FOR_CACHE_TOKEN = 1800  # for activate
 SECONDS_FOR_CACHE_EMAIL = 600  # for signup mail and reset_pwd mail
+
+# for chat app - roomtime
+ROOMTIME_MIN = {  # only 2 players in game, they(could be male and female) can stay in room 60 mins
+    2: int(os.getenv('ROOMTIME_MIN_2_PLR')),
+    3: int(os.getenv('ROOMTIME_MIN_3_PLR')),
+    4: int(os.getenv('ROOMTIME_MIN_4_PLR')),
+    5: int(os.getenv('ROOMTIME_MIN_5_PLR')),
+    6: int(os.getenv('ROOMTIME_MIN_6_PLR')),
+    7: int(os.getenv('ROOMTIME_MIN_7_PLR')),
+    8: int(os.getenv('ROOMTIME_MIN_8_PLR')),
+    100: 1  # for test mode
+}
+
+# for chat app - prologtime
+PROLOG_SEC = 12  # use prolog time to introduce the game rule
+PROLOG_SEC_PER_PLAYER = 4  # more are players, longer prolog time is.
+
+# for chat app - num of questions
+QUESTION_NUM = 5
+QUESTION_INTERVAL_SEC = 60
+REPLY_INTERVAL_SEC = 30

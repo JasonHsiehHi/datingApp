@@ -29,8 +29,6 @@ datingApp_data.md
 
 #redis & SQL
 dump.rdb
-db.sqlite3
-pgdb*.sql
 whole*.json
 
 # localhost test
