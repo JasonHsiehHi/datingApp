@@ -74,8 +74,7 @@ function chatroomWS(){
 
                 case 'OUT':  // 通知其他人離開遊戲
                     loginData.onoff_dict[data.sender] = -1;
-                    var css_id = position[data.sender];  // position is from game_{gamename}.js
-                    refreshGameSingle('OUT', css_id);
+                    refreshGameSingle('OUT', data.sender);
 
                     var sender_name = loginData.player_dict[data.sender][0],
                         sender_role = loginData.player_dict[data.sender][2];
@@ -116,8 +115,7 @@ function chatroomWS(){
 
                 case 'DISCON':
                     loginData.onoff_dict[data.sender] = 0;
-                    var css_id = position[data.sender];
-                    refreshGameSingle('DISCON', css_id);
+                    refreshGameSingle('DISCON', data.sender);
 
                     // var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
@@ -129,8 +127,7 @@ function chatroomWS(){
 
                 case 'CONN':
                     loginData.onoff_dict[data.sender] = 1;
-                    var css_id = position[data.sender];                    
-                    refreshGameSingle('CONN', css_id);
+                    refreshGameSingle('CONN', data.sender);
 
                     // var sender_name = loginData.player_dict[data.sender][0];
                     // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
@@ -139,7 +136,6 @@ function chatroomWS(){
                         toggle.discon = !1;
                         if(localData.text_in_discon.length > 0){
                             theWS.msgsSendWs(localData.text_in_discon); // todo: need to update for multiplayer match
-                            // localData.text_in_discon=[],localStorage.text_in_discon='[]'; move to onmessage:ST
                         }
                     }
                     break;

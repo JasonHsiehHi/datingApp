@@ -19,19 +19,13 @@ var gameCheckGate = function(){
             (value !== 1) && li.remove(key);
         }
         if (0 === li.length){
-            var name_list = li_others.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
-            var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 不在房間裡...', !1];
-        }else{  // 0 !== li.length
+            var dialog = ['目前房間內剩你一人', !1];
+        }else{
             var name_list = li.map(uuid => loginData.player_dict[uuid][0]+'('+loginData.player_dict[uuid][2]+')');
             var dialog = ['<span class="a-point">'+name_list.join(', ')+'</span> 目前待在房間中', !1];
         }
         (!0 === isDirected) && theUI.showSys(dialog[0]);
         return dialog
-    }
-
-    function mes(){  // be used by chatSocket.onmessage data.type='INFORM'
-        var text = '某人向妳提供線索：'
-        return text
     }
 
     function rol(self_group, isDirected=false, interval=3000){  // only be used by prolog()
@@ -78,7 +72,6 @@ var gameCheckGate = function(){
         player:pla,
         matcher:mat,
         role:rol,
-        message:mes,
         prolog:prl
     }
 }
@@ -190,7 +183,7 @@ function clueMethod(css_id, player_uuid){
                     theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', [clue_msg]]);  // message format: list([msg1, msg2,...])
                     $('#modal').modal('hide');
                 }else{
-                    $('#inquire-modal-form p.a-error').text(data['msg']);
+                    $('#clue-modal-form p.a-error').text(data['msg']);
                 }
             },
             error: function(data) { $('#clue-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
@@ -243,15 +236,15 @@ function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'
     })
 }
 
-function loadRoleData(){  // according to individual role, to display sidebar
-    /* use loginData.player_dict to complete sidebar and establish variables(self, others, position)
+function loadRoleData(){  // display sidebar content according to individual role
+    /* use loginData.player_dict to display sidebar content and establish variables(self, others, position)
     */
     self = loginData.player_dict[loginData.uuid];
     // [name, gender(male or female), sub(role name), group(0 or 1)]
+    $('#user-role').text( '('+self[2]+')' );
+
     others = JSON.parse(JSON.stringify(loginData.player_dict)), delete others[loginData.uuid];  // except self
     // {uuid:[name, gender(male or female), sub(role name), group(0 or 1)],, ...}
-
-    $('#user-role').text( '('+self[2]+')' );
     var i = 1, css_id, name, gender, sub, group;
     for (let uuid in others){
         css_id = '#player-' + i.toString();
@@ -318,7 +311,6 @@ function refreshGameStatus(self_group, status){  // refresh status, tag_json and
             var isMore = theUI.loadChatLogs('chatLogs');  // chat record dialogs are on status=3 only
             (!0 === isMore) && appearElmtCss('#show-more');
             gameGate.matcher();
-            (loginData.player_list.length === 1) && theUI.showSys('目前房間內剩你一人'); // 合併到gameGate.matcher();
 
             (self_group === 1) && disabledElmtCss('#start-btn');
             
@@ -332,7 +324,7 @@ function refreshPlayerAll(){  // refresh players on/off, only be called by refre
     }
 }
 
-function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPlayer() instead of refreshPlayers()
+function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPlayer() instead of refreshPlayerAll()
     var css_id = position[player_uuid]; 
     var name = $(css_id).find('.a-title').text();
     switch (loginData.onoff_dict[player_uuid]){
@@ -402,8 +394,7 @@ function refreshGameTag(self_group, player_uuid){  // refreshGameSingle() can ca
     }
 }
 
-function refreshGameSingle(ws_type, player_css, ...args){  // refresh one player status, only be called in websocket.onmessage
-    var player_uuid = $(player_css).data('uuid');
+function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one player status, only be called in websocket.onmessage
     switch (ws_type){  // react the ws_type according to induvidual role
         case 'CONN':
             refreshPlayer(player_uuid), refreshGameTag(self[3] , player_uuid);  
@@ -433,7 +424,7 @@ function informGameMessage(data){
     if (true === data.toSelf){
         showNotice('訊息成功送達！');
     }else{
-        var begin_str = gameGate.message();
+        var begin_str = '某人向妳提供線索：'
         if (loginData.status === 2){
             for (let msg of data.msgs){
                 msg = $('#snippet').html(begin_str + msg).text();

@@ -45,7 +45,7 @@ js和min.js的差別就在於後者是壓縮過的 如果要上架應採用後�
 即代表行內元素 故有時直接用<div>...</div> 就等同<div><span>...</span></div>
 
 
-**html_tag <a>:**
+## html_tag <a>:
 <a>用於做超連結或執行觸發的動作：
 <a href="{% url 'index' %}">Home</a> 
 url是django模板標籤 必須要在urls.py中設置urlpatterns的path(name='index')函數做映射器
@@ -60,7 +60,7 @@ window.open(strurl,'_blank') 為非同步方法
 另一種用法：
 <a href="javascript:function1()">运行 function1</a> 可用於執行<script>內部的方法
 
-**html_tag <form>和<input>:**
+## html_tag <form>和<input>:
 {% if next %}
 <input type="hidden" name="next" value="{{ next }}" />
 {%if...%}和{{}}同樣使用next變數 可用於當input輸入完資料並submit
@@ -217,7 +217,7 @@ token = token 需檢驗使否為正確的token
 用於reset_confirm頁面 表示由有效的連結而進來
 
 
-**html_tag <nav>,<header>和<footer>:**
+## html_tag <nav>,<header>和<footer>:
 都是早期全靜態網頁時的使用方式 目前大多用div搭配bootstrap等cs框架取代
 <footer>會在頁面最下方用於放置版權等資訊 <header>通常放置於頁面最上方 用於介紹標題
 <nav class="menu">
@@ -227,7 +227,7 @@ token = token 需檢驗使否為正確的token
 實際上大部份html元素都能用<div>取代 
 但用特定的元素能快速抓到整個網頁的架構 有助於SEO優化
 
-**html_tag <main>和<section>,<article>和<figure>：**
+## html_tag <main>和<section>,<article>和<figure>：
 <main>用來放置網頁最重要的部分 內部還會有更多分區排版<div>
 <section> 同樣用於分區排版 但<main>只能有一個 而<section>能有多個
 <article>用來包覆文章 <figure>用來包覆圖片 
@@ -1363,6 +1363,14 @@ color:black 和 font-size:24px
 
 feathericons: (還未使用過)
 - - --------------------------------
+# 五大瀏覽器：GC,FF,SF,IE,OP
+一般會忽略opera 因為使用人數太少
+pfx = ["webkit", "moz", "MS", "o", ""] 因此有些css也需要有對應的前綴詞
+-moz-{屬性}：Firefox 瀏覽器
+-webkit-{屬性}：Safari, Chrome, Opera 等瀏覽器
+-o-{屬性}： Opera 瀏覽器
+-ms-{屬性}： IE 瀏覽器
+
 
 # css_selector選擇器
 CSS選擇規則：
@@ -2613,6 +2621,39 @@ var a = 1e3, b=2e5; // a=1000, b=200000
 
 |0,&0做二進位位元運算： (會將任何數先轉成二進位來做位元邏輯運算)
 因為做運算只考慮到整數的部分 故： 5.2442|0 等同為 5|0 且任何數與0做OR都為自己 故結果為101
+
+
+- - ----------------------------------
+# js_regex js正則表示法
+str.match(re):
+var str = 'For more information, see Chapter 3.4.5.1';
+var re = /see (chapter \d+(\.\d)*)/i;
+var found = str.match(re);  // 回傳一個list 包含一個完整的配對結果(wrap, 即/.../之間) 以及其後多個group的配對結果(即(...)之間)
+//['see Chapter 3.4.5.1', 'Chapter 3.4.5.1', '.1', index: 22, input: 'For more information, see Chapter 3.4.5.1' ]
+
+/Jack(?= student| man)/ 其後接student或man的 Jack才會是搜尋目標
+/(?!teacher )Jack/ 其前接teacher的則會略過 除此之外的都為搜尋目標
+
+亦可用： 用RegExp物件好處是可以把字串當成參數引用 另外所有特殊字元要用'\\'開頭
+var re = new RegExp('see (chapter \\d+(\\.\\d)*)', 'i');
+re.test(str); 
+
+var re = /^https?:\/\/.*?\//;
+var re = new RegExp("^https?:\\/\\/.*?\\/");  // 除了'\'轉為'\\'之外 其餘都保持不變即可
+
+str.replace(re,"$2,$1"):  // 類似於python的string.format()
+若re中有多個group時 則可用$1, $2, $3,...$n選擇特定的group
+group的好處是可將被收尋到的字串變數化 RegExp.$1, RegExp.$2...
+var re = /(\w+)\s(\w+)/; 
+var str = 'John Smith';
+var newstr = str.replace(re, "$2,$1");  // "Smith, John" 常用於顛倒順序
+
+var re =/(foo) (bar) \1 \2/;  等同: /(foo) (bar) (foo) (bar)/
+\1, \2分別代表(foo)和(bar)這前後兩個group
+
+var newStr = str.replace(re, (match) => { // 'JOHN SMITH' 用於替換大小寫
+      return match.toUpperCase();
+    });  // 加上function(match) match是符合條件的字串
 
 - - - -----------------------------
 # js_animation 動畫

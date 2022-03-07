@@ -10,50 +10,10 @@
 {% endblock %}
 
 {% block modalForm %}
-<form class='d-none' id="deduce-modal-form">
-    {% csrf_token %}
+<form class='d-none' id="invite-modal-form">
     <div class="modal-body">
-        {% for i in range %}
-        <div class="mb-3 row g-3 align-items-center d-none" id="player-{{i}}-deduce">
-            <div class="col-5">
-                <label for="player-{{i}}-deduce-input" class="col-form-label">name (role)：</label>
-            </div>
-            <div class="col-6">
-                <select class="form-select gameevent-options" id="player-{{i}}-deduce-input" name="player-{{i}}-deduce-input" aria-label="Default Example" required>
-                    <option disabled selected>昨晚幹的事...</option>
-                </select>
-            </div>
-        </div>
-        {% endfor %}
-        <p class='border border-3 border-warning p-1'>* 當猜出嫌疑人昨晚做的事時，則該名嫌疑人出局。 <br>* 而當猜出與偵探發生關係的嫌疑人時，則結束遊戲。</p>
-        <p class='text-danger p-1 a-error'></p>
-    </div>
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-        <button class="btn btn-warning" type="submit">確定</button>
-    </div>
-</form>
-
-<form class='d-none' id="clue-modal-form">
-    {% csrf_token %}
-    <div class="modal-body">
-        <div class="mb-3">
-            <label for="clue-input" class="form-label">向偵探提供線索:</label>
-            <input type="text" class="form-control" id="clue-input" name="clue-input" required>
-        </div>
-        <p class='border border-3 border-warning p-1'>* 每一輪只能向偵探提供一次線索</p>
-        <p class='text-danger p-1 a-error'></p>
-    </div>
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-        <button class="btn btn-warning" type="submit">確定</button>
-    </div>
-</form>
-
-<form class='d-none' id="inquire-modal-form">
-    <div class="modal-body">
-        <div class="mb-3"><p>是否確定調查{}？</p></div>
-        <p class='text-danger p-1 a-error'>* 每一輪只能調查一位嫌疑人</p>
+        <div class="mb-3"><p>確定要邀請{}？</p></div>
+        <p class='text-danger p-1 a-error'>* 只能邀請一位玩家，若對方接受你的邀請，則成功配配對。</p>
     </div>
     <div class="modal-footer justify-content-center">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -73,7 +33,7 @@
                 <div class='mb-0 a-player a-sidebar'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="name">name</span><span class='a-onoff a-sidebar'></span></div>
                 <button class="btn btn-warning a-sidebar btn-sm" id="player-{{i}}-btn" type="button">互動</button>
             </div>
-            <div class='a-sub a-sidebar'>(role)</div>
+            <div class='a-sub a-sidebar'></div>
         </div>
     </div>
     {% endfor %}
@@ -82,9 +42,9 @@
 
 {% block sidebar %}
 <div class='a-div a-sidebar'>
-    <p class="h5"></p><div class='mx-3' id='game-event'></div>
+    <p class="h5"></p><div class='mx-3' id='game-rule'></div>
 </div>
 <div class='a-div a-sidebar'>
-    <p class="h5"></p><div class='mx-3' id='game-inquire'></div>
+    <p class="h5"></p><div class='mx-3' id='game-invite'></div>
 </div>
 {% endblock %}

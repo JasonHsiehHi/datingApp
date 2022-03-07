@@ -12,8 +12,11 @@ from .models import Player, City, Game, Dialogue, Room
 from django.core.cache import cache
 
 from django.forms.models import model_to_dict
+# from django.db.models import Q, F
 from django.db.models import Q
-from random import randint, sample, shuffle
+
+# from random import randint, sample, shuffle
+from random import randint
 
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator

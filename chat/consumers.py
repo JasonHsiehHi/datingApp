@@ -1,7 +1,6 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from . import utils
 from datetime import datetime, timezone
-import time
 from threading import Timer
 from asgiref.sync import async_to_sync
 
@@ -44,17 +43,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 if 'timetable' in answer:
                     timetable = answer['timetable']
                     now = datetime.now(tz=timezone.utc)
-                    for task in timetable:
+                    for key, task in timetable.items():
                         t = datetime.strptime(task[0], '%Y-%m-%d %H:%M:%S')
                         seconds = (t - now).total_seconds()
+
+                        # todo 改為只需要設置第一個 並使用next()在timeout時設置下一個 timeout_next()
+
                         if seconds > 0:
                             if task[1] == 'pop_news':
                                 # special code: to send the last one from self.room['answer']['realtime']
-                                await self.timer_execute(seconds, self.timeout_inform_updated)
+                                await self.timer_execute(seconds, self.timeout_inform_updated, key)
 
                             else:  # task[1] format: [msg1, msg2, msg3,...]
                                 msgs_li = task[1]
-                                await self.timer_execute(seconds, self.timeout_inform, msgs_li)
+                                await self.timer_execute(seconds, self.timeout_inform, msgs_li, key)
 
                 if self.player_data.status == 3:  # in match
                     self.match, player_list = await utils.get_match_players(self.player_data)
@@ -188,7 +190,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.call_make_leave()
             elif call == 'inform':
                 tag = getattr(content, 'tag', 0)
-                await self.call_inform(content['target'], content['meInGroup'], content['message'], tag)
+                hidden = getattr(content, 'hidden', 0)
+                await self.call_inform(content['target'], content['meInGroup'], content['message'], hidden, tag)
             else:
                 print(self.uuid + ' insert a wrong call: ' + call)
 
@@ -446,11 +449,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # add leaver_list to Match model 標記需要離開的人
         pass
 
-    async def call_inform(self, group_name, meInGroup, message, tag):
+    async def call_inform(self, group_name, meInGroup, message, hidden=None, tag=0):
         """func called by receive_json to response client side:  """
         await self.channel_layer.group_send(group_name, {
             'type': 'inform',
             'msgs': message,
+            'hidden': hidden,
             'from': self.uuid,
             'tag': tag
         })
@@ -458,6 +462,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if meInGroup is False:
             await self.inform({
                 'msgs': message,
+                'hidden': hidden,
                 'from': self.uuid,
                 'tag': tag
             })
@@ -469,6 +474,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "type": 'INFORM',
                 "toSelf": True,
                 "msgs": ['通知成功'],  # msg format: list [msg1, msg2,...]
+                "hidden": event['hidden'],
                 "tag": event['tag']
             })
         else:
@@ -476,6 +482,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "type": 'INFORM',
                 "toSelf": False,
                 "msgs": event['msgs'],
+                "hidden": event['hidden'],
                 "tag": event['tag']
             })
 
@@ -492,16 +499,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.match = await utils.set_match_fields(self.match, {'player_list': player_list})
         await self.call_leave_match(True)
 
-    async def timeout_inform(self, message):
-        '''
+    async def timeout_inform(self, message, hidden, tag=0):
         await self.inform({
-            'msgs': msg_li,
-            'from': self.uuid
+            'msgs': message,
+            'from': 'system',  # let 'toSelf': False
+            'hidden': hidden,
+            'tag': tag
         })
-        '''
-        pass
 
-    async def timeout_inform_updated(self):
+    async def timeout_inform_updated(self, hidden):
         self.room, game = await utils.get_room_players(self.player_data, False)
         answer = self.room.answer
         news = answer.get('realtime', None)
@@ -509,4 +515,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             msgs_li = answer['realtime'][-1]
             if len(msgs_li) > 1:  # the first msg: ['no_news',]
                 msgs_li = msgs_li[1:]  # from the second, it's the real msgs sent by players
-            await self.timeout_inform(msgs_li)
+            await self.timeout_inform(msgs_li, hidden, tag=1)  # tag=1: is distinguished from directly timeout_inform()
+
+    async def timeout_next(self):
+        # 會放在所有timeout下面 查看timetable是否有下一個 最好把timetable 從dict改成list
+        # 當timetable全部跑完會告訴前端
+        pass

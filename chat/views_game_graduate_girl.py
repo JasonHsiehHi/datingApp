@@ -2,7 +2,7 @@ from django.http import JsonResponse
 
 from datingApp import settings
 from django.db.models import Q
-from chat.models import Match, Player, Room, GameRole, GameEvent
+from chat.models import Match, Player, GameRole, GameEvent
 from datetime import datetime, timezone, timedelta
 
 from random import randint, sample, shuffle

@@ -4,98 +4,8 @@ from datingApp import settings
 from django.db.models import Q
 from .models import Match, Player, GameEvent
 
-from random import randint, sample
+from random import sample
 from datetime import datetime, timezone, timedelta
-
-
-def examine(request, uuid):
-    if request.is_ajax and request.method == "GET":
-        self_player = request.user.profile
-        if len(self_player.tag_json) == 0 or self_player.tag_json[uuid] != 0:
-            pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
-        room = self_player.room
-        onoff_list = [1 for v in dict(room.onoff_dict).values() if v != -1]
-        onoff_num = len(onoff_list)
-
-        examinee = Player.objects.get(uuid=uuid)
-        match = Match.objects.create(room=self_player.room, player_list=[str(examinee.uuid), str(self_player.uuid)])
-
-        self_player.tag_json[uuid] = 1  # 被審問的對象要被紀錄在偵探的tag_json 直到deduce後才會全部為0
-        for player in [self_player, examinee]:
-            player.match = match
-            player.status = 3
-            player.waiting_time = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.ROOMTIME_MIN[onoff_num])
-            player.save()
-
-        # todo 需要準備計時 且consumer每次都要讀取 不同於waiting_time 需改為倒數計時
-
-        return JsonResponse({"result": True, "player_list": match.player_list})
-    else:
-        print("error: it's not through ajax.")
-
-
-def deduce(request):
-    if request.is_ajax and request.method == "POST":
-        deduce_dict = request.POST.dict()
-        deduce_dict.pop('csrfmiddlewaretoken')
-        self_player = request.user.profile
-        if len(self_player.tag_json) == 0:
-            pass  # return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
-
-        room = self_player.room
-        # format of room.answer: {player_uuid: [gameevent_name, gameevent_content], ...}
-        answer_dict = {uuid: li[0] for uuid, li in dict(room.answer).items()}
-        players = Player.objects.filter(room=room)
-        out_list = []
-
-        for uuid, name in deduce_dict.items():
-            self_player.tag_json[uuid] = 0
-
-            if name == answer_dict[uuid]:
-                if name == '與偵探發生關係':  # everyone are out
-                    players.exclude(uuid=self_player.uuid).update(status=0, room=None, tag_int=None, tag_json=None)
-                    out_list = list(deduce_dict.keys())
-                    room.onoff_dict = {key: -1 for key in dict(room.onoff_dict)}
-                    room.save()
-                    return JsonResponse({"result": True, "over": True, "out_players": out_list})
-
-                out_list.append(uuid)
-                room.onoff_dict[uuid] = -1
-
-                player = players.get(uuid=uuid)  # make player out of game
-                player.status = 0
-                player.room = None
-                player.tag_int = None
-                player.save()
-
-            else:
-                player = players.get(uuid=uuid)  # make player into next round
-                player.tag_int = 0
-                player.save()
-
-        self_player.save()
-        room.save()
-        return JsonResponse({"result": True, "over": False, "out_players": out_list})
-    else:
-        print("error: it's not through ajax.")
-
-
-def clue(request, uuid):
-    if request.is_ajax and request.method == "POST":
-        message = request.POST['clue-input']
-        self_player = request.user.profile
-        if self_player.tag_int != 1:
-            return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
-        detective = Player.objects.get(uuid=uuid)
-        detective.tag_json['msgbox'].append(message)
-        detective.save()
-
-        self_player.tag_int = 2
-        self_player.save()
-
-        return JsonResponse({"result": True})
-    else:
-        print("error: it's not through ajax.")
 
 
 def reply(request):
@@ -105,8 +15,15 @@ def reply(request):
         self_player = request.user.profile
         room = self_player.room
         answer_dict = room.answer
-        answer_dict['realtime'][ith - 1].append(msg)
-        answer_dict['realtime'][ith][0] = 'no_news'
+        length = len(answer_dict['realtime'])
+        if length < ith:  # 空題：前幾題都沒有人回答 需把answer_dict['realtime']填滿
+            answer_dict['realtime'].extend([['no_news']] * (ith - length))
+
+        answer_dict['realtime'][ith - 1].append('{}: {}'.format(self_player.name, msg))
+        if length == ith:  # the player to reply first
+            answer_dict['realtime'].append(['no_news'])
+        elif length > ith:
+            answer_dict['realtime'][ith][0] = 'no_news'
 
         room.answer = answer_dict
         room.save()
@@ -115,25 +32,49 @@ def reply(request):
         print("error: it's not through ajax.")
 
 
-def inquire(request, uuid):
+def invite(request, uuid):
     if request.is_ajax and request.method == "GET":
         self_player = request.user.profile
-        if self_player.tag_int != 0:
-            return JsonResponse({"result": False, "msg": '此角色或當前狀態無法執行此功能。'})
+        self_uuid = str(self_player.uuid)
+        if self_player.tag_int == 1:
+            return JsonResponse({"result": False, "msg": '你已經邀請過其他人了哦！'})
+        elif self_player.tag_int == 2:
+            return JsonResponse({"result": False, "msg": '你已接受其他人的邀請了哦。'})
 
-        room = self_player.room
-        names = [li[0] for key, li in dict(room.answer).items() if key != uuid and li[1] != []]
-        name = names[randint(0, len(names) - 1)]
+        opposite = Player.objects.get(uuid=uuid)
+        opposite.tag_json[self_uuid] = 1
+        opposite.save()
 
         self_player.tag_int = 1
         self_player.save()
 
-        return JsonResponse({"result": True, "event": name})
+        return JsonResponse({"result": True})
     else:
         print("error: it's not through ajax.")
 
 
-def prepare(request):
+def accept(request, uuid):
+    if request.is_ajax and request.method == "GET":
+        self_player = request.user.profile
+        if self_player.tag_int == 2:
+            return JsonResponse({"result": False, "msg": '你已接受其他人的邀請了哦。'})
+        opposite = Player.objects.get(uuid=uuid)
+        if opposite.tag_int == 2:
+            return JsonResponse({"result": False, "msg": '對方已接受其他人的邀請。'})
+
+        match = Match.objects.create(room=self_player.room, player_list=[str(opposite.uuid), str(self_player.uuid)])
+        for player in [self_player, opposite]:
+            player.match = match
+            player.status = 3
+            player.tag_int = 2
+            player.save()
+
+        return JsonResponse({"result": True, "player_list": match.player_list})
+    else:
+        print("error: it's not through ajax.")
+
+
+def prepare(request):  # only the game creator needs to do prepare()
     if request.is_ajax and request.method == 'GET':
         self_player = request.user.profile
         game = self_player.game
@@ -144,6 +85,7 @@ def prepare(request):
         onoff_dict = {}
         player_dict = {}
         answer_dict = {}
+        gender_ratio = [0, 0]
         for player in players:
             uuid = str(player.uuid)
             onoff_dict[uuid] = 1 if player.isOn is True else 0
@@ -151,25 +93,36 @@ def prepare(request):
             gender = player.gender if game.showGender is True else 'n'
             player_dict[uuid] = [player.name, gender]
 
+            if player.gender == 'f':
+                gender_ratio[0] += 1
+            else:
+                gender_ratio[1] += 1
+
         num = settings.QUESTION_NUM
         all_questions = GameEvent.objects.filter(Q(game=game))
         questions = sample(list(all_questions), num)
 
         prolog_time = settings.PROLOG_SEC + settings.PROLOG_SEC_PER_PLAYER * playerNum
         interval_time = 0
-        interval = settings.QUESTION_INTERVAL_SEC
+        interval1 = settings.QUESTION_INTERVAL_SEC
+        interval2 = settings.REPLY_INTERVAL_SEC
 
         timetable = {}
         for i, question in zip(range(1, num+1), questions):
             t = datetime.now(tz=timezone.utc) + timedelta(seconds=prolog_time+interval_time)
             t_str = t.strftime('%Y-%m-%d %H:%M:%S')
-            timetable[str(i)] = [t_str, question.content]
-
+            timetable[i] = [t_str, question.content]
             # todo 依據question.content的限時回答時間來調整題目間隔
+            interval_time += interval1
 
-            interval_time += interval
+            t = datetime.now(tz=timezone.utc) + timedelta(seconds=prolog_time + interval_time)
+            t_str = t.strftime('%Y-%m-%d %H:%M:%S')
+            timetable[i] = [t_str, 'pop_news']
+            interval_time += interval2
+
         answer_dict['timetable'] = timetable
-        answer_dict['realtime'] = [['no_news']]  # from the second, it's the real msgs sent by players
+        answer_dict['realtime'] = [['no_news']]  # from the second emlt, the contents are real msgs sent by players
+        answer_dict['gender_ratio'] = gender_ratio
 
         room.onoff_dict = onoff_dict
         room.player_dict = player_dict
@@ -183,10 +136,9 @@ def prepare(request):
         print("error: it's not through ajax.")
 
 
-def prolog(request):
+def prolog(request):  # every game participant needs to do prolog()
     if request.is_ajax and request.method == "GET":
         self_player = request.user.profile
-        # uuid = str(self_player.uuid)
         room = self_player.room
         if self_player.tag_json is None and self_player.tag_int is None:
             # tag_json and tag_int are different in individual game, so they are set up in individual game
@@ -196,7 +148,21 @@ def prolog(request):
             self_player.tag_int = 0
             self_player.save()
 
-        return JsonResponse({"result": True, "tag_json": self_player.tag_json})
+        guest_dialogs = []
+        gender_ratio = room.answer['gender_ratio']
+        text = "配對人數：{}女 vs {}男".format(gender_ratio[0], gender_ratio[1])
+        guest_dialogs.append([text, False, "s"])
+
+        for player in room.player_dict:
+            text = "<span class='a-point'>" + player[0] + "</span>😎"
+            guest_dialogs.append([text, False, "s"])
+
+        timetable = room.answer['timetable']
+        for key in timetable.keys():
+            timetable[key] = True if key % 2 == 1 else False
+
+        return JsonResponse({"result": True, "tag_json": self_player.tag_json, "tag_int": self_player.tag_int,
+                             "guest_dialogs": guest_dialogs, "timetable": timetable})
     else:
         print("error: it's not through ajax.")
 
