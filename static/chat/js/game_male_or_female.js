@@ -13,6 +13,7 @@ var gameCheckGate = function(){
 
     function num(isDirected=false){
         var li = [];
+        
         for(let [key, value] of Object.entries(loginData.onoff_dict)){
             (value === 1) && li.push(key);
         }
@@ -51,7 +52,8 @@ var gameCheckGate = function(){
                     loginData.tag_json = data.tag_json, loginData.tag_int = data.tag_int;
                     refreshGameTagAll();
 
-                    localData.answers['timetable'] = data.timetable, localData.answers['taskNum'] = data.timetable.length, localStorage.answers = JSON.stringify(localData.answers);
+                    localData.answers['timetable'] = data.timetable, localData.answers['taskNum'] = Object.keys(data.timetable).length;
+                    localStorage.answers = JSON.stringify(localData.answers);
                     replyMethod();
                     var li = [...data.guest_dialogs];
                     li.push(...story_dialogs);  // from db_male_or_female.js, same contents for everyone
@@ -105,35 +107,40 @@ function acceptMethod(css_id, player_uuid){
 }
 
 function replyMethod(){
-    $("send-form").on('submit',function(e){
+    if (!0 === hasBound_replyMethod)
+        return false
+    hasBound_replyMethod = !0;
+    $("#send-form").on('submit',function(e){
         e.preventDefault();
-        var now = new Date(), 
-            cnt = 0;
+        var now = new Date(),
+            cnt = -1;
         var timetable = localData.answers['timetable'];
-        for (let t in timetable){
-            if (now >= new Date(timetable[t][0]))
+        for (let task of timetable){
+            if (now >= new Date(task[0]))
                 cnt += 1;
             else
                 break;
         }
-        var isOpen = timetable[cnt][1],
-            hasAnswered = localData.answers['hasAnswered'];
+        
+        console.log('cnt:'+cnt.toString());
+
+        if (cnt === localData.answers['taskNum'] - 1){
+            theUI.showSys('問答環節結束！ 請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的離開鍵。');
+            return false
+        }
+        var isOpen = timetable[cnt][1];
         if (!1 === isOpen){
             theUI.showSys('冷靜，等待下一個問題！');
             return false
         }
-        if (!0 === hasAnswered){
+
+        if (!0 === localData.answers['hasAnswered']){
             theUI.showSys('你已經回答過問題了哦！');
             return false
         }
-        if (cnt === timetable.length){
-            theUI.showSys('問答環節結束！ 請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的離開鍵。');
-            return false
-        }
 
-        var ith = (cnt+1)/2;
         var formArray = $(this).serializeArray();
-        formArray[3] = ({name:"send-tag", value: ith});
+        formArray[3] = ({name:"send-tag", value: cnt});
         $.ajax({
             type: 'POST',
             url: '/chat/start_game/male_or_female/reply',
@@ -176,10 +183,11 @@ function inviteMethod(css_id, player_uuid){
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.tag_int = 1, refreshGameTagAll();
+                    loginData.tag_int = 1, loginData.tag_json[player_uuid] = 1,refreshGameTagAll();
                     var text = '已成功邀請 '+others[player_uuid][0]+'！';
-                    $('#game-invite').text(text);
-                    showNotice(text);
+                    $('#game-invite').text(text), showNotice(text);
+                    theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', 'invite'], ['hidden', loginData.uuid], ['tag', 2]);
+
                 }else{
                     $('#invite-modal-form p.a-error').text(data['msg']);
                 }
@@ -228,10 +236,12 @@ function loadRoleData(){  // to display sidebar content according to individual 
 }
 
 function refreshGameStatus(status){  // refresh status, tag_json and tag_int according to dividual role
-    refreshPlayerAll();  // first, refresh other players on/off 
+    refreshPlayerAll();  // first, refresh other players on/off
+    loginData.onoff_dict[loginData.uuid] = 1; // cuz the websocket's connect() too late to cause error
     switch (status){   // second, refresh self status as well as tag_json and tag_int
         case 2:
-            refreshGameTagAll();  // refresh player css btn according to current tag_json or tag_int
+
+            (null !== loginData.tag_int && null !== loginData.tag_json) && refreshGameTagAll();  // refresh player css btn according to current tag_json or tag_int
 
             var num_on = gameGate.playerNum();
             setNavTitle(num_on);
@@ -253,7 +263,7 @@ function refreshGameStatus(status){  // refresh status, tag_json and tag_int acc
                 (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
             }
 
-            setNavTitle('恭喜配對成功');
+            setNavTitle('恭喜配對成功！');
 
             var isMore = theUI.loadChatLogs('chatLogs');  // chat record dialogs are on status=3 only
             (!0 === isMore) && appearElmtCss('#show-more');
@@ -272,7 +282,7 @@ function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPla
     var css_id = position[player_uuid];
     // var name = $(css_id).find('.a-title').text();
     
-    var name = other[player_uuid][0];
+    var name = others[player_uuid][0];
     switch (loginData.onoff_dict[player_uuid]){
         case 0:
             (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
@@ -319,13 +329,13 @@ function refreshGameTag(player_uuid){  // refreshGameSingle() can call refreshGa
         case null:
             break;
         case 0:
-            changeBtnColor(css_id+'-btn', 'btn-warning'), $(css_id+'-btn').text('邀請'), inviteMethod(css_id+'-btn', uuid);  
+            changeBtnColor(css_id+'-btn', 'btn-warning'), $(css_id+'-btn').text('邀請'), inviteMethod(css_id+'-btn', player_uuid);  
             break;
         case 1:
             disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已邀請');
             break;
         case 2:
-            changeBtnColor(css_id+'-btn', 'btn-danger'), $(css_id+'-btn').text('接受'), acceptMethod(css_id+'-btn', uuid);
+            changeBtnColor(css_id+'-btn', 'btn-danger'), $(css_id+'-btn').text('接受'), acceptMethod(css_id+'-btn', player_uuid);
             break;
     }
 }
@@ -336,18 +346,32 @@ function changeBtnColor(css_id, class_name){
 }
 
 function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one player status, only be called in websocket.onmessage
+    if(2===loginData.status){
+        var num_on = gameGate.playerNum();
+        setNavTitle(num_on);
+    }
+
     switch (ws_type){  // react the ws_type according to induvidual role
         case 'CONN':
-            refreshPlayer(player_uuid), refreshGameTag(player_uuid);  
+            refreshPlayer(player_uuid), refreshGameTag(player_uuid);
             // tag_json & tag_int will affect the result only if the player is online.
+
+            // var sender_name = loginData.player_dict[player_uuid][0];
+            // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
             break;
         case 'DISCON':
             refreshPlayer(player_uuid);
+
+            // var sender_name = loginData.player_dict[player_uuid][0];
+            // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
             break;
         case 'OUT':
             refreshPlayer(player_uuid);
+            var sender_name = loginData.player_dict[player_uuid][0];
+            theUI.showSys('<span class="a-point">'+ sender_name + '</span>' + ' 已離開遊戲。');
             break;
     }
+
 }
 
 function showGameNotice(ws_type, ...args){  // sent by websocket.onmessage
@@ -364,6 +388,7 @@ function showGameNotice(ws_type, ...args){  // sent by websocket.onmessage
 function informGameMessage(data){
     var dialogs, begin_str, ith;
     var msgs_li = [];
+    console.log(data.tag);
     if (0 === data.tag){
         ith = (data.hidden+1)/2;
         begin_str = '問題'+ ith.toString()+': ';
@@ -373,30 +398,41 @@ function informGameMessage(data){
         }
         dialogs = msgs_li.map(msg => [msg, !1, 's']);
         theUI.showStoryAsync(dialogs, interval=200);
+        theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
 
         localData.answers['hasAnswered'] = !1, localStorage.answers = JSON.stringify(localData.answers);
-    }else{
-        for (let msg of data.msgs){
-            msg = $('#snippet').html(msg).text();
-            msgs_li.push(msg);
-        }
+    }else if (1 === data.tag){
 
+        if (data.msgs[0] === 'no_news'){
+            msgs_li[0] = '......🙈';
+        }else{
+            for (let msg of data.msgs){
+                msg = $('#snippet').html(msg).text();
+                msgs_li.push(msg);
+            }
+        }
+            
         if (data.hidden === localData.answers['taskNum']){
             msgs_li.concat(end_dialogs);
         }
         dialogs = msgs_li.map(msg => [msg, !1, 'a']);
         theUI.showStoryAsync(dialogs, interval=400);
+        theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
+    }else{  // (2 === data.tag) to get 'invite' message
+        var sender_uuid = data.hidden;
+        loginData.tag_json[sender_uuid] = 2, refreshGameTag(sender_uuid);
     }
-    theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
 }
 
 function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
+    $("#send-text").off('keypress');
     $("#send-text").on('keypress',function(a){
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
+
             var text = $("#send-text").val();
             if (void 0 !== text && null !== text &&'' !== text){
-                (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? $("#send-form").trigger("submit"): theUI.showSys('你還未進入房間哦！'));
+                (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? $("#send-form").submit(): theUI.showSys('你還未進入房間哦！'));
             } 
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();
@@ -408,7 +444,8 @@ var GAMETITLE = '不透露性別配對',
     gameGate = gameCheckGate(),
     self = [],
     others = {},
-    position = {}
+    position = {},
+    hasBound_replyMethod = !1
     
 $(document).ready(function(){
     loadRoleData(), bindGameMsgSend();  // load the data about role respectively and establish the variable: self, others, position

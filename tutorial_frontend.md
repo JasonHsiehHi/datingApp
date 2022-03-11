@@ -136,6 +136,11 @@ function formatAMPM(date) {
   return strTime;
 }
 
+2020-12-26T12:38:00Z 如果最後是Z 則表示UTC+0 如果是+08:00 則表示UTC+8 (此為涵蓋時區參數的時間標準寫法)
+JS的new Date().toISOString() 可將時間會成上面格式
+為配合資料庫的時間 大部分都直接使用UTC+0 並如前端自動轉成地區時間
+new Date(2020-12-26T12:38:00Z) 會自動轉成此時在UTC+8的時間
+
 <form>雖然是表單 但不一定要做method:
 可以搭配<input type="radio"> 做網頁內容的轉換
 <form>

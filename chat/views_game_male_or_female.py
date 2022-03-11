@@ -11,19 +11,15 @@ from datetime import datetime, timezone, timedelta
 def reply(request):
     if request.is_ajax and request.method == "POST":
         msg = request.POST['send-text']
-        ith = request.POST['send-tag']
+        ith_task = int(request.POST['send-tag']) + 1  # ith_task is reply, ith_task+1 is pop_news
         self_player = request.user.profile
         room = self_player.room
         answer_dict = room.answer
-        length = len(answer_dict['realtime'])
-        if length < ith:  # 空題：前幾題都沒有人回答 需把answer_dict['realtime']填滿
-            answer_dict['realtime'].extend([['no_news']] * (ith - length))
+        last = len(answer_dict['realtime']) - 1
+        if last < ith_task:  # 空題：前幾題都沒有人回答 需由view把answer_dict['realtime']填滿
+            answer_dict['realtime'].extend([['no_news']] * (ith_task - last))
 
-        answer_dict['realtime'][ith - 1].append('{}: {}'.format(self_player.name, msg))
-        if length == ith:  # the player to reply first
-            answer_dict['realtime'].append(['no_news'])
-        elif length > ith:
-            answer_dict['realtime'][ith][0] = 'no_news'
+        answer_dict['realtime'][ith_task].append('{}: {}'.format(self_player.name, msg))
 
         room.answer = answer_dict
         room.save()
@@ -42,10 +38,11 @@ def invite(request, uuid):
             return JsonResponse({"result": False, "msg": '你已接受其他人的邀請了哦。'})
 
         opposite = Player.objects.get(uuid=uuid)
-        opposite.tag_json[self_uuid] = 1
+        opposite.tag_json[self_uuid] = 2
         opposite.save()
 
         self_player.tag_int = 1
+        self_player.tag_json[str(opposite.uuid)] = 1
         self_player.save()
 
         return JsonResponse({"result": True})
@@ -107,17 +104,21 @@ def prepare(request):  # only the game creator needs to do prepare()
         interval1 = settings.QUESTION_INTERVAL_SEC
         interval2 = settings.REPLY_INTERVAL_SEC
 
-        timetable = {}
+        timetable = []
+        t = datetime.now(tz=timezone.utc)
+        t_str = t.strftime('%Y-%m-%dT%H:%M:%SZ')
+        timetable.append([t_str, 'start'])
         for i, question in zip(range(1, num+1), questions):
             t = datetime.now(tz=timezone.utc) + timedelta(seconds=prolog_time+interval_time)
-            t_str = t.strftime('%Y-%m-%d %H:%M:%S')
-            timetable[i] = [t_str, question.content]
+            t_str = t.strftime('%Y-%m-%dT%H:%M:%SZ')
+            timetable.append([t_str, question.content])
+
             # todo 依據question.content的限時回答時間來調整題目間隔
             interval_time += interval1
 
             t = datetime.now(tz=timezone.utc) + timedelta(seconds=prolog_time + interval_time)
-            t_str = t.strftime('%Y-%m-%d %H:%M:%S')
-            timetable[i] = [t_str, 'pop_news']
+            t_str = t.strftime('%Y-%m-%dT%H:%M:%SZ')
+            timetable.append([t_str, 'pop_news'])
             interval_time += interval2
 
         answer_dict['timetable'] = timetable
@@ -153,13 +154,15 @@ def prolog(request):  # every game participant needs to do prolog()
         text = "配對人數：{}女 vs {}男".format(gender_ratio[0], gender_ratio[1])
         guest_dialogs.append([text, False, "s"])
 
-        for player in room.player_dict:
-            text = "<span class='a-point'>" + player[0] + "</span>😎"
+        cnt = 1
+        for player in room.player_dict.values():
+            text = "玩家{}：<span class='a-point'>{}</span>😎".format(cnt, player[0])
             guest_dialogs.append([text, False, "s"])
+            cnt += 1
 
         timetable = room.answer['timetable']
-        for key in timetable.keys():
-            timetable[key] = True if key % 2 == 1 else False
+        for index in range(len(timetable)):
+            timetable[index][1] = True if int(index) % 2 == 1 else False
 
         return JsonResponse({"result": True, "tag_json": self_player.tag_json, "tag_int": self_player.tag_int,
                              "guest_dialogs": guest_dialogs, "timetable": timetable})

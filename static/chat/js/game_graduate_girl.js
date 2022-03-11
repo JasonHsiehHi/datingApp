@@ -77,6 +77,10 @@ var gameCheckGate = function(){
 }
 
 function deduceMethod(){
+    if (!0 === hasBound_deduceMethod)
+        return false
+    hasBound_deduceMethod = !0;
+
     $("#start-btn").on('click',function(e){
         if (loginData.status !== 2)  // it's overlayed #start-modal-form
             return false
@@ -286,7 +290,7 @@ function refreshGameStatus(self_group, status){  // refresh status, tag_json and
     refreshPlayerAll();  // first, refresh other players on/off 
     switch (status){   // second, refresh self status as well as tag_json and tag_int
         case 2:
-            refreshGameTagAll(self_group);  // according to current tag_json or tag_int, refresh player css btn
+            (null !== loginData.tag_int && null !== loginData.tag_json) && refreshGameTagAll(self_group);  // according to current tag_json or tag_int, refresh player css btn
 
             setNavTitle('劇本:<span class="a-point">'+ GAMETITLE +'</span>');
 
@@ -399,12 +403,23 @@ function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one playe
         case 'CONN':
             refreshPlayer(player_uuid), refreshGameTag(self[3] , player_uuid);  
             // tag_json & tag_int will affect the result only if the player is online.
+
+            // var sender_name = loginData.player_dict[player_uuid][0];
+            // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
+
             break;
         case 'DISCON':
             refreshPlayer(player_uuid);
+
+            // var sender_name = loginData.player_dict[player_uuid][0];
+            // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
+
             break;
         case 'OUT':
             refreshPlayer(player_uuid);
+            var sender_name = loginData.player_dict[player_uuid][0],
+                sender_role = loginData.player_dict[player_uuid][2];
+            theUI.showSys('<span class="a-point">'+sender_name+'('+sender_role+')</span>' + ' 已離開遊戲。');
             break;
     }
 }
@@ -441,7 +456,8 @@ var GAMETITLE = '畢業後的第一夜',
     seletedEvent = {},
     self = [],
     others = {},
-    position = {}
+    position = {},
+    hasBound_deduceMethod = !1
     
 $(document).ready(function(){
     loadRoleData();  // load the data about role respectively and establish the variable: self, others, position

@@ -33,7 +33,6 @@ def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
         'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'city'])
     room = player.room
-    match = player.match
     if room is None:
         player_dict['game'] = ''
         player_dict['player_dict'] = {}
@@ -48,10 +47,11 @@ def get_loginData(user, player):
         player_dict['tag_int'] = player.tag_int
         player_dict['tag_json'] = player.tag_json
 
-    if match is None:
-        player_dict['player_list'] = []
-    else:
-        player_dict['player_list'] = match.player_list
+        match = player.match
+        if match is None:
+            player_dict['player_list'] = []
+        else:
+            player_dict['player_list'] = match.player_list
 
     login_dict = {
         'isLogin': True,

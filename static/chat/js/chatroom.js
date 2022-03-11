@@ -7,11 +7,12 @@ function chatroomWS(){
             return false
         }
         chatSocket = new WebSocket(wsUrl);
-
         chatSocket.onopen = function(){
-            console.log("WS connected.");
             if (!0===[2,3].includes(loginData.status)){
+                console.log("WS connected in game.");
                 loginData.onoff_dict[loginData.uuid] = 1;
+            }else{
+                console.log("WS connected.");
             }
         };
 
@@ -75,12 +76,8 @@ function chatroomWS(){
                 case 'OUT':  // 通知其他人離開遊戲
                     loginData.onoff_dict[data.sender] = -1;
                     refreshGameSingle('OUT', data.sender);
-
-                    var sender_name = loginData.player_dict[data.sender][0],
-                        sender_role = loginData.player_dict[data.sender][2];
-                    theUI.showSys('<span class="a-point">'+sender_name+'('+sender_role+')</span>' + ' 已離開遊戲。');
-
-                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
+                    
+                    if (3 === loginData.status && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !0;
                     }
                     break;
@@ -117,10 +114,7 @@ function chatroomWS(){
                     loginData.onoff_dict[data.sender] = 0;
                     refreshGameSingle('DISCON', data.sender);
 
-                    // var sender_name = loginData.player_dict[data.sender][0];
-                    // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已下線...');
-
-                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
+                    if (3 === loginData.status && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !0;
                     }
                     break;
@@ -129,14 +123,12 @@ function chatroomWS(){
                     loginData.onoff_dict[data.sender] = 1;
                     refreshGameSingle('CONN', data.sender);
 
-                    // var sender_name = loginData.player_dict[data.sender][0];
-                    // theUI.showSys('<span class="a-point">'+sender_name+'</span> 已上線！');
-
-                    if (loginData.status === 3 && loginData['player_list'].includes(data.sender)){
+                    if (3 === loginData.status && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !1;
                         if(localData.text_in_discon.length > 0){
                             theWS.msgsSendWs(localData.text_in_discon); // todo: need to update for multiplayer match
                         }
+
                     }
                     break;
 
@@ -255,7 +247,7 @@ function getLocalData(){
             localStorage.imgUrl_adult = '',
             localStorage.chatLogs = '[]',
             localStorage.gameLogs = '[]',
-            localStorage.answers = '[]';
+            localStorage.answers = '{}';
         }
     }else{
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
@@ -410,6 +402,7 @@ function bindMsgSend() {
             $("#send-text").blur(), $("#send-text").focus();
         }
     })
+
     $("#send-text").on('input',function(a){  // writes something in <input>
         if (3 === loginData.status){
             (!1 === toggle.writing) && (theWS.writingNowWs(!0), toggle.writing = !0);
@@ -827,6 +820,19 @@ function prepareMethod(game_id){
 }
 
 var checkGate = function(){
+    function num(isDirected=false){
+        var li = [];
+        
+        console.log(loginData.onoff_dict[loginData.uuid]);
+
+        for(let [key, value] of Object.entries(loginData.onoff_dict)){
+            (value === 1) && li.push(key);
+        }
+        var text = '在線人數:<span class="a-point">'+ li.length +'</span> 人';
+        (!0 === isDirected) && theUI.showSys(text);
+        return text
+    }
+
     function itr(isDirected=false){
         var dialog;
         if (localData.name.length===0 && loginData.isLogin === !1){
@@ -875,6 +881,7 @@ var checkGate = function(){
     }
 
     return {
+        playerNum:num,
         tutor:tut,
         intro:itr,
         greet:grt
@@ -1068,7 +1075,8 @@ var chatUI = function(){
     }
 
     function sl(dialog, n=1, log_name='chatLogs'){
-        (n === 1)? localData[log_name].push(dialog) : localData[log_name] = localData[log_name].concat(dialog);
+        // (n === 1)? localData[log_name].push(dialog) : localData[log_name] = localData[log_name].concat(dialog); no matter is 1 or not
+        localData[log_name] = localData[log_name].concat(dialog);
         localStorage[log_name] = JSON.stringify(localData[log_name]);
     }
     
