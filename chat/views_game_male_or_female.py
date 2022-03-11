@@ -19,7 +19,7 @@ def reply(request):
         if last < ith_task:  # 空題：前幾題都沒有人回答 需由view把answer_dict['realtime']填滿
             answer_dict['realtime'].extend([['no_news']] * (ith_task - last))
 
-        answer_dict['realtime'][ith_task].append('{}: {}'.format(self_player.name, msg))
+        answer_dict['realtime'][ith_task].append("<span class='a-point'>{}</span>: {}".format(self_player.name, msg))
 
         room.answer = answer_dict
         room.save()
@@ -53,13 +53,17 @@ def invite(request, uuid):
 def accept(request, uuid):
     if request.is_ajax and request.method == "GET":
         self_player = request.user.profile
-        if self_player.tag_int == 2:
-            return JsonResponse({"result": False, "msg": '你已接受其他人的邀請了哦。'})
         opposite = Player.objects.get(uuid=uuid)
-        if opposite.tag_int == 2:
+
+        if self_player.tag_int == 2 and self_player.tag_json[str(opposite.uuid)] != 3:
+            return JsonResponse({"result": False, "msg": '你已接受其他人的邀請了哦。'})
+
+        if opposite.tag_int == 2 and opposite.tag_json[str(self_player.uuid)] != 3:
             return JsonResponse({"result": False, "msg": '對方已接受其他人的邀請。'})
 
         match = Match.objects.create(room=self_player.room, player_list=[str(opposite.uuid), str(self_player.uuid)])
+        self_player.tag_json[str(opposite.uuid)] = 3
+        opposite.tag_json[str(self_player.uuid)] = 3
         for player in [self_player, opposite]:
             player.match = match
             player.status = 3

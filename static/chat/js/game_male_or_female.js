@@ -57,10 +57,13 @@ var gameCheckGate = function(){
                     replyMethod();
                     var li = [...data.guest_dialogs];
                     li.push(...story_dialogs);  // from db_male_or_female.js, same contents for everyone
-
-                    theUI.showStoryAsync(li, interval=3000, callback=function(){
+                    
+                    var ith = getTimetableIth();
+                    var interval_ms = (ith > 0)? 0 : 1500;
+                    theUI.showStoryAsync(li, interval=interval_ms, callback=function(){
                         theUI.unreadTitle(!0);
                     }) 
+
                     theUI.storeChatLogs(li, li.length, 'gameLogs');
                 }else{
                     showNotice(data['msg']);
@@ -81,18 +84,20 @@ var gameCheckGate = function(){
 
 function acceptMethod(css_id, player_uuid){
     /* it's binded by loadRoleData() on sidebar #player-*-btn */
+    $(css_id).off('click');
     $(css_id).on('click',function(e){
-        if (loginData.tag_int === 2){
+        if (loginData.tag_int === 2 && loginData.tag_json[player_uuid] !== 3){
             showNotice('你已接受其他人的邀請了哦。');
             return false
         }
+
         $.ajax({
             type: 'GET',
             url: '/chat/start_game/male_or_female/accept/' + player_uuid,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
-                    loginData.tag_int = 2, refreshGameTagAll();
+                    loginData.tag_int = 2, loginData.tag_json[player_uuid] = 3, refreshGameTag(player_uuid);
                     theWS.callSendWs('enter_match');
                     showNotice('已建立房間 等待中...'), theUI.showSys('等待對方回應...');
                 }else{
@@ -112,23 +117,13 @@ function replyMethod(){
     hasBound_replyMethod = !0;
     $("#send-form").on('submit',function(e){
         e.preventDefault();
-        var now = new Date(),
-            cnt = -1;
-        var timetable = localData.answers['timetable'];
-        for (let task of timetable){
-            if (now >= new Date(task[0]))
-                cnt += 1;
-            else
-                break;
-        }
-        
-        console.log('cnt:'+cnt.toString());
-
-        if (cnt === localData.answers['taskNum'] - 1){
+        var ith = getTimetableIth();
+        if (ith === localData.answers['taskNum'] - 1){
             theUI.showSys('問答環節結束！ 請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的離開鍵。');
             return false
         }
-        var isOpen = timetable[cnt][1];
+        var timetable = localData.answers['timetable'];
+        var isOpen = timetable[ith][1];
         if (!1 === isOpen){
             theUI.showSys('冷靜，等待下一個問題！');
             return false
@@ -140,7 +135,7 @@ function replyMethod(){
         }
 
         var formArray = $(this).serializeArray();
-        formArray[3] = ({name:"send-tag", value: cnt});
+        formArray[3] = ({name:"send-tag", value: ith});
         $.ajax({
             type: 'POST',
             url: '/chat/start_game/male_or_female/reply',
@@ -162,40 +157,47 @@ function replyMethod(){
 
 function inviteMethod(css_id, player_uuid){
     /* it's binded by loadRoleData() on sidebar #player-*-btn */
+    $(css_id).off('click');
     $(css_id).on('click',function(a){
         $("#invite-modal-form").removeClass('d-none');
         $('#modal .modal-title').text('邀請');
         $('#invite-modal-form .modal-body p:eq(0)').text('確定要邀請'+others[player_uuid][0]+'?');
         $('#modal').modal('show');
-    })
-    $("#invite-modal-form").on('submit',function(e){
-        e.preventDefault();
-        if (loginData.tag_int === 1){
-            $('#invite-modal-form p.a-error').text('你已經邀請過其他人了哦');
-            return false
-        }else if (loginData.tag_int === 2){
-            $('#invite-modal-form p.a-error').text('你已接受其他人的邀請了哦。');
-            return false
-        }
-        $.ajax({
-            type: 'GET',
-            url: '/chat/start_game/male_or_female/invite/' + player_uuid,
-            dataType: "json",
-            success: function(data) {
-                if (!0 === data['result']){
-                    loginData.tag_int = 1, loginData.tag_json[player_uuid] = 1,refreshGameTagAll();
-                    var text = '已成功邀請 '+others[player_uuid][0]+'！';
-                    $('#game-invite').text(text), showNotice(text);
-                    theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', 'invite'], ['hidden', loginData.uuid], ['tag', 2]);
 
-                }else{
-                    $('#invite-modal-form p.a-error').text(data['msg']);
-                }
-            },
-            error: function(data) { $('#invite-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#invite-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+        $("#invite-modal-form").off('submit');
+        $("#invite-modal-form").on('submit',function(e){
+            e.preventDefault();
+            if (loginData.tag_int === 1){
+                $('#invite-modal-form p.a-error').text('你已經邀請過其他人了哦');
+                return false
+            }else if (loginData.tag_int === 2){
+                $('#invite-modal-form p.a-error').text('你已接受其他人的邀請了哦。');
+                return false
+            }
+            console.log('ff');
+            console.log(others[player_uuid][0]);
+
+            $.ajax({
+                type: 'GET',
+                url: '/chat/start_game/male_or_female/invite/' + player_uuid,
+                dataType: "json",
+                success: function(data) {
+                    if (!0 === data['result']){
+                        loginData.tag_int = 1, loginData.tag_json[player_uuid] = 1; refreshGameTag(player_uuid);                       
+                        var text = '已成功邀請 '+others[player_uuid][0]+'！';
+                        $('#game-invite').text(text), showNotice(text);
+                        theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', 'invite'], ['hidden', loginData.uuid], ['tag', 2]);
+
+                    }else{
+                        $('#invite-modal-form p.a-error').text(data['msg']);
+                    }
+                },
+                error: function(data) { $('#invite-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#invite-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            })
         })
     })
+
 }
 
 function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'
@@ -337,6 +339,9 @@ function refreshGameTag(player_uuid){  // refreshGameSingle() can call refreshGa
         case 2:
             changeBtnColor(css_id+'-btn', 'btn-danger'), $(css_id+'-btn').text('接受'), acceptMethod(css_id+'-btn', player_uuid);
             break;
+        case 3:
+            $(css_id+'-btn').text('已配對');
+            break;  
     }
 }
 
@@ -388,7 +393,6 @@ function showGameNotice(ws_type, ...args){  // sent by websocket.onmessage
 function informGameMessage(data){
     var dialogs, begin_str, ith;
     var msgs_li = [];
-    console.log(data.tag);
     if (0 === data.tag){
         ith = (data.hidden+1)/2;
         begin_str = '問題'+ ith.toString()+': ';
@@ -397,7 +401,7 @@ function informGameMessage(data){
             msgs_li.push(data.msgs[i]);
         }
         dialogs = msgs_li.map(msg => [msg, !1, 's']);
-        theUI.showStoryAsync(dialogs, interval=200);
+        (2 === loginData.status) && theUI.showStoryAsync(dialogs, interval=200);
         theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
 
         localData.answers['hasAnswered'] = !1, localStorage.answers = JSON.stringify(localData.answers);
@@ -416,7 +420,7 @@ function informGameMessage(data){
             msgs_li.concat(end_dialogs);
         }
         dialogs = msgs_li.map(msg => [msg, !1, 'a']);
-        theUI.showStoryAsync(dialogs, interval=400);
+        (2 === loginData.status) && theUI.showStoryAsync(dialogs, interval=400);
         theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
     }else{  // (2 === data.tag) to get 'invite' message
         var sender_uuid = data.hidden;
@@ -438,6 +442,19 @@ function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
             $("#send-text").blur(), $("#send-text").focus();
         }       
     })
+}
+
+function getTimetableIth(){
+    var now = new Date(),
+        cnt = -1;
+    var timetable = localData.answers['timetable'];
+    for (let task of timetable){
+        if (now >= new Date(task[0]))
+            cnt += 1;
+        else
+            break;
+    }
+    return cnt
 }
 
 var GAMETITLE = '不透露性別配對',

@@ -26,8 +26,6 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from hashlib import md5
 
-from django.db import connection
-
 
 def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
@@ -86,7 +84,8 @@ def in_game(request, game_name):
     if user.is_authenticated and user.profile.status in [2, 3]:
         player = user.profile
         if str(player.game) == game_name:
-            game = Game.objects.get(game_id=game_name)
+            # game = Game.objects.get(game_id=game_name)
+            game = player.game
             playerNum = game.best_ratio[0] + game.best_ratio[1]
             login_dict = get_loginData(user, user.profile)
             url = 'chat/chatroom_game_' + game_name + '.html'

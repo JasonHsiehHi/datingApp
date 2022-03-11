@@ -16,3 +16,5 @@ if settings.ADMIN_ENABLED:
 if settings.DEBUG:  # for test mode locally
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+    urlpatterns += [path('__debug__/', include('debug_toolbar.urls'))]

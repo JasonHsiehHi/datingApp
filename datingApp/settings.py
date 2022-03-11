@@ -62,6 +62,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# for django-debug-toolbar
+if DEBUG is True:
+    INTERNAL_IPS = [
+        '127.0.0.1',
+    ]
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+
 
 TEMPLATES = [
     {
@@ -214,13 +222,13 @@ SECONDS_FOR_CACHE_EMAIL = 600  # for signup mail and reset_pwd mail
 
 # for chat app - roomtime
 ROOMTIME_MIN = {  # only 2 players in game, they(could be male and female) can stay in room 60 mins
-    2: int(os.getenv('ROOMTIME_MIN_2_PLR')),
-    3: int(os.getenv('ROOMTIME_MIN_3_PLR')),
-    4: int(os.getenv('ROOMTIME_MIN_4_PLR')),
-    5: int(os.getenv('ROOMTIME_MIN_5_PLR')),
-    6: int(os.getenv('ROOMTIME_MIN_6_PLR')),
-    7: int(os.getenv('ROOMTIME_MIN_7_PLR')),
-    8: int(os.getenv('ROOMTIME_MIN_8_PLR')),
+    2: 60,  # int(os.getenv('ROOMTIME_MIN_2_PLR')) can set by .env
+    3: 20,
+    4: 15,
+    5: 12,
+    6: 10,
+    7: 8,
+    8: 8,
     100: 1  # for test mode
 }
 

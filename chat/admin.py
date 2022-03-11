@@ -35,10 +35,10 @@ class MatchAdmin(admin.ModelAdmin):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('user', 'gender', 'create_date', 'name', 'status', 'isBanned',
-                    'city', 'room', 'match', 'isAdult', 'isHetero', 'game',
-                    'waiting_time', 'isPrepared', 'isOn')
-    list_filter = ('gender', 'status', 'city', 'room', 'match', 'game', 'isOn')
+    list_display = ('user', 'gender', 'name', 'isOn', 'isPrepared', 'waiting_time', 'status', 'tag_int', 'tag_json',
+                    'room', 'match', 'city', 'isAdult', 'isHetero', 'game', 'isBanned', 'create_date')
+    list_filter = ('gender', 'isOn', 'status', 'city', 'room', 'match', 'game')
+    ordering = ('-isOn',)
     search_fields = ('uuid', 'name',)
     save_as = True
 

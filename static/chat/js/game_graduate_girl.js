@@ -197,35 +197,37 @@ function clueMethod(css_id, player_uuid){
 }
 
 function inquireMethod(css_id, player_uuid){
-    /* it's binded by loadRoleData() on sidebar #player-*-btn
-     */
+    /* it's binded by loadRoleData() on sidebar #player-*-btn*/
     var name_role = others[player_uuid][0]+'('+others[player_uuid][2]+')';
     $(css_id).on('click',function(a){
         $("#inquire-modal-form").removeClass('d-none');
         $('#modal .modal-title').text('調查');
         $('#inquire-modal-form .modal-body p:eq(0)').text('是否確定調查'+name_role+'?');
         $('#modal').modal('show');
-    })
-    $("#inquire-modal-form").on('submit',function(e){
-        e.preventDefault();
-        $.ajax({
-            type: 'GET',
-            url: '/chat/start_game/graduate_girl/inquire/' + player_uuid,
-            dataType: "json",
-            success: function(data) {
-                if (!0 === data['result']){
-                    loginData.tag_int = 1, refreshGameTagAll(0);
-                    var text = name_role + '沒有 '+data['event'];
-                    $('#game-inquire').text(text);
-                    showNotice(text);
-                }else{
-                    $('#inquire-modal-form p.a-error').text(data['msg']);
-                }
-            },
-            error: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
-            timeout: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+
+        $("#inquire-modal-form").off('submit');
+        $("#inquire-modal-form").on('submit',function(e){
+            e.preventDefault();
+            $.ajax({
+                type: 'GET',
+                url: '/chat/start_game/graduate_girl/inquire/' + player_uuid,
+                dataType: "json",
+                success: function(data) {
+                    if (!0 === data['result']){
+                        loginData.tag_int = 1, refreshGameTagAll(0);
+                        var text = name_role + '沒有 '+data['event'];
+                        $('#game-inquire').text(text);
+                        showNotice(text);
+                    }else{
+                        $('#inquire-modal-form p.a-error').text(data['msg']);
+                    }
+                },
+                error: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); },
+                timeout: function(data) { $('#inquire-modal-form p.a-error').text('目前網路異常或其他原因，請稍候重新再試一次。'); }
+            })
         })
     })
+
 }
 
 function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'

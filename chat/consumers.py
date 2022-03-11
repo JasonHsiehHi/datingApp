@@ -2,7 +2,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from . import utils
 from datetime import datetime, timezone
 from threading import Timer
-# from time import sleep
+from time import sleep
 from asgiref.sync import async_to_sync
 
 
@@ -12,7 +12,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self, **kwargs):
         if self.scope['user'].is_authenticated:
             self.player_data = await utils.get_player(self.scope['user'])
-            self.uuid = str(self.player_data.uuid)  # 是否用user.id 取代 player.uuid
+            self.uuid = str(self.player_data.uuid)
 
             if self.player_data.status == 1:  # in waiting
                 self.player_data = await utils.set_player_fields(
@@ -264,6 +264,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.start_game(send_dict)
             else:
                 await self.channel_layer.group_send(player_uuid, send_dict)
+            sleep(0.2)
 
     async def start_game(self, event):  # 所有人接收'遊戲開始'訊息 (包含自己)
         """func received from other chatConsumers with call_*():  """
@@ -383,6 +384,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.enter_match(send_dict)
             else:
                 await self.channel_layer.group_send(uuid, send_dict)
+            sleep(0.2)
 
     async def enter_match(self, event):  # 所有人接收'進入房間'訊息
         """func received from other chatConsumers with call_*():  """
@@ -541,6 +543,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.set_timetable_next(ith_task)
 
     async def timeout_inform_updated(self, ith_task):
+        # todo 將answer存入cache (用ith_tash和room_id做記號 只有第一個人存取資料庫 其他人從cache來找
+        # 存入下一個cache時 把上一個chache刪掉 timetable 要再記最後一個task:clear_cache
+        # 同樣是檢查cache 如果已刪除則不動
+
         self.room, game = await utils.get_room_players(self.player_data, False)
         answer = self.room.answer
         realtime = answer.get('realtime', None)
@@ -555,10 +561,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 answer['realtime'] = realtime
                 self.room.answer = answer
                 await utils.set_room_fields(self.room, {'answer': answer})
-
             msgs_li = realtime[ith_task]
+
+        # cache 需要存入msgs_li
             if len(msgs_li) > 1:  # the first msg: ['no_news',]
                 msgs_li = msgs_li[1:]  # from the second, it's the real msgs sent by players
 
             await self.timeout_inform(msgs_li, ith_task, tag=1)
             # tag=1: is distinguished from directly timeout_inform()
+
+    async def timeout_clear_cache(self):
+        pass
