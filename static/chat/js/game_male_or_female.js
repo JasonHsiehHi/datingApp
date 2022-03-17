@@ -55,6 +55,8 @@ var gameCheckGate = function(){
                     localData.answers['timetable'] = data.timetable, localData.answers['taskNum'] = Object.keys(data.timetable).length;
                     localStorage.answers = JSON.stringify(localData.answers);
                     replyMethod();
+                    (!0 === isOverTime()) && theUI.showSys('配對已結束囉！ 可按右上方"離開"鍵 並準備進行下一場遊戲');
+                    
                     var li = [...data.guest_dialogs];
                     li.push(...story_dialogs);  // from db_male_or_female.js, same contents for everyone
                     
@@ -78,6 +80,7 @@ var gameCheckGate = function(){
         player:pla,
         playerNum:num,
         matcher:mat,
+        overTime: ovt,
         prolog:prl
     }
 }
@@ -119,7 +122,7 @@ function replyMethod(){
         e.preventDefault();
         var ith = getTimetableIth();
         if (ith === localData.answers['taskNum'] - 1){
-            theUI.showSys('問答環節結束！ 請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的離開鍵。');
+            theUI.showSys('問答環節結束！ 請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的"離開"鍵。');
             return false
         }
         var timetable = localData.answers['timetable'];
@@ -257,7 +260,10 @@ function refreshGameStatus(status){  // refresh status, tag_json and tag_int acc
                 gameGate.player();
             }
 
-            ('timetable' in localData.answers) && replyMethod();  // 只在status===2被使用 當status===3時則直接用theWS.msgSendWs(text)
+            if ('timetable' in localData.answers){
+                replyMethod();  // 只在status===2被使用 當status===3時則直接用theWS.msgSendWs(text)
+                (!0 === isOverTime()) && theUI.showSys('配對已結束囉！ 可按右上方"離開"鍵 並準備進行下一場遊戲');
+            } 
 
             break;
         case 3:
@@ -382,7 +388,7 @@ function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one playe
 function showGameNotice(ws_type, ...args){  // sent by websocket.onmessage
     switch (ws_type){  // react the ws_type according to induvidual role
         case 'OVER':  // args[0]: data.isOver
-            (!0 === args[0])? showNotice('遊戲結束，可按"離開"鍵 並準備進行下一場遊戲。'): showNotice('出局！可按"離開"鍵 並準備進行下一場遊戲。');
+            (!0 === args[0])? showNotice('遊戲結束，可按右上方"離開"鍵 並準備進行下一場遊戲。'): showNotice('出局！可按右上方"離開"鍵 並準備進行下一場遊戲。');
             break;
         case 'ALIVE':  // args[0]: self_group
             showNotice('遊戲即將進入下一輪。');
@@ -415,11 +421,12 @@ function informGameMessage(data){
                 msgs_li.push(msg);
             }
         }
-            
-        if (data.hidden === localData.answers['taskNum']){
-            msgs_li.concat(end_dialogs);
-        }
         dialogs = msgs_li.map(msg => [msg, !1, 'a']);
+
+        if (data.hidden === localData.answers['taskNum']){
+            dialogs.concat(end_dialogs);
+        }
+
         (2 === loginData.status) && theUI.showStoryAsync(dialogs, interval=400);
         theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
     }else{  // (2 === data.tag) to get 'invite' message
@@ -455,6 +462,14 @@ function getTimetableIth(){
             break;
     }
     return cnt
+}
+
+function  isOverTime(){
+    var now = new Date(),
+        task_time = new Date(localData.answers['timetable'][0]);
+    seconds = (now - task_time)/1000;
+    bool = ((now - task_time)/1000 > 1800)? true: false;
+    return bool
 }
 
 var GAMETITLE = '不透露性別配對',

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from threading import Timer
 from time import sleep
 from asgiref.sync import async_to_sync
+from django.core.cache import cache
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -126,6 +127,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     self.channel_name
                 )
 
+    async def redirect(self):
+        if self.player_data.status in [2, 3]:
+            await self.send_json({
+                'type': 'REDIRECT',
+                'status': self.player_data.status,
+                'game': self.game_id
+            })
+
     async def is_on(self, event):
         """func received from other chatConsumers with connect() and disconnect():  """
         if self.uuid != event['from']:
@@ -190,6 +199,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 tag = content.get('tag', 0)
                 hidden = content.get('hidden', 0)
                 await self.call_inform(content['target'], content['meInGroup'], content['message'], hidden, tag)
+            elif call == 'redirect':
+                await self.redirect()
             else:
                 print(self.uuid + ' insert a wrong call: ' + call)
 
@@ -506,17 +517,32 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def set_timetable(self, ith_task):
         now = datetime.now(tz=timezone.utc)
         timetable = self.timetable
+        isRefresh = False
         for index in range(ith_task, len(timetable)):
             t = datetime.strptime(timetable[index][0], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
             seconds = (t - now).total_seconds()
-            if seconds > 0:
-                if timetable[index][1] == 'pop_news':
+            if seconds < -1800:
+                break
+            print('{}:{}'.format(ith_task, seconds))
+
+            if seconds <= 0:
+                if isRefresh is False:
+                    self.player_data = await utils.refresh_instance(self.player_data)
+                    isRefresh = True
+                tag_json = self.player_data.tag_json
+                if tag_json['tasks_done'] < ith_task:
+                    if isinstance(timetable[index][1], list):  # task[1] format: [msg1, msg2, msg3,...]
+                        await self.timeout_inform(timetable[index][1], index, tag=0, next_task=False)
+                    elif timetable[index][1] == 'pop_news':
+                        # special code: to send the last one from self.room['answer']['realtime']
+                        await self.timeout_inform_updated(index, next_task=False)
+            else:
+                if isinstance(timetable[index][1], list):  # task[1] format: [msg1, msg2, msg3,...]
+                    self.timers[index] = await self.timer_execute(seconds, self.timeout_inform,
+                                                                  timetable[index][1], index)
+                elif timetable[index][1] == 'pop_news':
                     # special code: to send the last one from self.room['answer']['realtime']
                     self.timers[index] = await self.timer_execute(seconds, self.timeout_inform_updated, index)
-
-                elif isinstance(timetable[index][1], list):  # task[1] format: [msg1, msg2, msg3,...]
-                    msgs_li = timetable[index][1]
-                    self.timers[index] = await self.timer_execute(seconds, self.timeout_inform, msgs_li, index)
                 break
 
     async def set_timetable_next(self, ith_task):
@@ -533,42 +559,43 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.match = await utils.set_match_fields(self.match, {'player_list': player_list}, True)
         await self.call_leave_match(True)
 
-    async def timeout_inform(self, message, ith_task, tag=0):
+    async def timeout_inform(self, message, ith_task, tag=0, next_task=True):
         await self.inform({
             'msgs': message,
             'from': 'system',  # let 'toSelf': False
             'hidden': ith_task,
             'tag': tag
         })
-        await self.set_timetable_next(ith_task)
+        self.player_data = await utils.refresh_instance(self.player_data)
+        tag_json = self.player_data.tag_json
+        tag_json['tasks_done'] = ith_task
+        await utils.set_player_fields(self.player_data, {'tag_json': tag_json}, True)
 
-    async def timeout_inform_updated(self, ith_task):
-        # todo 將answer存入cache (用ith_tash和room_id做記號 只有第一個人存取資料庫 其他人從cache來找
-        # 存入下一個cache時 把上一個chache刪掉 timetable 要再記最後一個task:clear_cache
-        # 同樣是檢查cache 如果已刪除則不動
+        if next_task is True:
+            await self.set_timetable_next(ith_task+1)
 
-        self.room, game = await utils.get_room_players(self.player_data, False)
-        answer = self.room.answer
-        realtime = answer.get('realtime', None)
-        if realtime is not None and len(realtime) > 0:
-            last = len(realtime) - 1
+    async def timeout_inform_updated(self, ith_task, next_task=True):
+        task_name = '{}:task-{}'.format(self.room_id, ith_task)
+        msgs_li = cache.get(task_name)
+        if msgs_li is None:
+            self.room, game = await utils.get_room_players(self.player_data, False)
+            answer = self.room.answer
+            realtime = answer.get('realtime', None)
+            if realtime is not None and len(realtime) > 0:
+                last = len(realtime) - 1
 
-            if last < ith_task:  # 空題：前幾題都沒有人回答 需由系統把answer_dict['realtime']填滿
-                realtime.extend([['no_news']] * (ith_task - last))
+                if last < ith_task:  # 空題：前幾題都沒有人回答 需由系統把answer_dict['realtime']填滿
+                    realtime.extend([['no_news']] * (ith_task - last))
 
-            if last == ith_task:  # the player to get inform first need to de that
-                realtime.append(['no_news'])
-                answer['realtime'] = realtime
-                self.room.answer = answer
-                await utils.set_room_fields(self.room, {'answer': answer})
-            msgs_li = realtime[ith_task]
+                if last == ith_task:  # the player to get inform first need to de that
+                    realtime.append(['no_news'])
+                    answer['realtime'] = realtime
+                    self.room.answer = answer
+                    await utils.set_room_fields(self.room, {'answer': answer})
+                msgs_li = realtime[ith_task]
+                cache.set(task_name, msgs_li, 1800)
 
-        # cache 需要存入msgs_li
             if len(msgs_li) > 1:  # the first msg: ['no_news',]
                 msgs_li = msgs_li[1:]  # from the second, it's the real msgs sent by players
-
-            await self.timeout_inform(msgs_li, ith_task, tag=1)
+            await self.timeout_inform(msgs_li, ith_task, tag=1, next_task=next_task)
             # tag=1: is distinguished from directly timeout_inform()
-
-    async def timeout_clear_cache(self):
-        pass

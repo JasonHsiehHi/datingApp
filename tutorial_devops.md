@@ -780,6 +780,13 @@ docker tag django_todo:latest <Docker Hub username>/django_todo:latest
 docker push <Docker Hub username>/django_todo:latest 放在docker hub
 docker push asia.gcr.io/<project-id>/server 也可放在google docker registry
 
+
+上傳到GCP的三件事：
+docker build . -t anonlarp_django_for_www:latest && docker tag anonlarp_django_for_www:latest asia.gcr.io/anonlarp-project/anonlarp_django_for_www:latest && docker push asia.gcr.io/anonlarp-project/anonlarp_django_for_www:latest
+
+docker build . -t anonlarp_nginx_certbot_for_www:latest && docker tag anonlarp_nginx_certbot_for_www:latest asia.gcr.io/anonlarp-project/anonlarp_nginx_certbot_for_www:latest && docker push asia.gcr.io/anonlarp-project/anonlarp_nginx_certbot_for_www:latest
+
+
 docker只涉及連到本地機的port 與IP位址無關
 決定外界使否可連線或連到哪個ip位址則由django manage.py決定
 
@@ -1457,7 +1464,8 @@ Liveness checks 檢查VM和VM中的container是否正在運行 當未達標準�
 Readiness checks 是否已準備接受流入的request 當未達標準時不會進入用於執行的個體池pool of instances
 
 ## GCS:
-ls -l gs://my-awesome-bucket 查看專案目前的googlestorage值區 -l為詳細資料
+gsutil ls 查看所有googlestorage值區
+gsutil ls -l gs://my-awesome-bucket 查看專案目前的googlestorage值區 -l為詳細資料
 gsutil cp data gs://gs-bucket-name/ 上傳
 gsutil cp gs://my-awesome-bucket/kitten.png ./kitten2.png 下載
 gsutil rm gs://my-awesome-bucket/kitten.png 刪除
@@ -1473,20 +1481,21 @@ apt-get install -y gcc python-dev python-setuptools libffi-dev
 apt-get install -y python3-pip 如果遇到沒有python的環境則需要用apt-get先安裝python 才能用pip
 pip install gsutil 由於已經有pip故可以直接做安裝
 
+合併之後：
+apt-get update && apt-get install -y gcc python-dev python-setuptools libffi-dev && apt-get install -y python3-pip && pip install gsutil
+
 3.gsutil config 使用config完成gcloud帳號授權後即可使用
 
-postgresql常用的備份檔案與還原方式：
+postgresql常用的備份檔案與還原方式：(不好用)
 pg_dump -U username -d database >db.sql
 psql -U username -d database < db.sql
 
-如果以上方法不成功 可改用django的方式： 
+如果以上方法不成功 可改用django的方式： (好用)
 python manage.py dumpdata > whole.json
 python manage.py loaddata whole.json
 (過程中把*/migrations/*.py 和 */migrations/*.pyc清除並重做makemigrations和migrate
-find . -path '*/migrations/*.py' -not -name '__init__.py' -delete
-find . -path '*/migrations/*.pyc' -delete
-python manage.py makemigrations
-python manage.py migrate
+find . -path '*/migrations/*.py' -not -name '__init__.py' -delete && find . -path '*/migrations/*.pyc' -delete
+python manage.py makemigrations && python manage.py migrate
 最後再進到django的shell把ContentType清掉:
 python manage.py shell
 from django.contrib.contenttypes.models import ContentType 

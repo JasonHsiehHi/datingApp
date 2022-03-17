@@ -22,7 +22,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 import re
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from hashlib import md5
 
@@ -84,7 +84,6 @@ def in_game(request, game_name):
     if user.is_authenticated and user.profile.status in [2, 3]:
         player = user.profile
         if str(player.game) == game_name:
-            # game = Game.objects.get(game_id=game_name)
             game = player.game
             playerNum = game.best_ratio[0] + game.best_ratio[1]
             login_dict = get_loginData(user, user.profile)
@@ -461,7 +460,9 @@ def start_game(request):
 
         # 判斷遊戲人數是否足夠
         # todo 是否能夠不訪問Player資料庫的情況判斷人數是否充足
-        players = Player.objects.filter(Q(game=game) & Q(isPrepared=True))
+
+        players = Player.objects.filter(Q(game=game) & Q(isPrepared=True) &
+                                        Q(waiting_time__gte=datetime.now(tz=timezone.utc)-timedelta(hours=2)))
         # can't replace isPrepared=True by status=2 because isPrepared is relative to on/off
         # todo 改為用isAdult和isHetero判斷 直到成功建立者的game再作為room的game
 

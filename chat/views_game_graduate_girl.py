@@ -127,9 +127,9 @@ def prepare(request):
         roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
         role_group = [role.group for role in roles]  # role_group = [1, 0, 0, 0,...]
 
-        noplayerNum = game.noplayerNum
-        if noplayerNum > 0:
-            role_group.extend([0] * noplayerNum)  # for answer_dict['noplayer*']
+        noPlayerNum = game.noPlayerNum
+        if noPlayerNum > 0:
+            role_group.extend([0] * noPlayerNum)  # for answer_dict['noPlayer*']
 
         event_query = get_event_query(game, role_group)
         # event_query = {0: [[event.name, event.content], ], 1: [[event.name, event.content], ], ...}
@@ -138,10 +138,10 @@ def prepare(request):
         player_dict = {}
         answer_dict = {}
 
-        if noplayerNum > 0:
-            for x in range(0, noplayerNum):
-                answer_dict['noplayer' + str(x)] = event_query[0].pop()
-                # noplayer can not take special event, so pop() first
+        if noPlayerNum > 0:
+            for x in range(0, noPlayerNum):
+                answer_dict['noPlayer' + str(x)] = event_query[0].pop()
+                # noPlayer can not take special event, so pop() first
 
         shuffle(event_query[0])
 

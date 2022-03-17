@@ -13,6 +13,7 @@ function chatroomWS(){
                 loginData.onoff_dict[loginData.uuid] = 1;
             }else{
                 console.log("WS connected.");
+                theWS.callSendWs('redirect');
             }
         };
 
@@ -66,6 +67,14 @@ function chatroomWS(){
                     console.log(data.error);
                     break;
 
+                case 'REDIRECT':
+                    if (!0 === [2,3].includes(data.status)){
+                        console.log('redirect');
+                        var url = '/chat/start_game/' + data.game;
+                        (url !== window.location.pathname) && (window.location.href = url);
+                    }
+                    break;
+
                 case 'START':
                     showNotice('遊戲開始！');
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
@@ -76,7 +85,7 @@ function chatroomWS(){
                 case 'OUT':  // 通知其他人離開遊戲
                     loginData.onoff_dict[data.sender] = -1;
                     refreshGameSingle('OUT', data.sender);
-                    
+
                     if (3 === loginData.status && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !0;
                     }
@@ -1216,7 +1225,7 @@ var loginData = JSON.parse(document.getElementById('loginData').textContent),
     term = getTermData(),
     toggle = getToggle()
     
-    
+
 $(document).ready(function() {
     bindMsgSend(), installToolTip(), bindModalHide(), bindUpMore(); 
     loginMethodSet(), profileMethodSet(), leaveMethod(), startMethod(), settingsMethod();

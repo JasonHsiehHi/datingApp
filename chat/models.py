@@ -69,7 +69,7 @@ class Game(models.Model):
     threshold_ratio = models.JSONField(max_length=10)  # 最合適比例 與 及格配對比例 兩種：差別在於等待時間
     story = models.JSONField(null=True, blank=True)
 
-    noplayerNum = models.IntegerField(default=0)
+    noPlayerNum = models.IntegerField(default=0, null=True, blank=True)
     showGender = models.BooleanField()
 
     def __str__(self):

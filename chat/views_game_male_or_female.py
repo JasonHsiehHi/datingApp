@@ -112,6 +112,7 @@ def prepare(request):  # only the game creator needs to do prepare()
         t = datetime.now(tz=timezone.utc)
         t_str = t.strftime('%Y-%m-%dT%H:%M:%SZ')
         timetable.append([t_str, 'start'])
+
         for i, question in zip(range(1, num+1), questions):
             t = datetime.now(tz=timezone.utc) + timedelta(seconds=prolog_time+interval_time)
             t_str = t.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -149,6 +150,7 @@ def prolog(request):  # every game participant needs to do prolog()
             # tag_json and tag_int are different in individual game, so they are set up in individual game
             di = {uuid: 0 for uuid in dict(room.player_dict).keys()}
             di['msgbox'] = []
+            di['tasks_done'] = 0
             self_player.tag_json = di
             self_player.tag_int = 0
             self_player.save()
@@ -156,6 +158,10 @@ def prolog(request):  # every game participant needs to do prolog()
         guest_dialogs = []
         gender_ratio = room.answer['gender_ratio']
         text = "配對人數：{}女 vs {}男".format(gender_ratio[0], gender_ratio[1])
+        guest_dialogs.append([text, False, "s"])
+
+        questionNum = room.answer['questionNum']
+        text = "問答環節共 {} 題".format(questionNum)
         guest_dialogs.append([text, False, "s"])
 
         cnt = 1
