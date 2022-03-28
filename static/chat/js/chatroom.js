@@ -10,7 +10,7 @@ function chatroomWS(){
         chatSocket.onopen = function(){
             if (!0===[2,3].includes(loginData.status)){
                 console.log("WS connected in game.");
-                loginData.onoff_dict[loginData.uuid] = 1;
+                theWS.callSendWs('update');
             }else{
                 console.log("WS connected.");
                 theWS.callSendWs('redirect');
@@ -25,6 +25,14 @@ function chatroomWS(){
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
+            if ('token' in data){
+                console.log(data.token);
+                if (!1 === localData.cache[data.token])
+                    localData.cache[data.token] = !0, localStorage.cache = JSON.stringify(localData.cache);
+                else
+                    return false
+            }
+
             console.log('receive: '+ data.type);
             switch (data.type){
                 case 'WN':
@@ -43,7 +51,7 @@ function chatroomWS(){
                         var discon_index = -(localData.text_in_discon.length+1);  // counting backwards from last one
                         $('#dialog').find('.a-chat:has(.a-dialogdiv.a-self):gt('+discon_index+')').each(function(a){
                             theUI.showStatus($(this), data.st_type);
-                        })
+                        });
                         localData.text_in_discon=[],localStorage.text_in_discon='[]';
                     }
                     break;
@@ -51,7 +59,7 @@ function chatroomWS(){
                 case 'MSG':
                     var text_only = $('#snippet').html(data.msg).text();
                     var dialog = [text_only, false, 'a'];  // data.isImg is false, sending_img hasn't been available.
-                    theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);                        
+                    theUI.showOneMsg(dialog), theUI.storeChatLogs([dialog]);                        
                     theWS.statusRespWs(data.sender, 2);  // have received msg and then response st_type:2(已送達)
                     break;
 
@@ -67,9 +75,23 @@ function chatroomWS(){
                     console.log(data.error);
                     break;
 
+                case 'UPDATE':
+                    loginData.onoff_dict = data.onoff_dict, loginData.tag_int = data.tag_int, loginData.tag_json = data.tag_json;
+                    refreshPlayerAll();
+                    if (2 === loginData.status){
+                        (null !== loginData.tag_int && null !== loginData.tag_json) && refreshGameTagAll();
+                        var num_on = gameGate.playerNum();
+                        setNavTitle(num_on);
+                    }else if(3 === loginData.status){
+                        for (let uuid in position){  // like refreshGameTagAll(), but don't use tag_json&tag_int
+                            (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
+                        }
+                        setNavTitle('恭喜配對成功！');
+                    }
+                    break;
+
                 case 'REDIRECT':
                     if (!0 === [2,3].includes(data.status)){
-                        console.log('redirect');
                         var url = '/chat/start_game/' + data.game;
                         (url !== window.location.pathname) && (window.location.href = url);
                     }
@@ -135,7 +157,10 @@ function chatroomWS(){
                     if (3 === loginData.status && loginData['player_list'].includes(data.sender)){
                         toggle.discon = !1;
                         if(localData.text_in_discon.length > 0){
-                            theWS.msgsSendWs(localData.text_in_discon); // todo: need to update for multiplayer match
+                            setTimeout(function(){
+                                theWS.msgsSendWs(localData.text_in_discon);
+                            },1000);
+                            ; // todo: need to update for multiplayer match
                         }
 
                     }
@@ -172,9 +197,8 @@ var WSManager = function(){
             localData.text_in_discon.push([msg, isImg]), localStorage.text_in_discon = JSON.stringify(localData.text_in_discon);
         }
         var elmt, dialog = [$('#snippet').html(msg).text(), isImg, 'm'];
-        elmt = theUI.showOneMsg(dialog), theUI.storeChatLogs(dialog);
+        elmt = theUI.showOneMsg(dialog), theUI.storeChatLogs([dialog]);
         theUI.showStatus(elmt, 1), term.elmt_for_status.push(elmt);
-
 
     }
     function mss(msg_list){  //  the matcher is disconnected, so send mag_list instead of msg in next connection.
@@ -231,7 +255,8 @@ function getLocalData(){
         imgUrl_adult: '',
         chatLogs:[],
         gameLogs:[],
-        answers:{}
+        answers:{},
+        cache:{}
     };
 
     if ('undefined' !== typeof(Storage)){
@@ -244,7 +269,8 @@ function getLocalData(){
             data.imgUrl_adult = localStorage.imgUrl_adult,
             data.chatLogs = JSON.parse(localStorage.chatLogs),
             data.gameLogs = JSON.parse(localStorage.gameLogs),
-            data.answers = JSON.parse(localStorage.answers);
+            data.answers = JSON.parse(localStorage.answers),
+            data.cache = JSON.parse(localStorage.cache);
 
         }else{
             localStorage.isSaved = 'true',
@@ -256,7 +282,8 @@ function getLocalData(){
             localStorage.imgUrl_adult = '',
             localStorage.chatLogs = '[]',
             localStorage.gameLogs = '[]',
-            localStorage.answers = '{}';
+            localStorage.answers = '{}',
+            localStorage.cache = '{}';
         }
     }else{
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
@@ -282,7 +309,8 @@ function getToggle(){
         scroll:!1, // web page is scrolling, it's only used in chatUI.
         discon:!1,  // at least one player disconnected in match
         first:!0,  // avoid duplicate greet when open websocket again
-        problem:!1 // todo 表示自己網路出現問題 會跟開頭畫面一起使用
+        problem:!1, // todo 表示自己網路出現問題 會跟開頭畫面一起使用
+        didReload:!1
     };
     return toggle
 }
@@ -406,6 +434,7 @@ function bindMsgSend() {
             var text = $("#send-text").val();
             if (void 0 !== text && null !== text &&'' !== text){
                 (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? theUI.showSys('你還未進入房間，目前只能使用左側名單的角色功能。') : theUI.showSys('你還未進入房間哦！'));
+                theUI.scrollToNow();
             } 
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();

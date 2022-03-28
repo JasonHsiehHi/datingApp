@@ -24,7 +24,7 @@ envfile
 
 #tutorial & notes
 term/
-tutorial.md
+tutorial*.md
 datingApp_data.md
 
 #redis & SQL

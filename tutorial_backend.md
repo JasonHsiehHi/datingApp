@@ -1,6 +1,17 @@
 # 程式原則
-## cohesion內聚力
-指物件內部的函式只少使用到一項該物件的變數 若使用到的變數越則內聚力越高
+## 內聚力與耦合性
+內聚力cohesion
+指模組內部的函式只少使用到少數該外部模組的變數或方法則內聚力越高 也就是獨立性越好
+耦合性dependency(coupling)
+不同功能模組之間相互依賴的程度 也就是當其他模組發生問題時不會受其影響或影響程度較小
+
+一般而言兩者密切相關 內聚力越高則耦合性越低 維護上與易讀性都會更好
+
+## 針對資料庫的ACID原則 
+Atomicity(原子性) 表示任何動作都是不可分割 沒有部份成功 只有整個行為成功或失敗
+Consistency(一致性) 任何動作都必須符合資料庫架構 
+Isolation(隔離性) 充許多個洞作同時訪問資料庫 且能確保不會使數據不一致
+Durability(耐久性) 當動作完成後資料的保存就是永久的 
 
 ## 物件導向的 S.O.L.I.D原則(針對class類別)
 單一職責原則 (Single Responsibility Principle)
@@ -265,6 +276,11 @@ iterator提供一種方法為next() 當執行next()時會返回done:的布林值
 python和JS相同都是單線程語言 python有所謂GIL(全局解釋器鎖)
 故即使進行非同步方法 將function放入event_loop中 pytohn仍是單線程執行(會讓多個線程並行並交替執行來達到多線程的效果)
 
+loop.run_until_complete()和loop.run_forever() 前者等到任務完成後會自行關閉 後者則不會關閉需要用loop.stop()來停止
+
+協程(coroutine) 強調是他可以中途改變原程序：可中斷 可復原 可引入參數 可做回傳  "能在中途中斷、中途恢復、中途傳入參數的函數、中途返回值給其他協程"
+所有非同步方法本質就是一種協程：在async function之中的await 就是中途拿取其他協程的返回值
+
 django中可使用async def func_name() 來達成非同步視圖
 若是基於class的使用：則可用async def __call__() (不能用__init__()或as_view())
 
@@ -289,6 +305,15 @@ print(res)
 (第一參數用於指定executor None表示用default executor)
 (第二參數放func() 第三參數之後方則放func(a,b,...)的參數a,b,...)
 
+如果要連續進行async的方法 應該用event_loop代替await 
+因為await本來就是為讓async融入到sync之中 而不是處理多個async
+
+event loop四大常用方法
+loop.is_running() 判定一個Event loop是否還在運作。
+loop.is_closed() 判定一個Event loop是否已經被close掉。
+loop.stop() stop一個Event loop。
+loop.close() close掉一個Event loop。
+
 tasks = []
 for i in range(10):
   task = loop.create_task(send_req(url))  # 此時還沒有開始執行 只建立task 並放入同一個event loop
@@ -303,9 +328,15 @@ await send_req(url)  # 因不在同一個event_loop：故需先等待上一條�
 await tasks[0]
 await tasks[1]  # 在同一個event_loop：兩事件會同時執行 但會依據event_loop順序存取 
 
-coroutines = asyncio.wait(tasks)  # 表示不只有一個task 有多個task時就用asyncio.wait()
+coroutines = asyncio.wait(tasks)  # 表示不只有一個task協程 有多個task時就用asyncio.wait() 表示可以中途暫停給其他協程執行
 loop.run_until_complete(coroutines)  # 直到run_until_complete才開始執行
 
+Task對象是從Future對象繼承過來的 所以Future對象所擁有的method Task對象也有 
+但是這兩個對象被發明出來的目的是很不一樣的 之前所使用的都是task對象
+future對象並不是coroutine 而task對象才是coroutine 可以說task對象是繼承future對象而來並能使用coroutine的方法
+future對象有一點像是javascript的promise：
+future.set_result()相當於js promise裡面的resolve()
+future.set_exception()相當於js promise裡面的reject()
 
 from asgiref.sync import async_to_sync, sync_to_async
 這兩個都是python原生的 關於操作ASGI的lib
@@ -482,7 +513,8 @@ s.get_decoded()  # 必須再用get_decode()轉成session_dict
 當view結束後才會再存入db之中
 
 messages APP：
-用於網頁的一次性彈出訊息(notification message) 針對使用者行為來給予相對應的訊息(success,info,warning,error等) 
+用於網頁的一次性彈出訊息(notification message) 針對使用者行為來給予相對應的訊息(success,info,warning,error等)
+DEBUG的error頁面需有messages
 針對用戶行為直接從後端生成對應資料 常用於需要進行DEBUG的web app
 並與html5相同的semantic element語境化色彩元素(語義化)
 
@@ -509,7 +541,7 @@ def site(request):
 "module_name.context_processors.site" 才能使用
 
 contenttypes APP：
-所有創建的model都是ContentType的實例 
+所有創建的model都是ContentType的實例(必須要有contenttypes才能使用model) 
 任何model的物件都能用ContentType的方法來取的
 from django.contrib.contenttypes.models import ContentType
 user_type = ContentType.objects.get(app_label='auth', model='user')
@@ -1444,13 +1476,23 @@ qb.urlencode()  # output: 'a=1&a=2&c=3' 轉回get的?url形式
 # api.py
 有時會從views.py分出api.py 常用於處理第三方的應用 並要在INSTALLED_APPS加上此application名稱
 
-rest_framework(不太好用!):
+
+rest_framework:
 可用於將多個相關的views整合成viewset 
 並在urls.py使用DefaultRouter()方法來取代原先的urlpattern 需用include(router.urls)引用
 但ViewSet本身不提供任何方法 因此有:
 GenericViewSet可提供queryset的方法 和 ModelViewSet則提供list(),retrieve(),update()等方法
 可在api.py中覆蓋GenericViewSet和ModelViewSet的方法
 
+
+rest_framework_simplejwt:
+JWT內涵的claim 共分為5種:
+iss: The issuer of the token，token 是給誰的 (issuer申請者)
+sub: The subject of the token，token 主題 (subject主題)
+exp: Expiration Time。 token 過期時間，Unix 時間戳記 (expiration過期時間)
+iat: Issued At。 token 建立時間， Unix 時間戳記 (issuedat 建立時間)
+jti: JWT ID。針對當前 token 的唯一標識 (jwtid 識別碼)
+(除此之外也可以放自己的資料 沒有3個字元的限制)
 
 
 - - ---------------------------------------------

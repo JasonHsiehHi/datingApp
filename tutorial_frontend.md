@@ -398,10 +398,13 @@ django template comment {#...#}
 就是放於html的註解
 
 ## django template 軟體架構
+MVC模式中的Controller元件負責接收請求並協調Model與View回傳結果
+角色上比較接近django的view(MVC模式中的view則只負責UI介面 完全獨立於model)
+
 MVVM模式取代傳統的MVC模式
 即ViewModel取代Controller 其中Vue就是用於ViewModel的功能
-若model被改變時 會同步在view上更新對應內容(data bindings)
-同理在view上觸發事件時 會將狀態用物件表示的方式回存至model(DOM Listeners)
+若model被改變時 會同步在view上更新對應內容 (data bindings)
+同理在view上觸發事件時 會將狀態用物件表示的方式回存至model (DOM Listeners)
 ViewModel框架即具有即時性 進而取代Controller
 
 Django所使用的是MVT模式 也就是Template取代Controller 
@@ -558,7 +561,7 @@ GET: 用於請求指定資源(resource)的資料 只需要URL
 HEAD: 與GET方法一樣 但只請求header的部分(跟html中的<head>是不同的東西) 可用於事先確認完整內容的大小
 POST: 用於創建或修改資料 會傳送content(key-value pair)給伺服器
 PUT: 視為等冪的POST 針對特定的URL所提交之內容 不會因多次提交而影響
-PATCH: 用於提供特定URL中的部分屬性資料 (由於PUT只能做完整更新 故又有PATCH來做部分更新)
+PATCH: 用於提供特定URL中的部分屬性資料 (由於PUT只能做完整更新 故又有PATCH來做部分更新 PATCH可以修改少數欄位(補丁) 而PUT需要修改全部的欄位(替換)) 
 DELETE: 請求刪除指定資源(resource) 只需要URL
 OPTIONS: 詢問伺服器所支持的通訊方法即協定(GET,HEAD,POST...) 通常URL會傳給整站而非其中之一的網頁
 
@@ -581,7 +584,7 @@ safe安全性: 即不會修改伺服器資料的方法
 GET,HEAD,OPTION等都是安全的 但PUT,DELETE则不是
 
 idempotent等冪性：即不管執行幾次 結果都會跟第一次執行一樣 (若非等冪的方法則會有副作用side effect)
-GET,HEAD,PUT,DELETE等都是幂等的 但POST則不是
+GET,HEAD,PUT,DELETE等都是幂等的 但POST PATCH則不是 (多次更新不可能會跟第一次更新相同)
 
 只要是safe必為idempotent (GET,HEAD...) 而idempotent並不保證safe
 ex: 其中 DELETE request 每次做的事都相同 請求內容不會因次數而變
@@ -1850,6 +1853,9 @@ prop()則較常用於只有屬性名而無屬性值的元素 會回傳true,false
 $("ul li:eq(0)").prop("multiple") 會回傳true
 另外prop()可以處理需要即時更新狀態的屬性 而attr()則為取html檔的初始狀態 但對於部分屬性兩者可以互通
 
+另外有些屬性是在html中沒有但在js中才有的 此時也只能用prop() 
+像是jq.prop('outerHTML')
+
 由於常見的class屬性有多個 因而延伸出addClass()和removeClass():
 如此就不需用attr('class','d-none')導致取代掉原先的class屬性值
 
@@ -1928,9 +1934,9 @@ sayHello(){
   console.log('Hello');
 }  //但expression則不行 因為變數還沒有宣告
 
-expression需要事先宣告且會佔用變數空間 適合作為專案中的常用函數集合 
-而此方法集只會建立一次 因此也符合匿名函數的使用邏輯
-declaration不需要事先宣告但大多數仍會放於專案上層 適合單一功能的函數
+最大的差異在於記憶體回收上：
+陳述式將function指派給一個變數 可以透過將變數設為null來回收記憶體 
+運算式則直接給function命名 不能做記憶體回收
 
 function本質上也是對象的一種
 name:value 即為function_name:function_code 呼叫了function_name就會執行程式
@@ -2111,6 +2117,12 @@ undefined指的是有變數 但還沒有設值
 有些屬性或方法function Person()可能沒有 而是再Person.prototype之中
 此時只有創建出來的實例才會有這些屬性或方法 也就是說prototype主要是針對實例的對象
 
+prototype chain原型鏈：即多個原型之間的繼承關係
+JS的繼承方法為使用prototype取代class 可直接用setPrototypeOf()來轉換原型 
+Object.setPrototypeOf(rockman, cutman) 可用於將第一參數(繼承者)指定給第二參數(原型)做繼承
+用in可檢驗object內部的屬性: if('buster' in rockman)
+其中Object.prototype是JS中所有物件的起源 換言之所有的物件都能使用Object.prototype的方法
+
 var person2 = Object.create(person1); 一般都是調用Object的方法做創建
 
 var myH1 = document.createElement('h1');
@@ -2278,7 +2290,7 @@ $(document).ready(function(){...})和$(window).load(function(){...})之差異：
 $(window)為當前瀏覽器視窗 $(document)為此頁面整體DOM結構(包含視窗外的部分)
 $(window).load()必須等待網頁內所有內容都下載完畢才執行
 $(document).ready()則只要DOM結構下載完畢後即執行
-因此$(document).ready()會快於$(window).load()
+因此$(document).ready()會快於$(window).load()  (在原生JS中document也是window的屬性 只是window可以省略不寫 導致document看起來像是獨立於window)
 
 此外$(window).load()只能有一次 每次瀏覽器打開時便會執行
 而$(document).ready()則可以有多次 並會依次序執行
@@ -3278,9 +3290,12 @@ dfd.done( function() {
 - - -----------------------------------------
 # js_async非同步作法：
 當這件事情是需要等待時間無法及時完成時 就需要用非同步方法以避免阻塞
+javascript本身就屬於非同步執行 不同於python的同步線性執行
 async/await 的實現是建立在Promise之上的使用到promise的架構 屬於非同步
 用 async/await 的方式 就是避免像promise一樣 因非同步與同步混在一起而導致易讀性下降
 目前普遍的JS作法 都用async/await代替過去的promise 兩者等同：
+
+Promise：處理非同步方法，當有函式需要延遲執行或控制順序時採用 改善原先的setTimeout，但sertimeout需要以固定時間為參數 而Promise則可直接抓執行完畢的時間
 
 const b = () => Promise.resolve()
 const a = async () => {  // 此外因為仍在a的內部 故可使用a的變數
@@ -3311,8 +3326,7 @@ function runPromise(someone="people1",num=1) {  //只要function內包含Promise
 runPromise('小明', 1).then(someone => {  // 沒有 async/await 看起來像一般函式 導致易讀性較低
   console.log('小明', someone)
 });
-// 由於runPromise屬於非同步 會另外開線程 故以下這段console.log()會在promise結束前就執行
-console.log('這裡執行了一段 console');
+console.log('這裡執行了一段 console');  // 由於runPromise屬於非同步會另外開線程 故以下這段console.log()會在promise結束前就執行 (只有then()會留到結束後執行)
 
 let mingRun = await runPromise('小明', 2000)
 console.log('跑完了:', mingRun);
@@ -3653,7 +3667,11 @@ localData:直接存在js文檔之中
 
 - - -----------------------------------------------
 # React.js
+React/ Vue/ Angular 為js的三大框架
+
+React使用稱為JSX（JavaScript和XML）的HTML-in-JavaScript語法 也就是可以在JS中使用html元素的方式
 為改善DOM中結構過於複雜且元素太多導致難以維護的情形
+
 class ShoppingList extends React.Component{
   ....
   render() {
@@ -3691,7 +3709,244 @@ class Square extends React.Component {
 也能用React.Component建立父子關係
 Board是Square的父節點 可以決定square的屬性值
 
-React.js也能作為css模組化工具 但比Vue.js相比較不直觀
+React使用稱為JSX（JavaScript和XML）的HTML-in-JavaScript語法 也就是可以在JS中使用html元素的方式 react可以改善html無法繼承的問題 將html和css全部丟入react元件中來做繼承
+React與原先JS的最大差異： return ( ...... ) 當中可以使用JSX延伸更多相關功能
+
+
+用react或其他框架的另一個好處是 將css和html都交由js來處理 不再是分成三個部分 變成以react元件為主 其餘需要的內容再由html/css補足
+
+所有的html元件都由react元件替代 可有效提升易讀性。連css也可能由react來設置 如此就不需要再多個文件之間來回改動。
+
+js中使用module分檔(import & export)的好處是 html不需要把所有需要用到的js都引用進來 而是改由不同的js判斷是否需要做import(被引用的js要做export)
+
+export default {helloWorld}; 可以將整個js檔的方法或變數都做export
+不同於 export const msg='it's msg' 需要將多個變數或方法一一做export
+
+import React from 'react'; 和 import logo from './logo.svg'; 如果是js檔的模組則不用加副檔名 其餘則需要另加副檔名
+除了從node_modules取用之外 也可以從local資料夾取用 ( './logo.svg' )
+
+除了function componet(react的簡易元件)之外 還有class component： 
+import React, { Component } from 'react'; 以變數的方式從react引入 其目的為 class App extends Component{ ... } 完成繼承類別
+
+import React, { useState } from 'react';要使用其方法 需要以變數的型態傳入 (跟 { component } 一樣 因為React都沒有針對此方法或變數做export 所以要用{}來使用此變數)
+
+通常使用react的目的：是直接將react component做模組化 可多次使用與調整使用環境 (使用react component 就一定需要引入React)
+
+reportWebVitals可幫忙改善performance <React.StrictMode></React.StrictMode> 是為了告知系統運行reportWebVitals的部分 正式上線部署時可以直接省略
+
+function App(props) {} 表示index.js在引用<App/>時可加入props參數 可為:<App subject="Clarice"/> 
+props為object = { subject="Clarice" } 會把其後的屬性值放入其物件中
+
+index.js 的 ReactDOM.render() 所有react的程式部分最後都要用reactDOM做渲染
+render()傳遞時只能有一個元素 故一般直接用<App />來包含所有的元素結構 (<App />是react component的專有寫法 首字需大寫 同理function名的首字也需要大寫)
+
+JSX的特性：可在JS中使用html元素 當然html中也可以再包含js變數 { variable }  或可用js的運算語法 像是{(showOne==true) ? 1 : 0}
+{{ fontSize: '100px', color: 'red' }}  裡面是js的object 外面是react的變數表示法 (連變數都沒有宣告就直接使用)
+
+<button value > 是 </button> 等同 <button value={true} > 是 </button> (這點跟html原先的預設相同 如果只有屬性名而沒有屬性值 就是直接當成true)
+<button value={true}  onClick={ }>是</button> onclick變成了onClick(在JSX中要使用駱駝體表示屬性)
+同理<input type="text" onChange={ }/> onChange非常常用 對於需要輸入的元素基本上都可以使用onChange來抓取變化
+<button value={true}  onClick={ myFunction }>是</button> 由於JSX變數並不能帶參數( myFunction取代myFunction() ) 此時要傳入其他參數就需要依靠event.target等方法
+
+原生DOM的event.target.value： event為觸發的事件 event.taget為觸發事件的元素 event.target.value為此元素的屬性 
+
+當元件使用別人的react component即為其父元件 App.js中的App元件為index的子元件(index.js為所有元件的父元件) 
+
+react component 當props或state的值發生改變時會重新渲染已完成更新
+在react component中引入的props為read-only 並不能自己轉換 (除非搭配state使用) 此外props為object 要使用其中的參數要用props.variable_name
+
+props只負責傳值到react元件中 並不能直接在html元素上加上屬性 也就是說真正加上html屬性的動作仍在react component中進行 ( 父元件傳props給子元件 子元件再將props放到html屬性中 )
+
+state變更props的方法：原理是在index中創建state相關的函式 並綁定此函式在react元件上傳值給子元素 如此一來就能透過子元素來調用此父元素方法來完成更新原本的props
+props原則上在此元件事唯讀不可變的 所以只能透過父元件的函式(setState)來做變更
+
+當然react元件也跟html元素一樣會有內部子元素 通常稱為children 文字字串也是children
+與其他prop一樣 同樣也是唯讀不能更改 由父元素傳給子元素 {props.children} (用法是讓index.js決定多個react元件之間的架構 再交由各個react元件來實現)
+
+render()只是渲染前最後一個階段，表示元件並沒有真的渲染到DOM上。故不能做操作 ( 如果要做渲染後動作可查看react的生命週期 )
+
+class可以給別人繼承(extend) 其中所有的屬性都要放在constructor()之中
+class 物件名稱{
+    constructor(){ this.宣告名稱=初始值; }
+}
+
+在react class component中引入props需要用super(props) 不同於原先react function component可直接使用
+constructor(props) { // 加入建構子以及props參數
+        super(props);
+}
+
+使用class component的props 則需要用this.props.name來提取( 用this.的方法為ES6的class對於member data的規範相同 ) 不同於之前直接用參數引入
+this.函式名稱 = this.函式名稱.bind(this) 由于在constructor(){}中的this為指向undefined 故要多做綁定動作 
+在class component中只能有function： constructor()是function, 而changeName()也是function 屬性放constructor() 方法則直接放在與constructor()並行的位置即可
+
+有了class component之後 可以給其他元件繼承： 當然也可取代原先的function component使用 只是所有的屬性要改為this. 表示由自身取用
+
+state的概念只用在class component中 必須在constructor()中設置this.state ( 即使不用也應該設置 算是class component的前置工作)
+this.state={ // 宣告state物件，內包含一個變數percent state是react中的特殊屬性 不能變更state名稱
+    percent:"30%" 
+}
+與之對應的還有setState() 專門用於修改state物件 (如果原先的this.state沒有相關屬性 則為自動添上)
+changePercent(){
+    this.setState({ percent:"70%" }) // 放入要修改的屬性即可 不需要全部放入
+}
+此外也可以用這方法做屬性的移除：this.setState({mounted: undefined}); (其實設置undefined本來就有 只是之前的JS叫不會用此方法)
+let counter=5; this.setState({counter}); 等同：this.setState({counter:5}); 直接設置變數值 算是速寫的方法
+
+但state的內部屬性為物件時 則不能修改該物件的單一屬性 
+this.state={
+    styleData:{ width: "30%", height: "50%" }  //styleData是state內部屬性
+}
+如要修改則需要用this.state： 
+this.setState({ 
+    styleData:{ width: "70%", height: this.state.styleData.height } 
+});
+setState()的第二個參數 通常用於完成後通知
+this.setState({percent: 70},()=>{
+        console.log(this.state.percent);// 這樣會印出70
+    }
+)
+
+React hook的其一目的是為了讓function component可以使用 state ( useState為hook的一種 可一次性的將state屬性和setState方法掛鉤在一起的方法 )
+const [percent, changePercent] = useState("20%"); 等同於一次設定了屬性與方法
+
+( JS的解構賦值： unpack values from arrays, or properties from objects, into distinct variables. 用於將array的值分成多個變數 )
+
+React hook不能在for loop、if-else、nest function中使用 精確的說法是你不能在這些地方去定義產生React hook。(例如 宣告由變數和函式並從useState取得)
+因為useState有順序性 必須一一綁定對應的屬性 在for-loop或其他運算邏輯中可能導致對應錯誤
+React Hook的目的就是讓function component能使用class component的功能 故其功能本質上仍為class component
+function component就是簡化版的class component 當只有少量功能的或一次性的元件時就應該用function component
+
+useState, useEffect都是react hook 都是讓function component使用class component的功能
+
+
+$r.changePrecent() $r用以表示當前正被點選的react元件 ( 在瀏覽器的console中輸入$r )
+由於react有自己的渲染方式 一般不會再使用jQuery 但也有針對react專門設計的相關簡化套件
+Fetch API就是專門替代原先jquery的ajax
+
+fetch的第一參數放url 而第二參數放標頭檔(new Headers 比ajax更好做JWT),請求方法(method)和需傳送的data(body)
+fetch( request's url, {
+        method: "GET",
+        headers: new Headers({
+            'Content-Type': 'application/json',
+            'Authorization': token, /* 把token放在這 */
+        }),
+        body: JSON.stringify(data),   /*把json資料字串化*/
+x-www-form-urlencoded type 必須自行進行編碼
+一般會把fetch()包裝成在class component的方法(handleClick()) 並在render()中做成html元素
+
+react元件的生命週期：元件被安裝時(Mount)、元件被更新時(Update)、元件被移除時(Unmount)
+Mount/Update/Unmount 其中Mount和Unmont時常一起使用
+mount為安裝 unmount為卸載 每個元件都只會個進行一次 (只有update會進行很多次)
+
+class component的static function(不使用this.) 另外通常static不能宣告或變更任何變數 因此相關工作應該交由constructor()來做
+static getDerivedStateFromProps(props,state){  // 由props來設置對應的state 讓元素之後可用方法修改
+    if(props.dad!=="Chang")
+    return {isRightDad:false}
+}
+
+static getDerivedStateFromProps() 在mount和update都會執行一次(整個流程會多次執行) 不同於componentDidMount()和componentWillUnmount()都只執行一次
+
+static(靜態方法)指的是這函式不屬於以這個class被宣告出來的單一物件 而是泛屬於此class類別 當實例的方法沒有用到任何專屬於此實例的屬性(沒用到self) 此時就會被認為是靜態方法
+
+render()只是渲染前最後一個呼叫的生命週期函數 元件還沒有真的渲染到DOM上。所以不要在render()中操作有關return元素的DOM！ 關於react元件的DOM結構並沒有完全建立成功
+
+上述所說的static預期只能執行一次 而且是在DOM架構完成之前可以進行且完成的事 
+
+componentDidMount() 表示是在mount之後才做的事： 
+為處理需要在DOM建立完成之後才需要進行且完成的事
+
+componentDidMount()也用於做fetch() (即jquery的ajax) 最常見的用法是在state加上isLoaded屬性(預設isLoaded:false) 當抓取完畢後將isLoaded:true
+
+使用js完成開場動畫或做scroll操作 都需要使用componentDidMount() ( 一定要等到DOM完成後才能使用 )
+實務上componentDidMount()比getDerivedStateFromProps()更常被使用 
+
+componentWillUnmount() 在卸載此元件之前要進行的事：
+react元件的著名使用方式 比jquery更好控制元素的出現與消失 (每次消失都會做一次componentWillUnmount())
+
+spawnBaby(){
+if(this.state.isBorn) // 當isBorn===false時則react component消失 渲染會隨著state而變化
+    return <Baby/>
+}
+
+通常index會包含其他非react元件 其目的是為了做展示：
+ReactDOM.render(
+    <div>
+        <App/>
+        <div id="talk"></div>
+    </div>,
+    document.getElementById('root')
+);
+
+如果希望隨react元件消失的話 就應該在componentWillUnmount()做處理：
+componentDidMount(){
+    document.getElementById("talk").append(
+        '<div id="callDad">爸!</div>'
+    )
+}
+componentWillUnmount(){
+    document.getElementById("talk").innerHTML="";
+}
+同理也很常用於eventListener()：
+
+componentDidMount(){
+    window.addEventListener('mousedown', this.IWasClick)
+}
+componentWillUnmount(){
+    window.removeEventListener('mousedown',this.IWasClick);
+}
+另外還有setInterval()和clearInterval() 當react元件消失時要記得將inerval (或timeout) 清空
+
+每次state改變時會觸發re-render 也就是reate元件的update
+componentWillUpdate()和componentWillMount()一樣都被取代掉 因為有其他相近功能的方法
+
+
+shouldComponentUpdate(nextProps, nextState) 在每次update要進行render()之前會執行should... 等同是做確認 回傳boolen 用來確認是否真的要做re-render nextProps和nextState表示下一個屬性 原屬性為this.props和this.state
+
+當shouldComponentUpdate()回傳true後 才做getSnapshotBeforeUpdate(prevProps, prevState) 此時this.props和this.state已經更新 prevProps和prevState是為了保留原屬性為傳給componentDidUpdate() (開始render()後就再也沒有原屬性了 this.已被新屬性取代)
+
+Snapshot本來就是快照的意思 在GCP也曾看到過用來保留當期的狀態 最後會將snapshot資料傳給componentDidUpdate當參數(直接使用return即可)
+
+componentDidUpdate和componentDidMount相同 都是在render後使用
+
+(重要)在componentDidUpdate中不能直接做 setState() 會導致一直不斷進行re-render
+componentDidUpdate(prevProps, prevState, snapshot){
+    if(this.props.A===true)
+        this.setState({B: "A是真的!"})
+}
+除非使用此方法 來限定只能第一次改變時進行： (這也是為何需要有prev和this的原因)
+componentDidUpdate(prevProps, prevState, snapshot){
+    if(this.props.A===true && prevProps.A != this.props.A)
+        this.setState({B: "A是真的!"})
+}
+
+react的邏輯為：props用來從父元件取得參數(一般固定 只有當父元件改變參數時才會變動 自身無法控制) state用於放可變資料
+
+原則上子元件不能自行修改props(這樣才符合參數的意思) 但子元件可以透過修改父元件的state來修改其傳給子元件的props (前提是父元件就是用state值當成props傳給子元件 且一樣也把setState方法傳給子元件)
+
+父元件則可以很輕鬆的控制子元素或調用子元素的函式 就是將state作為props傳給子元件 並針對props寫一個函式 當props改變時即觸發此函式
+
+在子元件取得父元件的資料：就是用props來傳即可。 
+在父元件取得子元件的資料：用父元件傳給子元件的setState方法來進行即可 (同樣的前提： 父元件就是用state值當成props傳給子元件 且一樣也把setState方法傳給子元件)
+
+以上流程記好基本以處理大部分的元件溝通方式： 
+子元件之間的溝通：需要透過同一個父元件來進行 一樣是上面這一透將setState傳給子元件 藉此控制另一個子元件
+
+子元件之間互相取得資料：跟子元件溝通方式相同 只是一開始要將對子元件的props也以props的方式傳給另一個子元件(對另一個子元件而言這一組props是別人的 放在他這裡只是監控而已)
+
+隔代元件處理 <GrandSon {...this.props}/> 把整個props直接向下傳給子元件 
+handleSendData(name){
+    return this.props[name]; // 想要父元件的特定屬性值
+}
+handleSendFunc(method, ...arg){ // 想要父元件的特定方法
+    return this.props[method](...arg);
+}
+<GrandSon handleSendData={this.handleSendData} handleSendFunc={this.handleSendFunc} />
+如果要將資料或方法隔代傳給子孫 需要中間代每個人都繼承sendData和sendFunc 並當成props向下傳
+最後給孫元件來執行：
+let dadMoney=this.handleSendData("money"); 
+this.handleSendFunc("argue","brother",5); 
+
+除此之外 也可以使用global state插件來實現不同元件之間的溝通
 
 
 - - -----------------------------------------------

@@ -80,7 +80,6 @@ var gameCheckGate = function(){
         player:pla,
         playerNum:num,
         matcher:mat,
-        overTime: ovt,
         prolog:prl
     }
 }
@@ -123,17 +122,20 @@ function replyMethod(){
         var ith = getTimetableIth();
         if (ith === localData.answers['taskNum'] - 1){
             theUI.showSys('問答環節結束！ 請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的"離開"鍵。');
+            theUI.scrollToNow();
             return false
         }
         var timetable = localData.answers['timetable'];
         var isOpen = timetable[ith][1];
         if (!1 === isOpen){
             theUI.showSys('冷靜，等待下一個問題！');
+            theUI.scrollToNow();
             return false
         }
 
         if (!0 === localData.answers['hasAnswered']){
             theUI.showSys('你已經回答過問題了哦！');
+            theUI.scrollToNow();
             return false
         }
 
@@ -147,6 +149,7 @@ function replyMethod(){
             success: function(data) {
                 if (!0 === data['result']){
                     theUI.showSys('感謝你的回答！ 你的答覆已上傳！');
+                    theUI.scrollToNow();
                     localData.answers['hasAnswered'] = !0, localStorage.answers = JSON.stringify(localData.answers);
                 }else{
                     theUI.showSys(data['msg']);
@@ -177,8 +180,6 @@ function inviteMethod(css_id, player_uuid){
                 $('#invite-modal-form p.a-error').text('你已接受其他人的邀請了哦。');
                 return false
             }
-            console.log('ff');
-            console.log(others[player_uuid][0]);
 
             $.ajax({
                 type: 'GET',
@@ -407,7 +408,8 @@ function informGameMessage(data){
             msgs_li.push(data.msgs[i]);
         }
         dialogs = msgs_li.map(msg => [msg, !1, 's']);
-        (2 === loginData.status) && theUI.showStoryAsync(dialogs, interval=200);
+        (2 === loginData.status) && theUI.showStoryAsync(dialogs, interval=0);
+        theUI.scrollToNow();
         theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
 
         localData.answers['hasAnswered'] = !1, localStorage.answers = JSON.stringify(localData.answers);
@@ -422,12 +424,15 @@ function informGameMessage(data){
             }
         }
         dialogs = msgs_li.map(msg => [msg, !1, 'a']);
-
-        if (data.hidden === localData.answers['taskNum']){
-            dialogs.concat(end_dialogs);
+        
+        if (data.hidden === localData.answers['taskNum']-1){
+            dialogs = dialogs.concat(end_dialogs);
+        }else{
+            dialogs.push(['===== 等待下一題 30秒 =====', !1, 's'])
         }
 
-        (2 === loginData.status) && theUI.showStoryAsync(dialogs, interval=400);
+        (2 === loginData.status) && theUI.showStoryAsync(dialogs, interval=0);
+        theUI.scrollToNow();
         theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
     }else{  // (2 === data.tag) to get 'invite' message
         var sender_uuid = data.hidden;
@@ -481,5 +486,4 @@ var GAMETITLE = '不透露性別配對',
     
 $(document).ready(function(){
     loadRoleData(), bindGameMsgSend();  // load the data about role respectively and establish the variable: self, others, position
-
 })

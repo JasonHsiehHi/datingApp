@@ -129,6 +129,7 @@ def prepare(request):  # only the game creator needs to do prepare()
         answer_dict['timetable'] = timetable
         answer_dict['realtime'] = [['no_news']]  # from the second emlt, the contents are real msgs sent by players
         answer_dict['gender_ratio'] = gender_ratio
+        answer_dict['questionNum'] = settings.QUESTION_NUM
 
         room.onoff_dict = onoff_dict
         room.player_dict = player_dict
@@ -161,7 +162,7 @@ def prolog(request):  # every game participant needs to do prolog()
         guest_dialogs.append([text, False, "s"])
 
         questionNum = room.answer['questionNum']
-        text = "問答環節共 {} 題".format(questionNum)
+        text = "===== 問答環節共 {} 題 =====".format(questionNum)
         guest_dialogs.append([text, False, "s"])
 
         cnt = 1

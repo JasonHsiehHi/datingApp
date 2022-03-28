@@ -49,3 +49,4 @@ wheel==0.36.2
 wsproto==1.0.0
 zope.interface==5.4.0
 supervisor==4.2.4
+gsutil==5.8

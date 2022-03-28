@@ -1,11 +1,3 @@
-# 組織團隊：
-合夥前必須先處理好：公司章程 和 合夥契約書
-目的是確保 雙方違約處理辦法 以及 拆夥程序,拆夥分潤...等
-
-基本能力已經具備 再來就要想辦法擴展人脈
-任何可接觸到的且對於公司有幫助的活動都要想辦法加入
-
-
 # configMap 和 secret 
 DOMAIN_NAME = 'anonlarp.com' 註冊域名
 SECRET_KEY = str(os.getenv('SECRET_KEY'))
@@ -55,8 +47,7 @@ selenium 4以上
 GCE上線部署
 pgsql要使用外接硬碟存放資料
 放上ga
-
-
+JS進行編碼做防盜措施
 真正使用域名登入進行測試 www.anonlarp.com
 
 例行檢查項目：
@@ -72,8 +63,8 @@ pgsql要使用外接硬碟存放資料
 
 
 未來完成：
-JS進行編碼做防盜措施
-創辦獨立遊戲開發團隊：使用patron, facebook, instagram 
+創辦獨立遊戲開發團隊：使用patron, facebook, instagram
+( 前期只要先做IG就好 之後再由IG導到FB和patron ) 
 完成 settings-form換成start-game的選項
 篩選不符合條件的瀏覽器 通知
 流量超載就自動斷線 通知
@@ -82,7 +73,7 @@ JS進行編碼做防盜措施
 處理流量問題以及DDOS防治問題
 
 
-# 2022年 競爭對手 LARP
+# 2022年 競爭對手
 tinder：可免費使用 最多人使用
 wootalk：不露臉 匿名聊天 最多人使用
 goodnight：不露臉 語音聊天 最多人使用
@@ -135,7 +126,7 @@ meetunnel
 匿名聊天
 校園交友 app
 
-# 宣傳文 LARP
+# 宣傳文
 可供宣傳推廣的網站： dcard-(心情版, 感情版, 閒聊版, 女孩版, 有趣版, 梗圖版...)
 因為要在dcard宣傳 故僅用由dcard文作為參考 記得要強調beta版
 
@@ -269,7 +260,7 @@ https://forms.gle/PSLXNFYhK1LjLRzB9
 
 
 
-# 架構圖 LARP
+# 架構圖
 1.obj_name 以物件為主體 描述使用方法與其他物件的關聯性
 2.process_name 以流程為主體 描述執行順序及原因
 
@@ -315,15 +306,24 @@ checkGate
 
 gameCheckGate
 
+# 手動測試流程
+已用戶可進行動作來分類：
+進入遊戲前:
+註冊signup
+登入login
+登出logout
+修改密碼change-pwd
+密碼遺失？reset-pwd
+移動城市goto
+變更暱稱name
+離開leave
+開始遊戲start_game
+
+進入遊戲後:
 
 
-# 手動測試流程 LARP
 
-
-# model data LARP
-
-
-# gestions 配對問題
+# qestions 配對問題
 ["問題1：你現在最想要的東西是什麼？ (限時時間: 1min)", !1, "s"],
 
 ["問題2：你平時的休閒娛樂是什麼？ (限時時間: 1min)", !1, "s"],

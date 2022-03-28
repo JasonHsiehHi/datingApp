@@ -2,7 +2,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from . import utils
 from datetime import datetime, timezone
 from threading import Timer
-from time import sleep
+import asyncio
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
 
@@ -135,6 +135,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'game': self.game_id
             })
 
+    async def update(self):
+        if self.player_data.status in [2, 3]:
+            await self.send_json({
+                'type': 'UPDATE',
+                'onoff_dict': self.room.onoff_dict,
+                'tag_json': self.player_data.tag_json,
+                'tag_int': self.player_data.tag_int,
+            })
+
     async def is_on(self, event):
         """func received from other chatConsumers with connect() and disconnect():  """
         if self.uuid != event['from']:
@@ -144,9 +153,32 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'sender': event['from']
             })
 
+    async def repeated_group_send(self, n, target, json):
+        t_str = datetime.now(tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        token = self.uuid + t_str
+        cache.set(token, False, 5)
+        json['token'] = token
+        for i in range(n):
+            await self.channel_layer.group_send(target, json)
+            await asyncio.sleep(0.25)
+
+    async def repeated_send_json(self, n, json):
+        t_str = datetime.now(tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        token = self.uuid + t_str
+        cache.set(token, False, 5)
+        json['token'] = token
+        for i in range(n):
+            await self.send_json(json)
+            await asyncio.sleep(0.25)
+
     async def receive_json(self, content):
         """receive from client side first """
-        # self.start = time.time()  # 僅用於測試
+        token = content.get('token', None)
+        if token is not None:
+            if token is False:
+                cache.set(token, True)
+            else:
+                return False
 
         call = content.get('call', None)
         if call is None:
@@ -175,6 +207,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     'from': self.uuid
                 })
             elif 'msgs' in content:
+                await asyncio.sleep(2)
                 await self.channel_layer.group_send(self.match_id, {
                     'type': 'chat_messageList',
                     'messages': content['msgs'],
@@ -201,6 +234,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.call_inform(content['target'], content['meInGroup'], content['message'], hidden, tag)
             elif call == 'redirect':
                 await self.redirect()
+            elif call == 'update':
+                await self.update()
             else:
                 print(self.uuid + ' insert a wrong call: ' + call)
 
@@ -210,7 +245,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def chat_message(self, event):
         """func received from other chatConsumers without call_*():  """
         if self.uuid != event['from']:
-
             await self.send_json({
                 'type': 'MSG',
                 'msg': event['message'],
@@ -221,7 +255,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def chat_messageList(self, event):
         """func received from other chatConsumers without call_*():  """
         if self.uuid != event['from']:
-
             await self.send_json({
                 'type': 'MSGS',
                 'msgs': event['messages'],
@@ -269,13 +302,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'onoff_dict': self.room.onoff_dict,
             'from': self.uuid
         }
+
+        loop = asyncio.get_event_loop()
+        tasks = []
         for player in room_players:
             player_uuid = str(player.uuid)
             if player_uuid == self.uuid:
-                await self.start_game(send_dict)
+                task = loop.create_task(self.start_game(send_dict))
             else:
-                await self.channel_layer.group_send(player_uuid, send_dict)
-            sleep(0.2)
+                task = loop.create_task(self.channel_layer.group_send(player_uuid, send_dict))
+            tasks.append(task)
+        coroutines = asyncio.wait(tasks)
+        loop.run_until_complete(coroutines)
 
     async def start_game(self, event):  # 所有人接收'遊戲開始'訊息 (包含自己)
         """func received from other chatConsumers with call_*():  """
@@ -390,12 +428,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'player_list': player_list,
             'from': self.uuid
         }
+
+        loop = asyncio.get_event_loop()
+        tasks = []
         for uuid in player_list:
             if uuid == self.uuid:
-                await self.enter_match(send_dict)
+                task = loop.create_task(self.enter_match(send_dict))
             else:
-                await self.channel_layer.group_send(uuid, send_dict)
-            sleep(0.2)
+                task = loop.create_task(self.channel_layer.group_send(uuid, send_dict))
+            tasks.append(task)
+        coroutines = asyncio.wait(tasks)
+        loop.run_until_complete(coroutines)
 
     async def enter_match(self, event):  # 所有人接收'進入房間'訊息
         """func received from other chatConsumers with call_*():  """
@@ -523,19 +566,24 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             seconds = (t - now).total_seconds()
             if seconds < -1800:
                 break
-            print('{}:{}'.format(ith_task, seconds))
+
+            print('{}:{}'.format(index, seconds))
 
             if seconds <= 0:
                 if isRefresh is False:
                     self.player_data = await utils.refresh_instance(self.player_data)
                     isRefresh = True
                 tag_json = self.player_data.tag_json
-                if tag_json['tasks_done'] < ith_task:
+
+                print("done:{}".format(tag_json['tasks_done']))
+
+                if tag_json['tasks_done'] < index:
                     if isinstance(timetable[index][1], list):  # task[1] format: [msg1, msg2, msg3,...]
-                        await self.timeout_inform(timetable[index][1], index, tag=0, next_task=False)
+                        self.timers[index] = await self.timer_execute(2, self.timeout_inform,
+                                                                      timetable[index][1], index, 0, False)
                     elif timetable[index][1] == 'pop_news':
                         # special code: to send the last one from self.room['answer']['realtime']
-                        await self.timeout_inform_updated(index, next_task=False)
+                        self.timers[index] = await self.timer_execute(2, self.timeout_inform_updated, index, False)
             else:
                 if isinstance(timetable[index][1], list):  # task[1] format: [msg1, msg2, msg3,...]
                     self.timers[index] = await self.timer_execute(seconds, self.timeout_inform,
@@ -546,9 +594,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 break
 
     async def set_timetable_next(self, ith_task):
-        self.timers[ith_task].cancel()
-        del self.timers[ith_task]
-        if ith_task < self.taskLast:
+        if ith_task <= self.taskLast:
             await self.set_timetable(ith_task)
 
     async def timeout_leave_match(self):
@@ -595,7 +641,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 msgs_li = realtime[ith_task]
                 cache.set(task_name, msgs_li, 1800)
 
-            if len(msgs_li) > 1:  # the first msg: ['no_news',]
-                msgs_li = msgs_li[1:]  # from the second, it's the real msgs sent by players
-            await self.timeout_inform(msgs_li, ith_task, tag=1, next_task=next_task)
-            # tag=1: is distinguished from directly timeout_inform()
+        if len(msgs_li) > 1:  # the first msg: ['no_news',]
+            msgs_li = msgs_li[1:]  # from the second, it's the real msgs sent by players
+        await self.timeout_inform(msgs_li, ith_task, tag=1, next_task=next_task)
+        # tag=1: is distinguished from directly timeout_inform()

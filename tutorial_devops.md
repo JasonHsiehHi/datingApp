@@ -14,6 +14,7 @@ vi test.txt / vim test.txt  # 開啟文件檔
 
 - - ---------------------------------------------------
 # django指令
+採用pip install django==version 即可
 python3 -m django --version (-m表示不執行,僅作為script : 通常後面會接module 而非執行python)
 python3 -c 'import channels; print(channels.__version__)' (-c 執行python的命令句並用';'隔開 等同command)
 
@@ -35,6 +36,9 @@ python3 manage.py sqlmigrate myapp 0001 查看myapp中makemigrations所生成的
 find . -path '*/migrations/*.py' -not -name '__init__.py' -delete
 find . -path '*/migrations/*.pyc' -delete
 python manage.py makemigrations 如此一來就會重新由0001_initial.py開始創建
+但此時會導致migrate的資料不同步問題 需用--fake：
+manage.py migrate --fake app_name zero
+manage.py migrate app_name
 
 如果要做資料庫遷移到不同系統(sqlite->pqsql) 則可用fixture幫忙
 fixture指的是被內容被序列化的資料庫檔案 可能為json或xml
@@ -93,6 +97,9 @@ STATICFILES_DIRS = [
 ]
 python manage.py validate
 用於驗證model
+
+python3 manage.py createsuperuser
+必須先設置superuser 資料會放在auth.models的User類別
 
 ## 進入django的互動模式
 python manage.py shell 可用於手動操作database (CTRL+D離開)
@@ -1296,6 +1303,9 @@ npm install --save(預設 就是什麼都不加) 會在package.json中的"depend
 npm install --save-dev(等同-D) 會在package.json中的"devDependencies" 表示只在開發或測試時使用的套件
 ex:sass套件是為將sass檔轉換成css檔所用 如此就只需要在"devDependencies"
 
+package-lock.json只能鎖定大版本 不同於package.json可以鎖定特定版本號(包含小版本v1.x.x)
+如此一來能夠讓npm install時更為穩定
+
 npm run test 會執行寫在package.json下script屬性下的'test'指令 (npx test)
 好處是只會在專案環境下執行 此模組與全域環境無關
 node test_basic.js 則會執行當前所有資料夾的js檔 
@@ -1407,8 +1417,21 @@ GCP發展最晚 全球覆蓋率最低 而AWS則最早發展 有最多的可用�
 VM常用的作業系統Ubuntu 18.04 LTS 相關指令:
 sudo apt-get update 進行更新
 sudo curl http://vestacp.com/pub/readme.md 只會在terminal上顯示
-sudo curl -O http://vestacp.com/pub/vst-install.sh curl透過http協定存取網路資源 -o表示使用同檔名存在本地端 
+sudo curl -O http://vestacp.com/pub/vst-install.sh curl透過http協定存取網路資源 -o表示使用同檔名存在本地端
+sudo curl -X POST -d "username=admin&password=admin123456" http://127.0.0.1:8000/api-token-auth/
+sudo curl -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123456"}' http://127.0.0.1:8000/api-token-auth/
+使用curl來做不同的request -X預設為GET -H可以加到header中 
+而-d則增加傳送資料 必須要在-H中充許application/json 才能使用json形式來附加資料
+
+
+sudo curl -H "Authorization: JWT <your_token>" http://127.0.0.1:8000/virtual/
+或是 sudo curl -H "Authorization: Bearer <your_token>" http://127.0.0.1:8000/virtual/
+直接在Header中加上JWT
+sudo curl -X POST -H "Content-Type: application/json" -d '{"token":"<EXISTING_TOKEN>"}' http://localhost:8000/api-token-refresh/
+刷新方式必須把token放到-d參數來刷
+
 sudo bash vst-install.sh --force bash用以執行sh腳本檔
+任何一個指令的-h都是help 可以跟-H的Header區隔開來
 
 curl原名為cURL 與wget相同都是做檔案下載 兩者都有很多參數指令可用
 wget -m -p -k -P ./  https://example.com/ 備份網站 -m表示鏡像下載(等同-r -N:遞迴下載且只下載更新檔案) -p下載所有檔案 -k表示更換成本地連接 -P表示存到本地端位置
