@@ -64,7 +64,7 @@ JS進行編碼做防盜措施
 
 未來完成：
 創辦獨立遊戲開發團隊：使用patron, facebook, instagram
-( 前期只要先做IG就好 之後再由IG導到FB和patron ) 
+前期只要先做IG就好 之後再由IG導到FB和patron
 完成 settings-form換成start-game的選項
 篩選不符合條件的瀏覽器 通知
 流量超載就自動斷線 通知
@@ -244,9 +244,11 @@ Live Action Role Playing(LARP) 劇本殺
 喜歡看西斯版內容，又熱衷於寫各種18禁成人劇情或正常劇本殺劇情的朋友加入～
 
 google表單
-https://forms.gle/PSLXNFYhK1LjLRzB9
+https://forms.gle/Z4HBacchG9yif3QGA
 
 關鍵字：匿名聊天 wootalk meetunnel 交友軟體 約砲 劇本殺 匿名 校園 
+
+# 宣傳文 簡短板
 
 
 # mark的製作流程：

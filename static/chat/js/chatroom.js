@@ -189,10 +189,15 @@ function chatroomWS(){
 var WSManager = function(){
     function ms(msg, isImg=false){
         if(!1===toggle.discon){
-            chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror 而webSocket突然自動關閉
-                'msg':msg,
-                'isImg':isImg
-            }))
+            setTimeout(function(){
+                chatSocket.send(JSON.stringify({  //todo: 傳訊息時觸發onerror 而webSocket突然自動關閉
+                    'msg':msg,
+                    'isImg':isImg
+                }))
+                if (queuedMsg >= 1)
+                    queuedMsg -= 1;
+            }, queuedMsg*200);
+            queuedMsg += 1;
         }else{
             localData.text_in_discon.push([msg, isImg]), localStorage.text_in_discon = JSON.stringify(localData.text_in_discon);
         }
@@ -427,7 +432,7 @@ function informGameMessage(){  // will be overloaded by game_{gamename}.js
     console.log("will be overloaded by game_{gamename}.js");
 }
 
-function bindMsgSend() {
+function bindMsgSend() {  // probably to be overloaded by bindGameMsgSend() in game_{game_name}.js
     $("#send-text").on('keypress',function(a){
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
@@ -1245,6 +1250,7 @@ Array.prototype.remove = function(val) {
 var loginData = JSON.parse(document.getElementById('loginData').textContent),
     TITLE = "A-LARP - 匿名劇本殺 | 2022年台灣校園交友平台",
     unreadMsg = 0,
+    queuedMsg = 1,
     place_url = '/static/chat/img/mark/',
     chatSocket = null,
     theWS = WSManager(),

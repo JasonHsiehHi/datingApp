@@ -445,10 +445,10 @@ function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
     $("#send-text").on('keypress',function(a){
         if (13 == a.which || 13 == a.keyCode){
             a.preventDefault();
-
             var text = $("#send-text").val();
             if (void 0 !== text && null !== text &&'' !== text){
                 (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? $("#send-form").submit(): theUI.showSys('你還未進入房間哦！'));
+                theUI.scrollToNow();
             } 
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();

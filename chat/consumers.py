@@ -561,13 +561,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         now = datetime.now(tz=timezone.utc)
         timetable = self.timetable
         isRefresh = False
+        cnt = 0
         for index in range(ith_task, len(timetable)):
             t = datetime.strptime(timetable[index][0], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
             seconds = (t - now).total_seconds()
             if seconds < -1800:
                 break
-
-            print('{}:{}'.format(index, seconds))
 
             if seconds <= 0:
                 if isRefresh is False:
@@ -575,15 +574,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     isRefresh = True
                 tag_json = self.player_data.tag_json
 
-                print("done:{}".format(tag_json['tasks_done']))
-
                 if tag_json['tasks_done'] < index:
                     if isinstance(timetable[index][1], list):  # task[1] format: [msg1, msg2, msg3,...]
-                        self.timers[index] = await self.timer_execute(2, self.timeout_inform,
+                        self.timers[index] = await self.timer_execute(2 + cnt*0.2, self.timeout_inform,
                                                                       timetable[index][1], index, 0, False)
+
                     elif timetable[index][1] == 'pop_news':
                         # special code: to send the last one from self.room['answer']['realtime']
-                        self.timers[index] = await self.timer_execute(2, self.timeout_inform_updated, index, False)
+                        self.timers[index] = await self.timer_execute(2 + cnt*0.2, self.timeout_inform_updated,
+                                                                      index, False)
+                    cnt += 1
+
             else:
                 if isinstance(timetable[index][1], list):  # task[1] format: [msg1, msg2, msg3,...]
                     self.timers[index] = await self.timer_execute(seconds, self.timeout_inform,
