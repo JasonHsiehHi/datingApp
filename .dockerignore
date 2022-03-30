@@ -28,7 +28,7 @@ tutorial*.md
 datingApp_data.md
 
 #redis & SQL
-dump.rdb
+dump*.rdb
 whole*.json
 
 # localhost test

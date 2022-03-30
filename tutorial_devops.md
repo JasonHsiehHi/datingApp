@@ -782,6 +782,9 @@ docker stop <ContainerID> 找到id後便可直接關閉
 docker rm <ContainerID> 找到id後可做刪除
 docker image rm <ImageID>  同理也可以把存放在本地端的image刪除
 
+docker images --digests 當tag為<none>而無法指定時使用 可用@{digest}取代原先的:{tag}
+docker image rmi test1:latest 用於刪除image tag 但不會刪除image檔
+
 docker login  登入後才可以上傳到docker hub中：
 docker tag django_todo:latest <Docker Hub username>/django_todo:latest
 docker push <Docker Hub username>/django_todo:latest 放在docker hub
