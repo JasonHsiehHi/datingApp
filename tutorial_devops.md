@@ -37,8 +37,12 @@ find . -path '*/migrations/*.py' -not -name '__init__.py' -delete
 find . -path '*/migrations/*.pyc' -delete
 python manage.py makemigrations 如此一來就會重新由0001_initial.py開始創建
 但此時會導致migrate的資料不同步問題 需用--fake：
-manage.py migrate --fake app_name zero
-manage.py migrate app_name
+python manage.py migrate --fake app_name zero
+python manage.py migrate app_name
+
+或用：
+python manage.py migrate --fake
+python manage.py migrate
 
 如果要做資料庫遷移到不同系統(sqlite->pqsql) 則可用fixture幫忙
 fixture指的是被內容被序列化的資料庫檔案 可能為json或xml

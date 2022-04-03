@@ -409,6 +409,10 @@ function refreshStatus(status){  // handle all UI work about status
             setNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>'), theUI.showClock();; // theUI.showClock 顯示 NaN:NaN (safari)？
             
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
+
+            setTimeout(function(){ 
+                theWS.callSendWs('waiting');
+            }, 5000);
             break;
 
         case 2:

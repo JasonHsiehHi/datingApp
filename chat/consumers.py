@@ -88,6 +88,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.timing is not None:
             self.timing.cancel()
 
+        self.waiting_interval = getattr(self, 'waiting_interval', None)
+        if self.waiting_interval is not None:
+            self.waiting_continue = False
+            self.waiting_interval.cancel()
+
         if self.player_data.status == 1:  # in waiting
             self.player_data = await utils.set_player_fields(self.player_data, {'isOn': False})
             # consider about isPrepared and waiting_time
@@ -142,6 +147,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'onoff_dict': self.room.onoff_dict,
                 'tag_json': self.player_data.tag_json,
                 'tag_int': self.player_data.tag_int,
+            })
+
+    async def waiting(self):
+        self.waiting_continue = True
+        self.waiting_interval = await self.set_interval(30, self.waiting_update)
+
+    async def waiting_update(self):
+        self.player_data = await utils.refresh_instance(self.player_data)
+        if self.player_data.status == 2:
+            self.room, game = await utils.get_room_players(self.player_data, False)
+            self.game_id = str(game.game_id)
+            await self.send_json({
+                "type": 'START',
+                "game": self.game_id
             })
 
     async def is_on(self, event):
@@ -236,6 +255,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.redirect()
             elif call == 'update':
                 await self.update()
+            elif call == 'waiting':
+                await self.waiting()
             else:
                 print(self.uuid + ' insert a wrong call: ' + call)
 
@@ -554,6 +575,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def timer_execute(self, sleep_secs, func, *args, **kwargs):
         # when player connect() successfully, set up the timer
         t = Timer(sleep_secs, async_to_sync(func), args, kwargs)
+        t.start()
+        return t
+
+    async def set_interval(self, interval_sec, func, *args, **kwargs):
+        async def func_wrapper():
+            waiting_continue = getattr(self, 'waiting_continue', None)
+            if waiting_continue is True:
+                await self.set_interval(interval_sec, func, *args, **kwargs)
+                await func(*args, **kwargs)
+
+        t = Timer(interval_sec, async_to_sync(func_wrapper))
         t.start()
         return t
 

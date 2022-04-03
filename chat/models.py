@@ -68,9 +68,8 @@ class Game(models.Model):
     best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要(ex:異性為[5,1] 同性為[5:0])
     threshold_ratio = models.JSONField(max_length=10)  # 最合適比例 與 及格配對比例 兩種：差別在於等待時間
     story = models.JSONField(null=True, blank=True)
-
-    noPlayerNum = models.IntegerField(default=0, null=True, blank=True)
     showGender = models.BooleanField()
+    noPlayerNum = models.IntegerField(null=True, blank=True, default=0)
 
     def __str__(self):
         return self.game_id
