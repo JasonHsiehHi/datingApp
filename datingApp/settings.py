@@ -201,6 +201,8 @@ PLENTY_ROOM_NUM = 10
 
 SECONDS_FOR_CACHE_GREET = None  # keep cache permanently
 
+NOTICE_IDS_LIST = os.getenv('NOTICE_IDS_LIST').split(',')
+
 # for chat app - photo
 DELETE_PHOTO_LEAVING_ROOM = False
 DELETE_PHOTO_AFTER_TIME = False

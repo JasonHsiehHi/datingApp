@@ -110,6 +110,12 @@ def greet(request):
             dialog_city = dialog_city.format(city_name)
             dialogs.append(dialog_city)
 
+        notice_ids = settings.NOTICE_IDS_LIST
+        if isinstance(notice_ids, list) and notice_ids[0] != 'no':
+            for nid in notice_ids:
+                dialog_notice = get_dialogue_dialog('GREET', nid)
+                dialogs.append(dialog_notice)
+
         return JsonResponse({"result": True, "dialogs": dialogs})
     else:
         print("error: it's not through ajax.")

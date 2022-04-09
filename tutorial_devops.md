@@ -704,7 +704,7 @@ docker pull busybox 如果沒有標版本號 那就是用busybox:latest (如果r
 docker tag busybox asia.gcr.io/my-project/busybox 如果需要放到特定雲端上 就需要先用tag做改名動作
 docker push asia.gcr.io/my-project/busybox
 
-docker images 列出目前所有的images
+docker images 列出目前所有的images (等同 docker image ls)
 docker commit -m "Added Git package" -a "Starter" 59f3e3615488 當修改container之後 可用commit更新 讓docker hub與本地端同步 
 但可以會使得原先在service掛載的secret或config無法使用
 
@@ -788,6 +788,10 @@ docker image rm <ImageID>  同理也可以把存放在本地端的image刪除
 
 docker images --digests 當tag為<none>而無法指定時使用 可用@{digest}取代原先的:{tag}
 docker image rmi test1:latest 用於刪除image tag 但不會刪除image檔
+
+docker images -f “dangling=true” -q 顯示所有tag為<none>的image的id (dangling表示懸空) -f為filter用於過濾 -q為quiet用於只顯示id 
+docker images --no-trunc 不截斷輸出 則image的ID會是最原始的sha256碼
+
 
 docker login  登入後才可以上傳到docker hub中：
 docker tag django_todo:latest <Docker Hub username>/django_todo:latest

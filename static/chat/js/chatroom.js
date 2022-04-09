@@ -859,6 +859,12 @@ function prepareMethod(game_id){
         success: function(data) {
             if (!0 === data['result']){
                 theWS.callSendWs('start_game');
+                setTimeout(function(){
+                    showNotice('遊戲開始！');
+                    $('#notice-modal').on('hide.bs.modal', function(e) { 
+                        window.location.href = "/chat/start_game/"+data['game']; 
+                    });
+                }, 10000);
             }
         },
         error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
