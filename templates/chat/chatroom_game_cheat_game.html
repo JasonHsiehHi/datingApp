@@ -1,0 +1,53 @@
+{% extends "chat/chatroom.html" %}
+{% block script_file %}
+{%load static%}
+<script src="{% static 'chat/js/db_male_or_female.js'%}"></script>
+<script src="{% static 'chat/js/game_male_or_female.js'%}"></script>
+{% endblock %}
+
+{% block background %}
+<img src="/static/chat/img/barBg1.jpeg" alt="game-background">
+{% endblock %}
+
+{% block modalForm %}
+<form class='d-none' id="invite-modal-form">
+    <div class="modal-body">
+        <div class="mb-3"><p>確定要邀請{}？</p></div>
+        <p class='text-danger p-1 a-error'>* 只能邀請一位玩家，若對方接受你的邀請，則成功配配對。</p>
+    </div>
+    <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-warning" type="submit">確定</button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block players %}
+<div class='list-group list-group-flush w-100' id='player-list'>
+    {% for i in range %}
+    <div class='list-group-item list-group-item-action a-div d-flex d-none' id="player-{{i}}">
+        <div class='a-circle a-sidebar'></div>
+        <div class='ps-1 pt-1 flex-grow-1'>
+            <div class='d-flex justify-content-between'>
+                <div class='mb-0 a-player a-sidebar'><span class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="name">name</span><span class='a-onoff a-sidebar'></span></div>
+                <button class="btn btn-warning a-sidebar btn-sm" id="player-{{i}}-btn" type="button">互動</button>
+            </div>
+            <div class='a-sub a-sidebar'></div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div class='a-div a-sidebar'>
+    <p class="h5"></p><div class='mx-3' id='game-rule'></div>
+</div>
+<div class='a-div a-sidebar'>
+    <p class="h5"></p><div class='mx-3' id='game-invite'></div>
+</div>
+<div class='a-div a-sidebar'>
+    <p class="h5"></p><div class='mx-3' id='game-inventory'></div>
+</div>
+{% endblock %}

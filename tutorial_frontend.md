@@ -149,6 +149,9 @@ new Date(2020-12-26T12:38:00Z) 會自動轉成此時在UTC+8的時間
   <input type="radio" name="size" id="size_3" value="large">
 form表單最後只會有一個name:value 故radio選項中只能選一個
 
+$("input[name='size']:checked").val(); 要做radio選項的取值應使用:checked
+$("input[name='size']").val() 只能找出相同radio選項的第一項
+
 <form id='send_form'>
 有時<form>元素也可以完全不加屬性 所有eventHandler都用JS來執行
 
@@ -693,6 +696,7 @@ row alignment system：row的重點在對齊方式
 <div class="row justify-content-start"> 表示對齊container的右側
 通常只在裡面的col沒有塞滿12格時才有用： <div class="col-4"> <div class="col-4">
 (用於內部元素有固定寬度的時候)
+<div class="col-auto"> 就是隨內部文字大小而調整
 
 <div class="row justify-content-around"> 表示裡面元素分開排列 但不靠右側和左側
 <div class="row justify-content-between"> 表示一樣是元素分開排列 但靠右側和左側
@@ -1852,6 +1856,7 @@ prop()則較常用於只有屬性名而無屬性值的元素 會回傳true,false
 <input class='form-control' id='send-img' type='file' name='send-img' multiple>
 $("ul li:eq(0)").prop("multiple") 會回傳true
 另外prop()可以處理需要即時更新狀態的屬性 而attr()則為取html檔的初始狀態 但對於部分屬性兩者可以互通
+btn中最常用的'checked'和'disabled'都可以使用prop()來取值與設值 ( 但attr()則不行使用'checked' )
 
 另外有些屬性是在html中沒有但在js中才有的 此時也只能用prop() 
 像是jq.prop('outerHTML')
@@ -4136,3 +4141,28 @@ scene.make.tileSprite({  scene.add和scene.make唯一的差別使用參數或jso
     add: true
 })
 
+# 音效播放方式
+var audio = document.getElementById("bgMusic");
+ 
+//播放(继续播放)
+audio.play();
+ 
+//暂停
+audio.pause();
+ 
+//停止
+audio.pause();
+audio.currentTime = 0;
+ 
+//重新播放
+audio.currentTime = 0;
+audio.play();
+
+// 用於判定瀏覽器可碧芳的形式 一般使用mp3即可
+if (audio.canPlayType("audio/mp3")) {
+    audio.src = "hangge.mp3";
+}else if(audio.canPlayType("audio/ogg")) {
+    audio.src = "hangge.ogg";
+}
+
+<audio controls autoplay muted></audio> 分別是預設控制器, 網頁開啟後自動播放, 靜音模式

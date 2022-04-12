@@ -730,6 +730,7 @@ docker pull [Image 名稱]:[Image 版本] 取得一個指定版本的image
 等同:docker pull registry.hub.docker.com/ubuntu:latest 會在Docker Hub中找此image
 (一般來說不用自己build一個映像檔 只要用pull就好)
 docker run -p 6379:6379 -d redis:5  port6379為redis專用的端口 (另外有一個類似的6380) -d 為daemon 也就是轉到後台操作 (預設為--foreground會綁定此terminal 不會進後台)
+(這是在本地端測試也需要使用的端口)
 
 可在django的settings.py中設定 不需要密碼的redis使用方式：redis://127.0.0.1:6379/0
 需要密碼的redis為：redis://password@127.0.0.1:6379/0
