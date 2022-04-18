@@ -1943,6 +1943,9 @@ sayHello(){
 陳述式將function指派給一個變數 可以透過將變數設為null來回收記憶體 
 運算式則直接給function命名 不能做記憶體回收
 
+還有陳述式因為宣告了一個物件 故可以讓內部方法轉成私有方法供外部使用 最後加上 return{......}
+運算式則所有內部方法都只能自己使用
+
 function本質上也是對象的一種
 name:value 即為function_name:function_code 呼叫了function_name就會執行程式
 因此console.log(function_name) 會輸出完整的function_code
@@ -1980,7 +1983,7 @@ const methodSet = function(){
   }
 }
 methodSet.method1(a_value);
-
+外部可以使用此物件的內部方法(已轉為私有方法)
 
 var用於function之中 let用於block之中 const則用於全域變數
 var在全域範圍中(global scope)宣告等同const const無論在哪個程式中(local scope)宣告都是const

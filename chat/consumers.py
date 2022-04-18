@@ -192,12 +192,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content):
         """receive from client side first """
+        '''
         token = content.get('token', None)
         if token is not None:
             if token is False:
                 cache.set(token, True)
             else:
                 return False
+        '''
 
         call = content.get('call', None)
         if call is None:
@@ -248,8 +250,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             elif call == 'make_leave':
                 await self.call_make_leave()
             elif call == 'inform':
+                hidden = content.get('hidden', None)
                 tag = content.get('tag', 0)
-                hidden = content.get('hidden', 0)
                 await self.call_inform(content['target'], content['meInGroup'], content['message'], hidden, tag)
             elif call == 'redirect':
                 await self.redirect()
@@ -351,10 +353,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def call_leave_game(self):  # 離開者需告知所有人 '自己將離開'
         """func called by receive_json to response client side:  """
-        # self.player_data = await utils.refresh_instance(self.player_data)
-
-        # self.room, game = await utils.get_room_players(self.player_data, False) to move down
-        # self.room_id = 'room-'+str(self.room.id)
         await self.channel_layer.group_send(self.room_id, {
             'type': 'leave_game',
             'from': self.uuid
@@ -366,6 +364,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
 
         self.room, game = await utils.get_room_players(self.player_data, False)
+
         # on_list = [i for i in list(self.room.onoff_dict.values()) if i == 1]
         onoff_list = [i for i in list(self.room.onoff_dict.values()) if (i == 1 or i == 0)]
         if len(onoff_list) == 0:
@@ -387,11 +386,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def call_make_out(self):
         """func called by receive_json to response client side: player can make others be out of game """
-        # self.player_data = await utils.refresh_instance(self.player_data)
-
-        # self.room, game = await utils.get_room_players(self.player_data, False) to move down
-        # self.room_id = 'room-'+str(self.room.id)
-
         self.room, game = await utils.get_room_players(self.player_data, False)
         onoff_dict = dict(self.room.onoff_dict)
         if all(v == -1 for v in onoff_dict.values()) is True:  # game over
@@ -491,11 +485,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def call_leave_match(self, isTimeout=False):
         """func called by receive_json to response client side:  """
-        # self.player_data = await utils.refresh_instance(self.player_data)
-
-        # self.match, player_list = await utils.get_match_players(self.player_data)
-        # self.match_id = 'match-' + str(self.match.id)
-
         self.match, player_list = await utils.get_match_players(self.player_data)
         await self.channel_layer.group_send(self.match_id, {
             'type': 'leave_match',
@@ -537,6 +526,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def call_inform(self, group_name, meInGroup, message, hidden=None, tag=0):
         """func called by receive_json to response client side:  """
+        if group_name == 'room':
+            group_name = self.room_id
+        elif group_name == 'match':
+            group_name = self.match_id
         await self.channel_layer.group_send(group_name, {
             'type': 'inform',
             'msgs': message,
@@ -569,9 +562,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "toSelf": False,
                 "msgs": event['msgs'],
                 "hidden": event['hidden'],
-                "tag": event['tag']
+                "tag": event['tag'],
+                "from": event['from']
             })
 
+
+    ######## timer functions ########
     async def timer_execute(self, sleep_secs, func, *args, **kwargs):
         # when player connect() successfully, set up the timer
         t = Timer(sleep_secs, async_to_sync(func), args, kwargs)
@@ -633,7 +629,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def timeout_leave_match(self):
         self.player_data = await utils.set_player_fields(self.player_data, {'status': 2, 'waiting_time': None}, True)
 
-        # self.match, player_list = await utils.get_match_players(self.player_data)
         player_list = []  # everyone will leave in same time
         self.match = await utils.set_match_fields(self.match, {'player_list': player_list}, True)
         await self.call_leave_match(True)
@@ -654,6 +649,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.set_timetable_next(ith_task+1)
 
     async def timeout_inform_updated(self, ith_task, next_task=True):
+        """ use timeout_inform() """
         task_name = '{}:task-{}'.format(self.room_id, ith_task)
         msgs_li = cache.get(task_name)
         if msgs_li is None:
@@ -666,15 +662,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 if last < ith_task:  # 空題：前幾題都沒有人回答 需由系統把answer_dict['realtime']填滿
                     realtime.extend([['no_news']] * (ith_task - last))
 
-                if last == ith_task:  # the player to get inform first need to de that
+                if last == ith_task:  # the player to get inform first need to do that
                     realtime.append(['no_news'])
+
                     answer['realtime'] = realtime
                     self.room.answer = answer
                     await utils.set_room_fields(self.room, {'answer': answer})
+
                 msgs_li = realtime[ith_task]
                 cache.set(task_name, msgs_li, 1800)
 
         if len(msgs_li) > 1:  # the first msg: ['no_news',]
             msgs_li = msgs_li[1:]  # from the second, it's the real msgs sent by players
+
         await self.timeout_inform(msgs_li, ith_task, tag=1, next_task=next_task)
         # tag=1: is distinguished from directly timeout_inform()

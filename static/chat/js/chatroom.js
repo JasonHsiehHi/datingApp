@@ -25,6 +25,7 @@ function chatroomWS(){
 
         chatSocket.onmessage = function(e) {
             var data = JSON.parse(e.data);
+            /*
             if ('token' in data){
                 console.log(data.token);
                 if (!1 === localData.cache[data.token])
@@ -32,6 +33,7 @@ function chatroomWS(){
                 else
                     return false
             }
+            */
 
             console.log('receive: '+ data.type);
             switch (data.type){
@@ -83,9 +85,7 @@ function chatroomWS(){
                         var num_on = gameGate.playerNum();
                         setNavTitle(num_on);
                     }else if(3 === loginData.status){
-                        for (let uuid in position){  // like refreshGameTagAll(), but don't use tag_json&tag_int
-                            (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
-                        }
+                        disablePlayerBtnAll();
                         setNavTitle('恭喜配對成功！');
                     }
                     break;
@@ -99,6 +99,11 @@ function chatroomWS(){
 
                 case 'START':
                     showNotice('遊戲開始！');
+                    if (!1 === localData.isMuted && !1 === toggle.focus){
+                        var audio = document.getElementById("audio-enter");
+                        audio.play();
+                    }
+
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
                         window.location.href = "/chat/start_game/"+data['game']; 
                     });
@@ -122,6 +127,10 @@ function chatroomWS(){
 
                 case 'ENTER':
                     showNotice(' 進入房間');
+                    if (!1 === localData.isMuted && !1 === toggle.focus){
+                        var audio = document.getElementById("audio-enter");
+                        audio.play();
+                    }
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
                         window.location.assign(window.location.href);
                     }); 
@@ -261,7 +270,9 @@ function getLocalData(){
         chatLogs:[],
         gameLogs:[],
         answers:{},
-        cache:{}
+        cache:{},
+        time_str:{},
+        isMuted:false,
     };
 
     if ('undefined' !== typeof(Storage)){
@@ -275,7 +286,10 @@ function getLocalData(){
             data.chatLogs = JSON.parse(localStorage.chatLogs),
             data.gameLogs = JSON.parse(localStorage.gameLogs),
             data.answers = JSON.parse(localStorage.answers),
-            data.cache = JSON.parse(localStorage.cache);
+            data.cache = JSON.parse(localStorage.cache),
+            data.time_str = JSON.parse(localStorage.time_str),
+            data.isMuted = ('true'===localStorage.isMuted)? true : false;
+
 
         }else{
             localStorage.isSaved = 'true',
@@ -288,7 +302,9 @@ function getLocalData(){
             localStorage.chatLogs = '[]',
             localStorage.gameLogs = '[]',
             localStorage.answers = '{}',
-            localStorage.cache = '{}';
+            localStorage.cache = '{}',
+            localStorage.time_str = '{}',
+            localStorage.isMuted = 'false';
         }
     }else{
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
@@ -300,6 +316,7 @@ function getTermData(){
     var term = {
         timerId_clock: null,
         timerId_writing: null,
+        timerId_later: null,
         chatLogs_remain:0,
         gameLogs_remain:0,
         elmt_for_status:[]
@@ -348,21 +365,16 @@ function loadLoginData(){ // login and logout will redirect, so loginData will b
         localData.name = loginData.name, localStorage.name = loginData.name;
         localData.city = loginData.city, localStorage.city = loginData.city;
 
-        refreshStatus(loginData.status), unavailableBtn();
+        (!0 === loginData.isAdult)? $('#adult-check').prop('checked', true): $('#normal-check').prop('checked', true);
+        (!0 === loginData.isHetero)? $('#hetero-check').prop('checked', true): $('#homo-check').prop('checked', true);
+
+        refreshStatus(loginData.status);
     }else{
         appearElmtCss('#signup-btn'), appearElmtCss('#login-btn'), appearElmtCss('#reset-pwd-btn');
         disappearElmtCss('#user-info'), disappearElmtCss('#logout-btn'), disappearElmtCss('#change-pwd-btn');
 
         refreshStatus(0);
     }
-}
-
-function unavailableBtn() {  // settings is unavailable 
-    (loginData.gender==='m')?$('#female-radio').click(): $('#male-radio').click();
-    disabledElmtCss('#male-radio'), disabledElmtCss('#female-radio');
-
-    $('#adult-radio').click();
-    disabledElmtCss('#adult-radio'), disabledElmtCss('#normal-radio');
 }
 
 function loadLocalData(){  // loadLocalData just handle theUI work and it's called after loadLoginData
@@ -374,7 +386,7 @@ function refreshProfile(){  // handle text of navbar and sidebar
     var city_name = citySet[localData.city] + ' ' + localData.city;
     $('#city').text(city_name).attr('data-bs-original-title', city_name);
     if (0===loginData.status){
-        var sub_text = (0 === localData.city.length)?'':'('+citySet[localData.city]+')';
+        // var sub_text = (0 === localData.city.length)?'':'('+citySet[localData.city]+')';
         // setNavTitle('A-LARP匿名劇本殺 ' + sub_text);
         setNavTitle('A-LARP匿名劇本殺');
     }
@@ -406,13 +418,16 @@ function refreshStatus(status){  // handle all UI work about status
             disabledElmtCss('#start-btn'), $('#start-btn').text('等待中...');
             enabledElmtCss('#leave-btn');
 
-            setNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>'), theUI.showClock();; // theUI.showClock 顯示 NaN:NaN (safari)？
+            setNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>'), theUI.showClock(); // theUI.showClock 顯示 NaN:NaN (safari)？
             
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
 
-            setTimeout(function(){ 
-                theWS.callSendWs('waiting');
-            }, 5000);
+            if ('later' in localData.time_str){
+                var time = localData.time_str['later'] - new Date().getTime();
+                (time>0) && setTimeout(function(){ theStart.later_start(); }, time);
+            }
+
+            setTimeout(function(){ theWS.callSendWs('waiting'); }, 5000);
             break;
 
         case 2:
@@ -651,7 +666,7 @@ function profileMethodSet(){
     for (let prop in modalName){
         $("#"+prop+"-btn").on('click',function(a){
             $("#"+prop+"-modal-form").removeClass('d-none');
-            $('#modal .modal-title').text(modalName[prop])
+            $('#modal .modal-title').text(modalName[prop]);
             $('#modal').modal('show');
         })
     }
@@ -738,18 +753,10 @@ function profileMethodSet(){
     }
 }
 
-function settingsMethod(){
-    $("#settings-form").on('submit',function(e){   
-        e.preventDefault();
-        // url: '/chat/settings'
-        // change to start_game modal form
-    })
-}
-
 function leaveMethod(){
     $("#leave-btn").on('click',function(a){
         $("#leave-modal-form").removeClass('d-none');
-        $('#modal .modal-title').text('離開')
+        $('#modal .modal-title').text('離開');
         if (loginData.status === 1)
             $('#leave-modal-form .modal-body p:eq(0)').text('確定停止等待嗎？');
         else if (loginData.status === 2)
@@ -770,6 +777,7 @@ function leaveMethod(){
                     if (!0 === data['result']){
                         loginData.waiting_time= '', loginData.status = 0, refreshStatus(loginData.status);
                         theUI.showSys('已停止等待');
+                        (null !== term.timerId_later) && clearTimeout(term.timerId_later);
                         $('#modal').modal('hide');
                     }else{
                         $('#leave-modal-form p.a-error').text(data['msg']);
@@ -817,27 +825,52 @@ function leaveMethod(){
 
 }
 
-function startMethod(){
+var startMethod = function(){ // 如果game_{game_name}要使用執行鍵 必須先解除startMethod綁定
     $("#start-btn").on('click',function(e){  // no modal form, only use notice-modal
+        $("#start-modal-form").removeClass('d-none');
+        $('#modal .modal-title').text('開始遊戲');
+        $('#modal').modal('show');
+        disabledElmtCss('#normal-check'), disabledElmtCss('#adult-check');
+    })
+
+    $("#start-modal-form").on('submit',function(e){  
+        e.preventDefault();
         if (loginData.status !== 0)
             return false
         else if (localData.name.length===0){
-            showNotice('尚未取新的遊戲暱稱。');
+            $('#start-modal-form p.a-error').text('你尚未取新的遊戲暱稱哦！');
             return false
         }else if (localData.city.length===0){
-            showNotice('尚未選擇所在城市。');
+            $('#start-modal-form p.a-error').text('你尚未選擇所在城市哦！');
             return false
         }
 
+        // isLater因為還在等待時間故不會受此影響 當結束等待時也要關閉isLater的計時器
+        var formArray = $(this).serializeArray();
+        formArray.push({name:"isLater",value: false});
+        sendJson(formArray);
+
+    })
+
+    function sendJson(formArray){
         $.ajax({
-            type: 'GET',
+            type: 'POST',
             url: '/chat/start_game',
+            data: formArray,
             dataType: "json",
             success: function(data) {
                 if (!0 === data['result']){
                     if (!0 === data['start']){
                         prepareMethod(data['game']);
                     }else{
+                        if (!0 === data['later']){
+                            term.timerId_later = setTimeout(function(){
+                                formArray[3] = ({name:"isLater",value: true});
+                                sendJson(formArray);
+                            }, 2*60*1000);
+                            var later_time_str = (new Date( (new Date()).getTime() + 5*60000 )).getTime();
+                            localData.time_str['later'] = later_time_str, localStorage.time_str = JSON.stringify(localData.time_str);
+                        }
                         loginData.status = 1, refreshStatus(loginData.status); // into waiting phase
                     }
                     $('#sidebar').offcanvas('hide');
@@ -848,7 +881,19 @@ function startMethod(){
             error: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); },
             timeout: function(data) { showNotice('目前網路異常或其他原因，請稍候重新再試一次。'); }
         })
-    })
+    }
+
+    return {
+        later_start: function(){
+            var formArray = [
+                {name: 'csrfmiddlewaretoken', value: $('input[name="csrfmiddlewaretoken"]').val()},
+                {name:'sex-radio', value: $('input[name="sex-radio"]:checked').val()},
+                {name:'mode-radio', value: $('input[name="mode-radio"]:checked').val()},
+                {name:'isLater', value: true}
+            ];
+            sendJson(formArray);
+        }
+    }
 }
 
 function prepareMethod(game_id){
@@ -861,6 +906,10 @@ function prepareMethod(game_id){
                 theWS.callSendWs('start_game');
                 setTimeout(function(){
                     showNotice('遊戲開始！');
+                    if (!1 === localData.isMuted && !1 === toggle.focus){
+                        var audio = document.getElementById("audio-enter");
+                        audio.play();
+                    }
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
                         window.location.href = "/chat/start_game/"+data['game']; 
                     });
@@ -872,20 +921,17 @@ function prepareMethod(game_id){
     })
 }
 
+function settings(){
+    $("input[name='sound-radio']").change(function() {
+        if (this.value == '1'){
+            localData.isMuted = !0, localStorage.isMuted = 'true';
+        }else{
+            localData.isMuted = !1, localStorage.isMuted = 'false';
+        };
+    });
+}
+
 var checkGate = function(){
-    function num(isDirected=false){
-        var li = [];
-        
-        console.log(loginData.onoff_dict[loginData.uuid]);
-
-        for(let [key, value] of Object.entries(loginData.onoff_dict)){
-            (value === 1) && li.push(key);
-        }
-        var text = '在線人數:<span class="a-point">'+ li.length +'</span> 人';
-        (!0 === isDirected) && theUI.showSys(text);
-        return text
-    }
-
     function itr(isDirected=false){
         var dialog;
         if (localData.name.length===0 && loginData.isLogin === !1){
@@ -934,7 +980,6 @@ var checkGate = function(){
     }
 
     return {
-        playerNum:num,
         tutor:tut,
         intro:itr,
         greet:grt
@@ -959,6 +1004,7 @@ var chatUI = function(){
         $('#writing').before(newElmt), st(newElmt,1);
         localData.lastSaid = 'm',localStorage.lastSaid='m';
         ut(!1), toggle.focus === !0 &&toggle.scroll === !1 && (now(), ut(!0));
+        // todo now()不能使用： 可能是toggle判別式問題
         return newElmt
     }
 
@@ -1127,7 +1173,7 @@ var chatUI = function(){
         return isMore
     }
 
-    function sl(dialog, n=1, log_name='chatLogs'){
+    function sl(dialog, n=1, log_name='chatLogs'){  // save dialogs in conversation format: ['dialog'(str), isImage(bool), who(str)]
         // (n === 1)? localData[log_name].push(dialog) : localData[log_name] = localData[log_name].concat(dialog); no matter is 1 or not
         localData[log_name] = localData[log_name].concat(dialog);
         localStorage[log_name] = JSON.stringify(localData[log_name]);
@@ -1178,7 +1224,7 @@ var chatUI = function(){
         
     }
 
-    function sty(dialog_list, interval=1500, callback=null){
+    function sty(dialog_list, interval=1500, callback=null){ // dialog_list is conversation format: ['dialog'(str), isImage(bool), who(str)]
         var s = 0, elmts_text = '';
         for (let t of dialog_list){
             setTimeout(function(){
@@ -1268,11 +1314,11 @@ var loginData = JSON.parse(document.getElementById('loginData').textContent),
     theGate = checkGate(),
     localData = getLocalData(),
     term = getTermData(),
-    toggle = getToggle()
+    toggle = getToggle(),
+    theStart = startMethod();  // to use private method from startMethod
     
-
 $(document).ready(function() {
     bindMsgSend(), installToolTip(), bindModalHide(), bindUpMore(); 
-    loginMethodSet(), profileMethodSet(), leaveMethod(), startMethod(), settingsMethod();
-    loadLoginData(), loadLocalData();
+    loginMethodSet(), profileMethodSet(), leaveMethod();
+    settings(), loadLoginData(), loadLocalData();
 });

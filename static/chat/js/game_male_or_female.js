@@ -268,9 +268,7 @@ function refreshGameStatus(status){  // refresh status, tag_json and tag_int acc
 
             break;
         case 3:
-            for (let uuid in position){  // like refreshGameTagAll(), but don't use tag_json&tag_int
-                (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
-            }
+            disablePlayerBtnAll();
 
             setNavTitle('恭喜配對成功！');
 
@@ -278,6 +276,12 @@ function refreshGameStatus(status){  // refresh status, tag_json and tag_int acc
             (!0 === isMore) && appearElmtCss('#show-more');
             gameGate.matcher();
             break;
+    }
+}
+
+function disablePlayerBtnAll(){  // like refreshGameTagAll(), but don't use tag_json&tag_int
+    for (let uuid in position){
+        (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
     }
 }
 

@@ -21,17 +21,7 @@ urlpatterns = [
 ]
 
 # url for game
-from . import urls_game_male_or_female
+from . import urls_game_male_or_female, urls_game_cheat_game
 urlpatterns += urls_game_male_or_female.urlpatterns
-
-'''
-urlpatterns += [
-    path('start_game/graduate_girl/prolog', views_game_graduate_girl.prolog, name='gg_prolog'),
-    path('start_game/graduate_girl/deduce', views_game_graduate_girl.deduce, name='gg_deduce'),
-    path('start_game/graduate_girl/examine/<str:uuid>', views_game_graduate_girl.examine, name='gg_examine'),
-    path('start_game/graduate_girl/inquire/<str:uuid>', views_game_graduate_girl.inquire, name='gg_inquire'),
-    path('start_game/graduate_girl/clue/<str:uuid>', views_game_graduate_girl.clue, name='gg_clue')
-]
-'''
-
+urlpatterns += urls_game_cheat_game.urlpatterns
 

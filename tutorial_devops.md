@@ -1528,7 +1528,8 @@ psql -U username -d database < db.sql
 如果以上方法不成功 可改用django的方式： (好用)
 python manage.py dumpdata > whole.json
 python manage.py loaddata whole.json
-(過程中把*/migrations/*.py 和 */migrations/*.pyc清除並重做makemigrations和migrate
+(
+過程中把*/migrations/*.py 和 */migrations/*.pyc清除並重做makemigrations和migrate
 find . -path '*/migrations/*.py' -not -name '__init__.py' -delete && find . -path '*/migrations/*.pyc' -delete
 python manage.py makemigrations && python manage.py migrate
 最後再進到django的shell把ContentType清掉:

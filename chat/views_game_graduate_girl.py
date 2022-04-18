@@ -116,13 +116,11 @@ def inquire(request, uuid):
 def prepare(request):
     if request.is_ajax and request.method == 'GET':
         self_player = request.user.profile
-
-        room = self_player.room
-        players = room.players
-
         game = self_player.game
         maleNeeded = game.best_ratio[0]
         femaleNeeded = game.best_ratio[1]
+        room = self_player.room
+        players = room.players.all()
 
         roles = get_roles_of_game(game, 'f', femaleNeeded) + get_roles_of_game(game, 'm', maleNeeded)
         role_group = [role.group for role in roles]  # role_group = [1, 0, 0, 0,...]

@@ -63,12 +63,11 @@ class Player(models.Model):
 class Game(models.Model):
     name = models.CharField(max_length=30)
     game_id = models.CharField(max_length=25, unique=True)
-    isAdult = models.BooleanField()
-    isHetero = models.BooleanField()
-    best_ratio = models.JSONField(max_length=10)  # 異性配對才有比例 同性配對則不需要(ex:異性為[5,1] 同性為[5:0])
-    threshold_ratio = models.JSONField(max_length=10)  # 最合適比例 與 及格配對比例 兩種：差別在於等待時間
+    best_ratio = models.JSONField(max_length=10)
+    threshold_ratio = models.JSONField(max_length=10)
     story = models.JSONField(null=True, blank=True)
     showGender = models.BooleanField()
+    available = models.BooleanField()
     noPlayerNum = models.IntegerField(null=True, blank=True, default=0)
 
     def __str__(self):

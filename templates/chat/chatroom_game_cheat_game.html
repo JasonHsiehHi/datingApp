@@ -10,10 +10,21 @@
 {% endblock %}
 
 {% block modalForm %}
-<form class='d-none' id="invite-modal-form">
+<form class='d-none' id="match-modal-form">
     <div class="modal-body">
-        <div class="mb-3"><p>確定要邀請{}？</p></div>
-        <p class='text-danger p-1 a-error'>* 只能邀請一位玩家，若對方接受你的邀請，則成功配配對。</p>
+        <div class="mb-3"><p>確定要配對{}？</p></div>
+        <p class='text-danger p-1 a-error'>* 只能配對一位玩家，若對方接受你的邀請，則兩人成功配對。</p>
+    </div>
+    <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-warning" type="submit">確定</button>
+    </div>
+</form>
+
+<form class='d-none' id="pass-modal-form">
+    <div class="modal-body">
+        <div class="mb-3"><p>確定要傳紙條給{}嗎？</p></div>
+        <p class='text-danger p-1 a-error'>* 每一輪只能傳紙條給一位玩家，若對方同意換紙條，則兩人的紙條互換。</p>
     </div>
     <div class="modal-footer justify-content-center">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -43,9 +54,6 @@
 {% block sidebar %}
 <div class='a-div a-sidebar'>
     <p class="h5"></p><div class='mx-3' id='game-rule'></div>
-</div>
-<div class='a-div a-sidebar'>
-    <p class="h5"></p><div class='mx-3' id='game-invite'></div>
 </div>
 <div class='a-div a-sidebar'>
     <p class="h5"></p><div class='mx-3' id='game-inventory'></div>

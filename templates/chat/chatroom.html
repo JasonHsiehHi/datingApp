@@ -44,6 +44,18 @@
     </script>
 </head>
 <body>
+    <div id="audio">
+        <audio id="audio-enter">
+            <source src="/static/chat/sound/crrect_answer2.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="audio-inform">
+            <source src="/static/chat/sound/button04a.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="audio-obtain">
+            <source src="/static/chat/sound/packun_eating.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
     <div class="a-background" id="background">
         {% block background %}
         <img src="/static/chat/img/myBg1.jpeg" alt="background">
@@ -222,6 +234,47 @@
                         <button class="btn btn-warning" type="submit">確定</button>
                     </div>
                 </form>
+
+                <form class='d-none' id="start-modal-form">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3 row g-3 align-items-center">
+                            <div class="col-auto">
+                                <label for="sex-radio" class="col-form-label">尋找對象：</label>
+                            </div>
+                            <div class="col-2"></div>
+                            <div class="col-auto">
+                                <span class="btn-group a-radio" id="sex-radio">
+                                    <input type="radio" class="btn-check" name="sex-radio" id="homo-check" value='0' autocomplete="off">
+                                    <label class="btn btn-outline-dark" for="homo-check">找同性</label>
+                                    <input type="radio" class="btn-check" name="sex-radio" id="hetero-check" value='1' autocomplete="off" checked>
+                                    <label class="btn btn-outline-dark" for="hetero-check">找異性</label>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3 row g-3 align-items-center">
+                            <div class="col-auto">
+                                <label for="mode-radio" class="col-form-label">遊戲模式：</label>
+                            </div>
+                            <div class="col-2"></div>
+                            <div class="col-auto">
+                                <span class="btn-group a-radio" id="mode-radio">
+                                    <input type="radio" class="btn-check" name="mode-radio" id="normal-check" value='0' autocomplete="off">
+                                    <label class="btn btn-outline-dark" for="normal-check">正常模式</label>
+                                    <input type="radio" class="btn-check" name="mode-radio" id="adult-check" value='1' autocomplete="off" checked>
+                                    <label class="btn btn-outline-dark" for="adult-check">成人模式</label>
+                                </span>
+                            </div>
+                            <span class="form-text">* 目前只能選擇成人模式</span>
+                        </div>
+                        <p class='text-danger p-1 a-error'></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button class="btn btn-warning" type="submit">確定</button>
+                    </div>
+                </form>
+
                 <form class='d-none' id="leave-modal-form">
                     <div class="modal-body">
                         <div class="mb-3"><p>確定要離開嗎？</p></div>
@@ -272,7 +325,16 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settings-btn">
                         <form id="settings-form">
-                            {% csrf_token %}
+                            <li><span class="dropdown-item-text">
+                                <span>音效：</span>
+                                <span class="btn-group a-radio">
+                                <input type="radio" class="btn-check" name="sound-radio" id="voice-check" value='1' autocomplete="off" checked>
+                                <label class="btn btn-outline-dark" for="voice-check">正常</label>
+                                <input type="radio" class="btn-check" name="sound-radio" id="muted-check" value='0' autocomplete="off">
+                                <label class="btn btn-outline-dark" for="muted-check">靜音</label>
+                                </span>
+                            </span></li>
+
                             <li><span class="dropdown-item-text">
                                 <span>尋找對象：</span>
                                 <span class="btn-group a-radio">

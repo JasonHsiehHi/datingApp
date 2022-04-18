@@ -15,7 +15,7 @@ from django.forms.models import model_to_dict
 # from django.db.models import Q, F
 from django.db.models import Q
 
-# from random import randint, sample, shuffle
+# from random import randint, sample, shuffle, choice
 from random import randint
 
 from django.core.exceptions import ValidationError
@@ -29,7 +29,7 @@ from hashlib import md5
 
 def get_loginData(user, player):
     player_dict = model_to_dict(player, fields=[
-        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'city'])
+        'gender', 'uuid', 'isBanned', 'status', 'waiting_time', 'name', 'city', 'isAdult', 'isHetero'])
     room = player.room
     if room is None:
         player_dict['game'] = ''
@@ -63,7 +63,6 @@ def chatroom(request):
     user = request.user
     if user.is_authenticated:
         login_dict = get_loginData(user, user.profile)
-        # print('db_query: {}'.format(connection.queries))
         if user.profile.status in [2, 3]:
             return redirect('/chat/start_game/{}'.format(login_dict['game']))
 
@@ -103,7 +102,7 @@ def greet(request):
         dialog_t = get_dialogue_dialog('GREET', sub_t)
         dialogs.append(dialog_t)
 
-        # city_name, roomNum = get_city_roomNum_max() # the func is unavailable
+        # city_name, roomNum = get_city_roomNum_max() # unavailable
         city_name, roomNum = '', 0
         if roomNum > settings.PLENTY_ROOM_NUM:
             dialog_city = get_dialogue_dialog('GREET', 'city')
@@ -443,7 +442,10 @@ def reset_pwd_send_mail(email, temp_pwd):
 
 # game function
 def start_game(request):
-    if request.is_ajax and request.method == 'GET':
+    if request.is_ajax and request.method == 'POST':
+        isLater = request.POST['isLater']
+        isHetero = True if request.POST['sex-radio'] == '1' else False
+        isAdult = True if request.POST['mode-radio'] == '1' else False
         if not request.user.is_authenticated:
             return JsonResponse({"result": False, "msg": '用戶尚未登入。'})
 
@@ -453,42 +455,55 @@ def start_game(request):
         if self_player.name is None:
             return JsonResponse({"result": False, "msg": '尚未取新的遊戲暱稱'})
 
-        game = get_game(self_player.isAdult, self_player.isHetero)
-
-        # 自己登記遊戲
-        self_player.game = game
-        self_player.status = 1
-        self_player.isPrepared = True
-        self_player.waiting_time = datetime.now(tz=timezone.utc)
-        self_player.save()
+        # 自己登記
+        if isLater is False:
+            self_player.game = get_game()
+            self_player.status = 1
+            self_player.isHetero = isHetero
+            self_player.isAdult = isAdult
+            self_player.isPrepared = True
+            self_player.waiting_time = datetime.now(tz=timezone.utc)
+            self_player.save()
 
         # todo 更新city的等待人數
 
         # 判斷遊戲人數是否足夠
         # todo 是否能夠不訪問Player資料庫的情況判斷人數是否充足
 
-        players = Player.objects.filter(Q(game=game) & Q(isPrepared=True) &
+        players = Player.objects.filter(Q(isHetero=isHetero) & Q(isAdult=isAdult) & Q(isPrepared=True) &
                                         Q(waiting_time__gte=datetime.now(tz=timezone.utc)-timedelta(hours=2)))
-        # can't replace isPrepared=True by status=2 because isPrepared is relative to on/off
-        # todo 改為用isAdult和isHetero判斷 直到成功建立者的game再作為room的game
+        # can't replace isPrepared=True by status=2 because isPrepared is relative to player's on/off
 
-        male_players = players.filter(gender='m')
-        female_players = players.filter(gender='f')
-        maleNeeded = game.best_ratio[0]
-        femaleNeeded = game.best_ratio[1]
+        game = self_player.game
+        if self_player.isHetero is True:
+            male_players, female_players = players.filter(gender='m'), players.filter(gender='f')
+            maleNeeded, femaleNeeded = game.best_ratio[0], game.best_ratio[1]
+            maleThreshold, femaleThreshold = game.threshold_ratio[0], game.threshold_ratio[1]
+        else:
+            if self_player.gender == 'm':
+                male_players, female_players = players.filter(gender='m'), players.none()
+                maleNeeded, femaleNeeded = game.best_ratio[0] + game.best_ratio[1], 0
+                maleThreshold, femaleThreshold = game.threshold_ratio[0] + game.threshold_ratio[1], 0
+
+            else:  # self_player.gender == 'f'
+                male_players, female_players = players.none(), players.filter(gender='f')
+                maleNeeded, femaleNeeded = 0, game.best_ratio[0] + game.best_ratio[1]
+                maleThreshold, femaleThreshold = 0, game.threshold_ratio[0] + game.threshold_ratio[1]
 
         # 人數足夠 建立房間
-        if len(male_players) >= maleNeeded and len(female_players) >= femaleNeeded:
+        if (len(male_players) >= maleNeeded and len(female_players) >= femaleNeeded) or \
+                (isLater is True and len(male_players) >= maleThreshold and len(female_players) >= femaleThreshold):
             room = Room.objects.create(game=game, city=self_player.city)
             # arrange players in gender order
             if self_player.gender == 'm':
                 players = list(female_players.order_by('waiting_time'))[:femaleNeeded] + \
                           [self_player] + list(male_players.order_by('waiting_time'))[:maleNeeded - 1]
-            else:  # self_player.gender == 'f'
+            else:
                 players = [self_player] + list(female_players.order_by('waiting_time'))[:femaleNeeded - 1] + \
                           list(male_players.order_by('waiting_time'))[:maleNeeded]
 
             for player in players:
+                player.game = game
                 player.room = room  # todo 等待期間的玩家都不能存取資料庫以避免建房者發生錯誤 用player.status禁止上傳
                 player.status = 2
                 player.isPrepared = False
@@ -497,22 +512,23 @@ def start_game(request):
 
             return JsonResponse({"result": True, "start": True,
                                  "game": str(game.game_id), "msg": '遊戲人數齊全，等待加載...'})
-
         # 人數不足 等待
-        else:
-            # todo 使用game.threshold_ratio
-            return JsonResponse({"result": True, "start": False,
+        elif len(male_players) >= maleThreshold and len(female_players) >= femaleThreshold:
+            return JsonResponse({"result": True, "start": False, "later": True,
                                  "msg": '請等待其他玩家進入遊戲', "waiting_time": self_player.waiting_time})
-
+        else:
+            return JsonResponse({"result": True, "start": False, "later": False,
+                                 "msg": '請等待其他玩家進入遊戲', "waiting_time": self_player.waiting_time})
     else:
         print("error: it's not through ajax.")
 
 
-def get_game(isAdult, isHetero):
+def get_game():
     # games = Game.objects.filter(Q(isAdult=isAdult) & Q(isHetero=isHetero))
+    # 改成: games = Game.objects.filter(available=True)
     # game = games[randint(0, len(games) - 1)]
 
-    game = Game.objects.get(id=3)  # designate the game instead of selecting randomly
+    game = Game.objects.get(id=4)  # designate the game instead of selecting randomly
     return game
 
 

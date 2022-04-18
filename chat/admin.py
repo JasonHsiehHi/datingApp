@@ -4,9 +4,8 @@ from .models import Game, Room, Match, Player, Dialogue, City, GameRole, GameEve
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ('name', 'id', 'game_id', 'isAdult', 'isHetero', 'best_ratio', 'threshold_ratio',
-                    'noPlayerNum', 'showGender')
-    list_filter = ('isAdult', 'isHetero',)
+    list_display = ('name', 'id', 'game_id', 'best_ratio', 'threshold_ratio',
+                    'noPlayerNum', 'showGender', 'available')
     search_fields = ('name',)
 
 
