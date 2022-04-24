@@ -49,6 +49,8 @@ pgsql要使用外接硬碟存放資料
 放上ga
 JS進行編碼做防盜措施
 真正使用域名登入進行測試 www.anonlarp.com
+完成 settings-form換成start-game選項
+完成 原先settings-form用來放音效選項 (用toggle開啟關閉 看起來不會太空)
 
 例行檢查項目：
 手機與其他瀏覽器的RWD調整
@@ -57,15 +59,12 @@ JS進行編碼做防盜措施
 後端ddatabase
 微調輸出三大方法:notice, chatlog, navtitle
 驗證所有前端JS和後端django的物件與流程
-
+本機端需要多測3種模式：離線與斷線模式, 手機模式, 正常人數模式
 
 測試項目：
 
 
 未來完成：
-完成 settings-form換成start-game選項
-完成 原先settings-form用來放音效選項 (用toggle開啟關閉 看起來不會太空)
-
 創辦獨立遊戲開發團隊：使用patron, facebook, instagram
 前期只要先做IG就好 之後再由IG導到FB和patron
 

@@ -144,6 +144,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if self.player_data.status in [2, 3]:
             await self.send_json({
                 'type': 'UPDATE',
+                'player_dict': self.room.player_dict,
                 'onoff_dict': self.room.onoff_dict,
                 'tag_json': self.player_data.tag_json,
                 'tag_int': self.player_data.tag_int,
@@ -552,9 +553,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.send_json({
                 "type": 'INFORM',
                 "toSelf": True,
-                "msgs": ['通知成功'],  # msg format: list [msg1, msg2,...]
+                "msgs": event['msgs'],  # msg format: list [msg1, msg2,...]
                 "hidden": event['hidden'],
-                "tag": event['tag']
+                "tag": event['tag'],
+                "from": event['from']
             })
         else:
             await self.send_json({

@@ -1109,7 +1109,7 @@ filter()最後回傳的內容為querySet 不同於get()的模型實例instance
 filter()可能為空 而get()不充許為空
 filter()的回傳值可用list()取各個單一實例 而get()的回傳值本身就是單一實例
 
-Book.objects.filter(pk__in=[1,4,7]) 在list中的其中一個
+Book.objects.filter(pk__in=[1,4,7]) 在list中的其中一個或全部
 Book.objects.filter(pk__gt=14) pk>14
 gt: greater than 和 gte: greater than or equal 
 lt: less than 和 lte: less than or equal

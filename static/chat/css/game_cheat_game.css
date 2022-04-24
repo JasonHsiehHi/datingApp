@@ -1,0 +1,36 @@
+#game-inventory .a-title.a-sidebar{
+    color:#15c7ff;
+}
+
+#game-inventory .a-circle.a-sidebar{
+    border-radius: 30%;
+    border-width: 2px;
+    border-style: solid;
+}
+
+#inventory-modal .modal-content{
+    background: #31353b;
+    color:#b8bfce;
+}
+
+#inventory-modal .modal-title{
+    color:#15c7ff;
+}
+
+#inventory-modal .modal-body{
+    border-top: 1px hidden #dee2e6;
+    border-bottom: 1px hidden #dee2e6;
+}
+
+#inventory-modal .modal-body.a-picture{
+    display: flex;
+    justify-content: center!important;
+}
+#inventory-modal .modal-body.a-picture>img{
+    max-width: 240px;
+    max-height: 240px;
+}
+
+#inventory-modal .a-point{
+    color:#15c7ff;
+}

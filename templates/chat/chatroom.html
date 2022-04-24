@@ -309,6 +309,9 @@
             </div>
         </div>
     </div>
+
+    {% block gameModal %}{% endblock %}
+
     <nav class="navbar sticky-top a-div a-clr">
         <div class="container-fluid">
             <button class="navbar-toggler btn a-div a-clr" id='sidebar-btn' type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
@@ -326,35 +329,15 @@
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settings-btn">
                         <form id="settings-form">
                             <li><span class="dropdown-item-text">
-                                <span>音效：</span>
+                                <span>通知音效：</span>
                                 <span class="btn-group a-radio">
-                                <input type="radio" class="btn-check" name="sound-radio" id="voice-check" value='1' autocomplete="off" checked>
+                                <input type="radio" class="btn-check" name="sound-radio" id="voice-check" value='0' autocomplete="off" checked>
                                 <label class="btn btn-outline-dark" for="voice-check">正常</label>
-                                <input type="radio" class="btn-check" name="sound-radio" id="muted-check" value='0' autocomplete="off">
+                                <input type="radio" class="btn-check" name="sound-radio" id="muted-check" value='1' autocomplete="off">
                                 <label class="btn btn-outline-dark" for="muted-check">靜音</label>
                                 </span>
                             </span></li>
-
-                            <li><span class="dropdown-item-text">
-                                <span>尋找對象：</span>
-                                <span class="btn-group a-radio">
-                                <input type="radio" class="btn-check" name="sex-radio" id="male-radio" value='m' autocomplete="off" checked>
-                                <label class="btn btn-outline-dark" for="male-radio"><i class="material-icons-outlined md-18 align-text-top">male</i>找男生</label>
-                                <input type="radio" class="btn-check" name="sex-radio" id="female-radio" value='f' autocomplete="off">
-                                <label class="btn btn-outline-dark" for="female-radio"><i class="material-icons-outlined md-18 align-text-top">female</i>找女生</label>
-                                </span>
-                            </span></li>
-                            <li><span class="dropdown-item-text">
-                                <span>遊戲模式：</span>
-                                <span class="btn-group a-radio">
-                                <input type="radio" class="btn-check" name="mode-radio" id="normal-radio" value='0' autocomplete="off">
-                                <label class="btn btn-outline-dark" for="normal-radio">正常模式</label>
-                                <input type="radio" class="btn-check" name="mode-radio" id="adult-radio" value='1' autocomplete="off" checked>
-                                <label class="btn btn-outline-dark" for="adult-radio">成人模式</label>
-                                </span>
-                            </span></li>
-                            <li><span class="dropdown-item-text"><button class="d-none btn btn-dark" type="submit">確定</button></span></li>
-                            <li><span class="dropdown-item-text">測試版本只有一種劇本：(找異性)(成人模式)</span></li>
+                            <li><span class="dropdown-item-text"></span></li>
                         </form>
                     </ul>
                 </div>

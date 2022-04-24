@@ -11,19 +11,25 @@ def reply(request):
     if request.is_ajax and request.method == "POST":
         msg = request.POST['send-text']
         self_player = request.user.profile
+        self_uuid = str(self_player.uuid)
         if self_player.tag_int != 0:
             return JsonResponse({"result": False, "msg": '你已經在這張<span class="a-point">紙條</span>上留過答案了哦！'})
-
-        self_player.tag_json['paper'][3].append("<span class='a-point'>{}</span>: {}".format(self_player.name, msg))
-        self_player.tag_json['interact'][str(self_player.uuid)] = 1
+        answer = "<span class='a-point'>{}</span>: {}".format(self_player.name, msg)
+        self_player.tag_json['paper'][4].append(answer)
+        self_player.tag_json['interact'][self_uuid] = 1
         self_player.tag_int = 1
         self_player.save()
 
         room = self_player.room
-        room.player_dict[str(self_player.uuid)][2] = 1  # update room instead of updating tag_json of every player
-        room.save()
+        for player in room.players.all().exclude(uuid=self_uuid):
+            if player.tag_json['interact'][self_uuid] in [0, 2, 3]:
+                player.tag_json['interact'][self_uuid] = 1
+                player.save()
 
-        return JsonResponse({"result": True})
+        # room.player_dict[self_uuid][2] = 1  # update room instead of updating tag_json of every player
+        # room.save()
+
+        return JsonResponse({"result": True, 'answer': answer})
     else:
         print("error: it's not through ajax.")
 
@@ -36,7 +42,7 @@ def pass_paper(request, uuid):
             return JsonResponse({"result": False, "msg": '你現在不能將紙條傳給別人哦！'})
 
         opposite = Player.objects.get(uuid=uuid)
-        if opposite.tag_json['interact'][uuid] != 1:
+        if opposite.tag_int in [0, 3]:
             return JsonResponse({"result": False, "msg": '對方現在不能與你交換紙條哦！'})
 
         opposite.tag_json['interact'][self_uuid] = 3
@@ -62,28 +68,59 @@ def change_paper(request, uuid):
         if self_player.tag_json['interact'][uuid] != 3 and opposite.tag_json['interact'][self_uuid] != 2:
             return JsonResponse({"result": False, "msg": '對方已經與其他人交換新紙條或已與其他人配對成功。'})
 
+        room = self_player.room
+        if uuid not in room.onoff_dict.keys():
+            return JsonResponse({"result": False, "msg": '你們不在同一個房間。'})
+
         term = self_player.tag_json['paper']
         self_player.tag_json['paper'] = opposite.tag_json['paper']
         opposite.tag_json['paper'] = term
 
-        def refresh_after_change(interact_dict, selfUUID):
+        def change_btn_two(interact_dict, the_self_uuid, opposite_uuid):
             for uuid, s in interact_dict.items():
                 if s in [2, 3]:
-                    interact_dict[uuid] = 0
+                    interact_dict[uuid] = 1  # player had passed, so let the value to be 1
                 elif s in [5, 6]:
                     interact_dict[uuid] = 4
-            interact_dict[selfUUID] = 0
+            interact_dict[the_self_uuid] = 0
+            interact_dict[opposite_uuid] = 4
             return interact_dict
 
         term = self_player.tag_json['interact']
-        self_player.tag_json['interact'] = refresh_after_change(opposite.tag_json['interact'], uuid)
-        opposite.tag_json['interact'] = refresh_after_change(term, self_uuid)
+        self_player.tag_json['interact'] = change_btn_two(opposite.tag_json['interact'], self_uuid, uuid)
+        self_player.tag_int = 0
+        opposite.tag_json['interact'] = change_btn_two(term, uuid, self_uuid)
+        opposite.tag_int = 0
         self_player.save()
         opposite.save()
 
-        room = self_player.room
-        room.player_dict[str(self_player.uuid)][2] = 0  # update room instead of updating tag_json of every player
-        room.save()
+        def refresh_after_change(value, toSave, intToChange):
+            if intToChange is False and value in [2, 5]:
+                intToChange = True
+
+            if value in [1, 2, 3]:  # player took new paper, so let the value to be 0
+                value = 0
+                toSave = True
+            elif value in [5, 6]:
+                value = 4
+                toSave = True
+            return value, toSave, intToChange
+
+        toSave = False
+        intToChange = False
+        for player in room.players.all().exclude(uuid__in=[self_uuid, uuid]):
+            player.tag_json['interact'][self_uuid], toSave, intToChange = \
+                refresh_after_change(player.tag_json['interact'][self_uuid], toSave, intToChange)
+            player.tag_json['interact'][uuid], toSave, intToChange = \
+                refresh_after_change(player.tag_json['interact'][uuid], toSave, intToChange)
+            if intToChange is True:
+                player.tag_int = 1 if player.tag_json['interact'][str(player.uuid)] == 1 else 0
+            if toSave is True:
+                player.save()
+
+        # room.player_dict[self_uuid][2] = 0  # update room instead of updating tag_json of every player
+        # room.player_dict[uuid][2] = 0
+        # room.save()
 
         opposite_data = {
             'paper': opposite.tag_json['paper'],
@@ -104,7 +141,7 @@ def match(request, uuid):
             return JsonResponse({"result": False, "msg": '你現在不能寄送配對邀請哦！'})
 
         opposite = Player.objects.get(uuid=uuid)
-        if opposite.tag_json['interact'][uuid] not in [1, 4]:  # whether player has responded your paper or not
+        if opposite.tag_int == 3:  # whether player has responded your paper or not
             return JsonResponse({"result": False, "msg": '對方現在不能與你配對！'})
 
         opposite.tag_json['interact'][self_uuid] = 6
@@ -123,21 +160,30 @@ def accept(request, uuid):
     if request.is_ajax and request.method == "GET":
         self_player = request.user.profile
         self_uuid = str(self_player.uuid)
+        if self_player.tag_int == 3:  # whether you have responded your paper or not
+            return JsonResponse({"result": False, "msg": '你已經接受過其他人的配對了哦！'})
 
         opposite = Player.objects.get(uuid=uuid)
         if self_player.tag_json['interact'][uuid] != 6 and opposite.tag_json['interact'][self_uuid] not in [1, 5]:
             return JsonResponse({"result": False, "msg": '對方已與其他人配對成功或已與其他人交換新紙條。'})
 
+        room = self_player.room
+        if uuid not in room.onoff_dict.keys():
+            return JsonResponse({"result": False, "msg": '你們不在同一個房間。'})
+
         match = Match.objects.create(room=self_player.room, player_list=[uuid, self_uuid])
-        for player in [opposite, self_player]:
-            player.match = match
-            player.status = 3
-            player.tag_int = 3
+        for player in room.players.all():
+            player_uuid = str(player.uuid)
+            if player_uuid in [self_uuid, uuid]:
+                player.match = match
+                player.status = 3
+                player.tag_int = 3
+            else:
+                player.tag_int = 1 if player.tag_json['interact'][player_uuid] == 1 else 0
             player.tag_json['interact'][uuid] = 7
             player.tag_json['interact'][self_uuid] = 7
             player.save()
 
-        room = self_player.room
         isWon = True if room.answer['roles'][self_uuid] == 1 or room.answer['roles'][uuid] == 1 else False
         return JsonResponse({"result": True, "isWon": isWon})
     else:
@@ -178,11 +224,7 @@ def prepare(request):  # only the game creator needs to do prepare()
 
             content = question.content
             content[0] = '<span class="a-point">問題：</span>' + content[0]
-            explain = ['每個人一開始所獲得的<span class="a-point">作弊紙條</span>都不一樣！',
-                       '可開啟左側選單找尋你認為是<span class="a-point">槍手</span>的玩家，'
-                       '<span class="a-point">傳紙條</span>給他，若對方選擇<span class="a-point">換紙條</span>，'
-                       '則成功與他交換手上的紙條，即可查看對方的答案！']
-            papers[uuid] = ['作弊紙條-' + a, content, explain, []]
+            papers[uuid] = ['作弊紙條-' + a, [], [], content, ['<span class="a-point">回答：</span>']]
 
         if gender_ratio[1] == 0:
             player = choice(list(players))

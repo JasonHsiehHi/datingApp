@@ -854,6 +854,7 @@ cards:
 <a class="btn btn-primary" href="#">
 等價於<button class="btn btn-primary" type="button"> 兩者可替換
 <a>大多用在超連結或其他UI的佈局變動 <button>則適合用於form的表單
+還有一個差異是<a>本身的樣式是在文字上畫底線 <button>的樣式就是按鍵
 
 <button>元素除了type="button"之外 還有type="submit" 和 type="reset" 都為配合<form>元素而使用 (submit為寄出完整form資料 reset為完全清除form當下資料)
 因此有些瀏覽器會將<button>元素預設為type="submit" 此時若沒有再設置type="button"就會出錯
@@ -1096,7 +1097,7 @@ $('.form_modal').on('show.bs.modal', function(e) { //  $為jq元件 退出用'hi
 
 modal的組成：
 <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">  // 特別隔出modal-dailog元素是為了決定彈出框的位置與性質
+  <div class="modal-dialog modal-dialog-centered">  // 特別隔出modal-dailog元素是為了決定彈出框的位置與性質 'centered'可用於將彈出匡放在正中間
     <div class="modal-content">
       <div class="modal-header">
       <div class="modal-body">
@@ -1905,7 +1906,7 @@ array3 = array1.concat(array2) 用於向後合併不同的array 時常會跟join
 好處是自身不會發生改變 故也必須賦值到一個新array
 
 array.splice(start [, deleteCount[, item1]])
-則用於在原字串或陣列中間位置刪除元素或插入元素 
+則用於在原字串或陣列中間位置刪除元素或插入元素 (splice為 split和slice的合併字)
 
 array.pop() 和 array.shift() 刪除最後一項與刪除第一項
 
@@ -3817,7 +3818,12 @@ this.setState({percent: 70},()=>{
 React hook的其一目的是為了讓function component可以使用 state ( useState為hook的一種 可一次性的將state屬性和setState方法掛鉤在一起的方法 )
 const [percent, changePercent] = useState("20%"); 等同於一次設定了屬性與方法
 
-( JS的解構賦值： unpack values from arrays, or properties from objects, into distinct variables. 用於將array的值分成多個變數 )
+JS的解構賦值： unpack values from arrays, or properties from objects, into distinct variables. 用於將array的值分成多個變數
+
+Destructuring assignment解構函式 JS的解構函式主要為讓function可以回傳多個變數 (實際是只回傳list 但返回時可用解構函式將其氛圍不同的變數)
+[a, b, ...rest] = [10, 20, 30, 40, 50];
+[a, b] = [10, 20, 30, 40, 50]; 當解構函式中的變數不足時 只會返回順序前面的變數
+({ a, b } = { a: 10, b: 20 }); 除了用在list 也可用在dict (會先認key)
 
 React hook不能在for loop、if-else、nest function中使用 精確的說法是你不能在這些地方去定義產生React hook。(例如 宣告由變數和函式並從useState取得)
 因為useState有順序性 必須一一綁定對應的屬性 在for-loop或其他運算邏輯中可能導致對應錯誤

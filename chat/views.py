@@ -443,7 +443,7 @@ def reset_pwd_send_mail(email, temp_pwd):
 # game function
 def start_game(request):
     if request.is_ajax and request.method == 'POST':
-        isLater = request.POST['isLater']
+        isLater = True if request.POST['isLater'] == '1' else False
         isHetero = True if request.POST['sex-radio'] == '1' else False
         isAdult = True if request.POST['mode-radio'] == '1' else False
         if not request.user.is_authenticated:
@@ -498,7 +498,7 @@ def start_game(request):
             if self_player.gender == 'm':
                 players = list(female_players.order_by('waiting_time'))[:femaleNeeded] + \
                           [self_player] + list(male_players.order_by('waiting_time'))[:maleNeeded - 1]
-            else:
+            else:  # self_player.gender == 'f'
                 players = [self_player] + list(female_players.order_by('waiting_time'))[:femaleNeeded - 1] + \
                           list(male_players.order_by('waiting_time'))[:maleNeeded]
 
@@ -524,8 +524,7 @@ def start_game(request):
 
 
 def get_game():
-    # games = Game.objects.filter(Q(isAdult=isAdult) & Q(isHetero=isHetero))
-    # 改成: games = Game.objects.filter(available=True)
+    # games = Game.objects.filter(available=True)
     # game = games[randint(0, len(games) - 1)]
 
     game = Game.objects.get(id=4)  # designate the game instead of selecting randomly

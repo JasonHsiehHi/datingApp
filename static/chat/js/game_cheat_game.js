@@ -25,37 +25,74 @@ var gameCheckGate = function(){
     function mat(isDirected=true){
         var li_others = [...loginData.player_list];
         li_others.remove(loginData.uuid);
-        var li_others_on = [...li_others];  // 直接用li_others就行 之後刪掉此行
-
         for(let [key, value] of Object.entries(loginData.onoff_dict)){
-            (value !== 1) && li_others_on.remove(key);
+            (value !== 1) && li_others.remove(key);
         }
 
         var text;
-        if (0 === li_others_on.length){
+        if (0 === li_others.length){
             text = '目前房間內剩你一人...';
         }else{
-            var name_list = li_others_on.map(uuid => loginData.player_dict[uuid][0]);
+            var name_list = li_others.map(uuid => loginData.player_dict[uuid][0]);
             text = '<span class="a-point">'+name_list.join(', ')+'</span> 目前待在房間中';
         }
         (!0 === isDirected) && theUI.showSys(text);
         return text
     }
 
-    function art(name, isDirected=false){  // all articles of the player are stored in tag_json
-        var text = '已獲得物品<span class="a-point">'+ name+ '</span>！';
-        (!0 === isDirected) && theUI.showSys(text);
-        return text
-        
-    }
-    function ari(article){
-        var dialogs = [], part_di;
-        dialogs.push([art(article[0]), !1,'s']);
-        for (let part of article.slice(1)){
-            (part.length > 0) && (part_di = part.map( msg => [msg, !1, 's'] ));
-            dialogs.push(...part_di);
+    function art(name, btn_css_id, isDirected=false){  //something may be gain and won't put into inventory
+        var text = '獲得物品<a style="text-decoration:none;" onclick="$(\''+ btn_css_id +'\').click()" class="a-point">'+ name+ '[查看]</a>！';
+        if (!0 === isDirected){
+            theUI.showSys(text);
+            if (!1 === localData.isMuted && !1 === toggle.focus){
+                document.getElementById("audio-obtain").play();
+            }
         }
+        return text     
+    }
+
+    function arn(article_name, isDirected=false){  // the article of the player be put into inventory
+        var article = loginData.tag_json[article_name];
+        $('#atag-'+article_name).removeAttr('onclick').removeAttr('id');
+        var text = '獲得物品<a style="text-decoration:none;" id="atag-'+article_name+'" onclick="$(\'#'+ article_name +'-btn\').click()" class="a-point">'+ article[0]+ '[查看]</a>！';
+        if (!0 === isDirected){
+            theUI.showSys(text);
+            if (!1 === localData.isMuted && !1 === toggle.focus){
+                document.getElementById("audio-obtain").play();
+            }
+        }
+        return text
+    }
+
+    function ari(article_name){
+        var article = loginData.tag_json[article_name];
+        var dialogs = [[arn(article_name), !1,'s']];
+        var part_di = article[1].map( msg => [msg, !1, 's'] );
+        dialogs = dialogs.concat(part_di);
         return dialogs
+    }
+
+    function arp(article_name, indexs, listToDialogs = true){
+        var article = loginData.tag_json[article_name];
+        var result = [];
+        if ( !0 === listToDialogs ){
+            var part_di;
+            for (let i of indexs){
+                if (article[i].length > 0) {
+                    part_di = article[i].map( msg => [msg, !1, 'a'] );
+                    result = result.concat(part_di);  // result :[[msg1, !1, 'a'],[msg2, !1, 'a'],[msg3, !1, 'a']....]
+                }
+            }
+        }else{
+            var text_li;
+            for (let i of indexs){
+                if (article[i].length > 0) {
+                    text_li = result.concat(article[i]);
+                }
+            }
+            result = [[text_li.join('<br>'), !1, 'a']];
+        }
+        return result
     }
 
     function prl(){
@@ -66,14 +103,11 @@ var gameCheckGate = function(){
             success: function(data) {
                 if (!0 === data['result']){
                     loginData.tag_json = data.tag_json, loginData.tag_int = data.tag_int, refreshGameTagAll();
-                    $('#user-role').text( '('+loginData.tag_json['role']+')');
-
+                    loadSidebarbyRole(loginData.tag_json['role']);
                     replyMethod();
                     
-                    var li = [...data.guest_dialogs];
-                    li = li.concat(ari(card));  // from db_cheat_game.js, same contents for everyone
-                    var paper = loginData.tag_json['paper'];
-                    li = li.concat(ari(paper));
+
+                    var li = [...story_dialogs, ...data.guest_dialogs, ...ari('card'), ...ari('paper'), ...arp('paper', [3])];
                     
                     theUI.showStoryAsync(li, interval=1500, callback=function(){
                         theUI.unreadTitle(!0);
@@ -93,8 +127,11 @@ var gameCheckGate = function(){
         player:pla,
         matcher:mat,
         article:art,
+        articleName:arn,
         articleInfo:ari,
-        prolog:prl
+        articlePart:arp,
+        prolog:prl,
+        
     }
 }
 
@@ -138,8 +175,8 @@ function passMethod(css_id, player_uuid){
                     if (!0 === data['result']){
                         loginData.tag_int = 2, loginData.tag_json['interact'][player_uuid] = 2; refreshGameTag(player_uuid);
                         showNotice('已將紙條傳給 '+others[player_uuid][0]+' ！');
-
-                        theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', 'pass'], ['tag', 2]);
+                        theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', 'pass'],['hidden', player_uuid] ,['tag', 2]);
+                        $('#sidebar').offcanvas('hide');
                     }else{
                         $('#pass-modal-form p.a-error').text(data['msg']);
                     }
@@ -172,9 +209,17 @@ function changeMethod(css_id, player_uuid){
                 if (!0 === data['result']){
                     loginData.tag_int = 0, loginData.tag_json['interact'] = data['self_interact'], refreshGameTagAll();
                     loginData.tag_json['paper'] = data['self_paper'];
+                    loadTagfromDB(loginData.tag_json['role']);
+                    refreshInventory('paper');
+
+                    theWS.callSendWs('inform',['target', 'room'], ['meInGroup', true], ['message', data['opposite_data']],['hidden', player_uuid], ['tag', 3]);
                     showNotice('成功與 '+others[player_uuid][0]+' 互換紙條！');
-                    theWS.callSendWs('inform',['target', 'room'], ['meInGroup', true], ['message', data['opposite_data']],['hidden', player_uuid] ['tag', 3]);
-                    // data['opposite_data'] 需不需要變做JSON.stringify
+                    var di = [[gameGate.articleName('paper'), !1, 's'],...gameGate.articlePart('paper', [3])];
+                    theUI.showStoryAsync(di, interval=0);
+                    theUI.scrollToNow();
+                    theUI.storeChatLogs(di, di.length, 'gameLogs');
+                    $('#sidebar').offcanvas('hide');
+
                 }else{
                     showNotice(data['msg']);
                     // but something wrong when the player is disconnected coincidentally
@@ -200,19 +245,19 @@ function matchMethod(css_id, player_uuid){
         $("#match-modal-form").on('submit',function(e){
             e.preventDefault();
             if (2 === loginData.tag_int){
-                $('#pass-modal-form p.a-error').text('你已寄送配對邀請或已將紙條傳給其他人！（但對方可能還沒接受）');
+                $('#match-modal-form p.a-error').text('你已寄送配對邀請或已將紙條傳給其他人！（但對方可能還沒接受）');
                 return false
             }
             if (!1 === [0,1].includes(loginData.tag_int)){  // the last check
-                $('#pass-modal-form p.a-error').text('你現在不能寄送配對邀請哦！');
+                $('#match-modal-form p.a-error').text('你現在不能寄送配對邀請哦！');
                 return false
             }
             if (7 === loginData.tag_json['interact'][player_uuid]){
-                $('#pass-modal-form p.a-error').text('對方已經與其他人成功配對了');
+                $('#match-modal-form p.a-error').text('對方已經與其他人成功配對了');
                 return false
             }
             if (4 !== loginData.tag_json['interact'][player_uuid]){  // the last check
-                $('#pass-modal-form p.a-error').text('對方現在不能與你配對！');
+                $('#match-modal-form p.a-error').text('對方現在不能與你配對！');
                 return false
             }
 
@@ -224,7 +269,8 @@ function matchMethod(css_id, player_uuid){
                     if (!0 === data['result']){
                         loginData.tag_int = 2, loginData.tag_json['interact'][player_uuid] = 5; refreshGameTag(player_uuid);                       
                         showNotice('已送出配對邀請給 '+others[player_uuid][0]+' ！');
-                        theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', 'match'], ['tag', 4]);
+                        theWS.callSendWs('inform', ['target', player_uuid], ['meInGroup', false], ['message', 'match'], ['hidden', player_uuid], ['tag', 4]);
+                        $('#sidebar').offcanvas('hide');
                     }else{
                         $('#match-modal-form p.a-error').text(data['msg']);
                     }
@@ -240,6 +286,10 @@ function acceptMethod(css_id, player_uuid){
     /* binded by loadRoleData() on sidebar #player-*-btn */
     $(css_id).off('click');
     $(css_id).on('click',function(e){
+        if (3 === loginData.tag_int){  // the last check
+            showNotice('你已經接受過其他人的配對了哦！');
+            return false
+        }
         if (6 !== loginData.tag_json['interact'][player_uuid]){  // the last check
             showNotice('對方已與其他人配對成功或已與其他人交換新紙條。');
             return false
@@ -252,7 +302,7 @@ function acceptMethod(css_id, player_uuid){
                 if (!0 === data['result']){
                     loginData.tag_int = 3, loginData.tag_json['interact'][player_uuid] = 7, refreshGameTag(player_uuid);
                     showNotice('與 '+others[player_uuid][0]+' 成功配對。 已建立房間，等待中...');
-                    theWS.callSendWs('inform',['target', 'room'], ['meInGroup', true], ['message', data['isWon']],['hidden', player_uuid] ['tag', 5]);
+                    theWS.callSendWs('inform', ['target', 'room'], ['meInGroup', true], ['message', data['isWon']],['hidden', player_uuid], ['tag', 5]);
                 }else{
                     showNotice(data['msg']);
                     // but something wrong when the player is disconnected coincidentally
@@ -273,8 +323,8 @@ function replyMethod(){
         e.preventDefault();
 
         if (0 !== loginData.tag_int){
-            theUI.showSys('你已經在這張<span class="a-point">紙條</span>上留過答案了哦！');
-            theUI.scrollToNow();
+            theUI.showSys('朋友冷靜，你已經在這張<span class="a-point">紙條</span>上留過答案或是已寄送配對邀請了哦！');
+            //theUI.scrollToNow();
             return false
         }
 
@@ -287,8 +337,11 @@ function replyMethod(){
             success: function(data) {
                 if (!0 === data['result']){
                     loginData.tag_int = 1, loginData.tag_json['interact'][loginData.uuid] = 1;
-                    theUI.showSys('感謝你的回答！ 你已在這張<span class="a-point">紙條</span>上留下答案了，你可開啟左側玩家名單將<span class="a-point">紙條</span>傳給其他人。');
-                    theUI.scrollToNow();
+                    loginData.tag_json['paper'][4].push(data.answer);
+                    var text = '感謝你的回答！ 你已在<span class="a-point">紙條</span>上留下答案，可開啟左側玩家名單將<span class="a-point">紙條</span>傳給其他人。';
+                    theUI.showSys(text);
+                    theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
+                    //theUI.scrollToNow();
                     theWS.callSendWs('inform',['target', 'room'], ['meInGroup', true], ['message', 'reply'], ['tag', 1]);
                 }else{
                     theUI.showSys(data['msg']);
@@ -300,24 +353,73 @@ function replyMethod(){
     })
 }
 
-function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'
-    var css_id; 
-    for (let uuid in position)
-        css_id = position[uuid], disabledElmtCss(css_id+'-btn');
-    disabledElmtCss('#start-btn');
-
-    $('body').off('click', "#leave-btn");
-    $("#leave-btn").on('click',function(a){  // status is still 2 on front-end until redirect to /chat  
-        window.location.href = "/chat"; 
+function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
+    $("#send-text").off('keypress');
+    $("#send-text").on('keypress',function(a){
+        if (13 == a.which || 13 == a.keyCode){
+            a.preventDefault();
+            var text = $("#send-text").val();
+            if (void 0 !== text && null !== text &&'' !== text){
+                (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? $("#send-form").submit(): theUI.showSys('你還未進入房間哦！'));
+                // theUI.scrollToNow();
+            } 
+            $("#send-text").val('');
+            $("#send-text").blur(), $("#send-text").focus();
+        }
     })
+}
+
+function articleMethod(name){
+    $('#'+name+'-btn').on('click',function(a){
+        var article = loginData.tag_json[name];
+        var article_name = article[0].split('').map(s => s+' ').join('');
+        $('#inventory-modal .modal-title').text(article_name);
+        var part_con, part_elmt, elmts='';
+        elmts += '<div class="modal-body a-picture"><img src="/static/chat/img/'+ game_name +'/' + name + '.png" alt="'+ name + '"></div>'
+        for (let part of article.slice(2)){
+            if (part.length > 0){
+                part_con = part.map( msg => '<p>'+msg+'</p>').join('');
+                part_elmt = '<div class="modal-body">'+ part_con +'</div>';
+                elmts += part_elmt;
+            }
+        }
+        $('#inventory-modal-content').html(elmts);
+        $('#inventory-modal').modal('show');
+    })
+
+}
+
+function putIntoInventory(name){
+    var article = loginData.tag_json[name];
+    var article_name = article[0].split('').map(s => s+' ').join('');
+    var newElmt_text = '<div class="list-group-item a-div d-flex" id="article-'+ name+'"><div class="a-circle a-sidebar"><img src="/static/chat/img/'+ game_name +'/' + name + '.png" alt="'+ name + '"></div><div class="ps-1 pt-1 flex-grow-1"><div class="d-flex justify-content-between"><div class="mb-0 a-article a-sidebar"><span class="a-title a-sidebar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="'+article_name+'">'+article_name+'</span></div><button class="btn btn-warning a-sidebar btn-sm" id='+name+'-btn type="button">查看</button></div></div></div>';
+    $('#game-inventory').append($(newElmt_text));
+    articleMethod(name);
+}
+
+function refreshInventory(name){
+    var article = loginData.tag_json[name];
+    var article_name = article[0].split('').map(s => s+' ').join('');
+    $('#article-'+name+' .a-title.a-sidebar').attr('data-bs-original-title', article_name).text(article_name);
+}
+
+function loadTagfromDB(role){
+    loginData.tag_json['card'] = card;  // from db_cheat_game.js, same contents for everyone
+    var r = (role === '槍手')?1 :0 ;
+    loginData.tag_json['paper'][1] = paper['dialog'][r];
+    loginData.tag_json['paper'][2] = paper['explain'][r];
+}
+
+function loadSidebarbyRole(role){
+    loadTagfromDB(role);
+    $('#user-role').text( '('+role+')');
+    putIntoInventory('card'), putIntoInventory('paper');
 }
 
 function loadRoleData(){  // to display sidebar content according to individual role
     /* use loginData.player_dict to display sidebar content and establish variables(self, others, position) */
     self = loginData.player_dict[loginData.uuid];
     // [name, gender(m, f or n)]
-    (null !== loginData.tag_json) && $('#user-role').text( '('+loginData.tag_json['role']+')');
-
     others = JSON.parse(JSON.stringify(loginData.player_dict)), delete others[loginData.uuid];  // except self
     // {uuid:[name, gender(m,f,n), status],...}
     
@@ -333,7 +435,9 @@ function loadRoleData(){  // to display sidebar content according to individual 
         i++;
     }
 
-    // $('#game-rule').html(card); 併入 $('#game-inventory')之中
+    if ( localData.gameLogs.length > 0 && null !== loginData.tag_int && null !== loginData.tag_json){
+        loadSidebarbyRole(loginData.tag_json['role']);
+    }
 
     $('#start-btn').text('行 動').attr('disabled', true);
     refreshGameStatus(loginData.status);
@@ -346,24 +450,22 @@ function refreshGameStatus(status){  // refresh status, tag_json and tag_int acc
     switch (status){   // second, refresh self status as well as tag_json and tag_int
         case 2:
 
-            (null !== loginData.tag_int && null !== loginData.tag_json) && refreshGameTagAll();  // refresh player css btn according to current tag_json or tag_int
+            (null !== loginData.tag_int && null !== loginData.tag_json) && refreshGameTagAll();  
+            // refresh player css btn according to current tag_json or tag_int
+            // replyMethod only on status=2, when status=3 with theWS.msgSendWs(text)
 
             var num_on = gameGate.playerNum();
             setNavTitle(num_on);
 
             (localData.chatLogs.length>0) && theUI.clearChatLogs('chatLogs'); 
             if (localData.gameLogs.length === 0){  // the first time to enter game
-                gameGate.player(), gameGate.prolog();
+                gameGate.prolog();
             }else{
                 var isMore = theUI.loadChatLogs('gameLogs');  // game dialogs are on status=2 only
                 (!0 === isMore) && appearElmtCss('#show-more');
-                gameGate.player();
+                replyMethod();
+                // gameGate.player();
             }
-
-            if ('timetable' in localData.answers){
-                replyMethod();  // only on status=2, when status=3 with theWS.msgSendWs(text)
-            } 
-
             break;
         case 3:
             disablePlayerBtnAll();
@@ -392,7 +494,7 @@ function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPla
             $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
             $(css_id).find('.a-onoff').text('(離線)');
 
-            disabledElmtCss(css_id+'-btn');
+            disabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm');
             
             (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !0);
             break;
@@ -411,7 +513,7 @@ function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPla
             $(css_id).find('.a-onoff').text('(已退出)');
             $(css_id).find('.a-circle').text('');
 
-            disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已退出');
+            disabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('已退出');
 
             (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !0);
             break;
@@ -434,46 +536,46 @@ function refreshGameTagAll(){  // refresh tag_int&tag_json only be called on sta
 function refreshGameTag(player_uuid){  // refreshGameSingle() can call refreshGameTag() instead of refreshGameTagAll()
     // everyone in game is same, so self_group isn't used.
     var css_id = position[player_uuid];
-    if (0 === loginData.player_dict[1]){
+    /* 
+    if ( 0 === loginData.player_dict[player_uuid][2] ){
         if (!0 === [2,3].includes(loginData.tag_json['interact'][player_uuid]))
             loginData.tag_json['interact'][player_uuid] = 0;
         else if (!0 === [5,6].includes(loginData.tag_json['interact'][player_uuid]))
             loginData.tag_json['interact'][player_uuid] = 4;
-    }else  // 1 === loginData.player_dict[1]
+    }else  // 1 === loginData.player_dict[player_uuid][2]
         if (0 === loginData.tag_json['interact'][player_uuid])
             loginData.tag_json['interact'][player_uuid] = 1;
+    */
 
     switch(loginData.tag_json['interact'][player_uuid]){
         case null:
             break;
         case 0:  // '傳遞前未填完'
         case 1:  // '傳遞前已填完'
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning'), $(css_id+'-btn').text('傳紙條'), passMethod(css_id+'-btn', player_uuid);  
+            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('傳紙條'), passMethod(css_id+'-btn', player_uuid);  
             break;
         case 2:
             disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已傳遞');
             break;
         case 3:
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-danger'), $(css_id+'-btn').text('換紙條'), changeMethod(css_id+'-btn', player_uuid);
+            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-danger btn-sm'), $(css_id+'-btn').text('換紙條'), changeMethod(css_id+'-btn', player_uuid);
             break;
         case 4:
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning'), $(css_id+'-btn').text('配對'), matchMethod(css_id+'-btn', player_uuid);  
+            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('配對'), matchMethod(css_id+'-btn', player_uuid);  
             break;
         case 5:
             disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已邀請');
             break;
         case 6:
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-danger'), $(css_id+'-btn').text('接受'), acceptMethod(css_id+'-btn', player_uuid);
+            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-danger btn-sm'), $(css_id+'-btn').text('接受'), acceptMethod(css_id+'-btn', player_uuid);
             break;
         case 7:
-            disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已配對');
+            disabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('已配對');
             break;
     }
-}
-
-function changeBtnColor(css_id, class_name){  
-    // class_name:btn-primary, btn-secondary, btn-success, btn-danger, btn-warning, btn-info, btn-light, btn-dark
-    $(css_id).removeClass(), $(css_id).addClass('btn '+ class_name);
+    if (3===loginData.tag_int){
+        disabledElmtCss(css_id+'-btn');
+    }
 }
 
 function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one player status, only be called in websocket.onmessage
@@ -484,7 +586,9 @@ function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one playe
 
     switch (ws_type){  // react the ws_type according to induvidual role
         case 'CONN':
-            refreshPlayer(player_uuid), refreshGameTag(player_uuid); // tag_json & tag_int will affect the result only if the player is online.
+            refreshPlayer(player_uuid);
+            (2===loginData.status)? refreshGameTag(player_uuid): disabledElmtCss(position[player_uuid]+'-btn'); // (status is 2 or 3)
+            // tag_json & tag_int will affect the result only if the player is online.
             // theUI.showSys('<span class="a-point">'+loginData.player_dict[player_uuid][0]+'</span> 已上線！');
             break;
         case 'DISCON':
@@ -496,11 +600,10 @@ function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one playe
             theUI.showSys('<span class="a-point">'+ loginData.player_dict[player_uuid][0] + '</span>' + ' 已離開遊戲。');
             break;
     }
-
 }
 
 function showGameNotice(ws_type, ...args){  // sent by websocket.onmessage
-    switch (ws_type){  // react the ws_type according to induvidual role
+    switch (ws_type){  // react the ws_type according to 'role'
         case 'OVER':  // args[0]: data.isOver
             (!0 === args[0])? showNotice('遊戲結束，可按右上方"離開"鍵 並準備進行下一場遊戲。'): showNotice('出局！可按右上方"離開"鍵 並準備進行下一場遊戲。');
             break;
@@ -510,7 +613,19 @@ function showGameNotice(ws_type, ...args){  // sent by websocket.onmessage
     }
 }
 
-function informGameMessage(data){
+function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'
+    var css_id; 
+    for (let uuid in position)
+        css_id = position[uuid], disabledElmtCss(css_id+'-btn');
+    disabledElmtCss('#start-btn');
+
+    $('body').off('click', "#leave-btn");
+    $("#leave-btn").on('click',function(a){  // status is still 2 on front-end until redirect to /chat  
+        window.location.href = "/chat"; 
+    })
+}
+
+function informGameMessage(data){  // only be called in websocket.onmessage 'INFORM'
     if (0 === data.tag){
         var msgs_li = data.msgs;
         var dialogs = msgs_li.map(msg => [msg, !1, 'a']);
@@ -520,101 +635,145 @@ function informGameMessage(data){
         
     }else if (1 === data.tag){
         if (!1 === data.toSelf){
-            loginData.tag_json['interact'][data.from] = 1, refreshGameTag(data.from);
+            // loginData.player_dict[data.from][2] = 1;
+            (!0 === [0,2,3].includes(loginData.tag_json['interact'][data.from])) && (loginData.tag_json['interact'][data.from] = 1, refreshGameTag(data.from));
             var text = '<span class="a-point">'+others[data.from][0]+'</span>已作答完畢，可交換<span class="a-point">作弊紙條</span>！';
-            theUI.showSys(text);
-            theUI.scrollToNow();
+            (2===loginData.status) && (theUI.showSys(text), theUI.scrollToNow());
             theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
+            if (!1 === localData.isMuted && !1 === toggle.focus){
+                document.getElementById("audio-inform").play();
+            }
         }
 
     }else if (2 === data.tag){
-        loginData.tag_json['interact'][data.from] = 3, refreshGameTag(data.from);
-        var text = '<span class="a-point">'+others[data.from][0]+'</span>傳紙條給你！';
-        theUI.showSys(text);
-        theUI.scrollToNow();
+        if (!1 === data.toSelf){
+            loginData.tag_json['interact'][data.from] = 3, refreshGameTag(data.from);
+            var text = '<span class="a-point">'+others[data.from][0]+'</span>傳紙條給你！';
+        }else{
+            var text = '已將紙條傳給 <span class="a-point">'+others[data.hidden][0]+'</span>！';
+        }
+        (2===loginData.status) && (theUI.showSys(text), theUI.scrollToNow());
         theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
-    
-    }else if (3 === data.tag){
-        if (loginData.uuid === data.hidden){
-            loginData.tag_int = 0, loginData.tag_json['interact'] = data.msgs['interact'], refreshGameTagAll();
-            loginData.tag_json['paper'] = data.msgs['peper'];
+        if (!1 === localData.isMuted && !1 === toggle.focus){
+            document.getElementById("audio-inform").play();
+        }
 
-            // theWS.callSendWs('update');  如果'interact'和'paper'不好傳 可改用'update'
+    }else if (3 === data.tag){
+        var di = [];
+        if (!0 === data.toSelf){
+            // pass
+        }else if (loginData.uuid === data.hidden){
+            //loginData.player_dict[data.from][2] = 0;
+            loginData.tag_int = 0;
+            loginData.tag_json['interact'] = data.msgs['interact'], refreshGameTagAll();
+            loginData.tag_json['paper'] = data.msgs['paper'];
+            loadTagfromDB(loginData.tag_json['role']);
+            refreshInventory('paper');
 
             showNotice('成功與 '+others[data.from][0]+'互換紙條！');
-        }else{
-            refresh_after_change(data.from), refresh_after_change(data.hidden);
-        }
-        var text = '<span class="a-point">'+others[data.hidden][0]+'</span> 和 <span class="a-point">'+others[data.from][0]+'</span> 成功交換了紙條。';
-        theUI.showSys(text);
-        theUI.scrollToNow();
-        theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
+            di = [[gameGate.articleName('paper'), !1, 's'],...gameGate.articlePart('paper', [3])];
 
-        function refresh_after_change(uuid){
+            //theUI.showStoryAsync(di, interval=0);
+            //theUI.scrollToNow();
+            //theUI.storeChatLogs(di, di.length, 'gameLogs');
+
+        }else{
+            var intToChange = false;
+            [loginData.tag_json['interact'][data.from], intToChange] = refresh_after_change(loginData.tag_json['interact'][data.from], intToChange), refreshGameTag(data.from);
+            [loginData.tag_json['interact'][data.hidden], intToChange] = refresh_after_change(loginData.tag_json['interact'][data.hidden], intToChange), refreshGameTag(data.hidden);
+            if (!0 === intToChange)
+                loginData.tag_int = (loginData.tag_json['interact'][loginData.uuid]===1)? 1: 0;
+            //refresh_after_change(data.from), refresh_after_change(data.hidden);
+        }
+        var text = '<span class="a-point">'+loginData.player_dict[data.hidden][0]+'</span> 和 <span class="a-point">'+loginData.player_dict[data.from][0]+'</span> 成功交換了紙條。';
+        di.push([text,!1,'s']);
+
+        //theUI.showSys(text);
+        //theUI.scrollToNow();
+        //theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
+
+        (2===loginData.status) && (theUI.showStoryAsync(di, interval=0), theUI.scrollToNow());
+        theUI.storeChatLogs(di, di.length, 'gameLogs');
+
+        if (!1 === localData.isMuted && !1 === toggle.focus){
+            document.getElementById("audio-inform").play();
+        }
+
+        function refresh_after_change(value, intToChange){
+            if (!0 === [2,5].includes(value))
+                intToChange = true;
+            if (!0 === [1,2,3].includes(value))
+                value = 0;
+            else if (!0 === [5,6].includes(value))
+                value = 4;
+
+            // loginData.player_dict[uuid][2] = 0;
+            /* 
             if (!0 === [2,3].includes(loginData.tag_json['interact'][uuid]))
                 loginData.tag_json['interact'][uuid] = 0;
             else if (!0 === [5,6].includes(loginData.tag_json['interact'][uuid]))
                 loginData.tag_json['interact'][uuid] = 4;
-            refreshGameTag(uuid);
+            */
+            return [value, intToChange]
         }
 
     }else if (4 === data.tag){
-        loginData.tag_json['interact'][data.from] = 6, refreshGameTag(data.from);
-        var text = '<span class="a-point">'+others[data.from][0]+'</span>想與你配對！';
-        theUI.showSys(text);
-        theUI.scrollToNow();
-        theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
-
-    }else if (5 === data.tag){
-        var text = '<span class="a-point">'+others[data.hidden][0]+'</span> 和 <span class="a-point">'+others[data.from][0]+'</span> 已成功配對，';
-        var text2;
-        var msg_li = [];
-        if (!0 === data.msgs){
-            text2 = '槍手已被找到！';
-            msg_li.push(text+text2);
-            var winText = (!0 === [data.hidden, data.from].includes(loginData.uuid))? '遊戲勝利！': '遊戲失敗，你未能領先其他人找到槍手。';
-            msg_li.push(winText);
+        if (!1 === data.toSelf){
+            loginData.tag_json['interact'][data.from] = 6, refreshGameTag(data.from);
+            var text = '<span class="a-point">'+others[data.from][0]+'</span>想與你配對！';
         }else{
-            text2 = '兩人都不是槍手，目前槍手還混在玩家之中。';
-            msg_li.push(text+text2);
+            var text = '已送出配對邀請給<span class="a-point">'+others[data.hidden][0]+'</span>！';
+        }
+        (2===loginData.status) && (theUI.showSys(text), theUI.scrollToNow());
+        theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
+        if (!1 === localData.isMuted && !1 === toggle.focus){
+            document.getElementById("audio-inform").play();
         }
 
-        var dialogs = msgs_li.map(msg => [msg, !1, 'a']);
-        theUI.showStoryAsync(dialogs, interval=0);
-        theUI.scrollToNow();
+    }else if (5 === data.tag){
+        var text = '<span class="a-point">'+loginData.player_dict[data.hidden][0]+'</span> 和 <span class="a-point">'+loginData.player_dict[data.from][0]+'</span> 已成功配對，';
+        var text2;
+        var msgs_li = [];
+        if (!0 === data.msgs){
+            text2 = '槍手已被找到！';
+            msgs_li.push(text+text2);
+            var winText = (!0 === [data.hidden, data.from].includes(loginData.uuid))? '遊戲勝利！': '遊戲失敗，你未能領先其他人找到槍手。';
+            msgs_li.push(winText);
+        }else{
+            text2 = '兩人都不是槍手，目前槍手還混在玩家之中。';
+            msgs_li.push(text+text2);
+        }
+
+        var dialogs = msgs_li.map(msg => [msg, !1, 's']);
+        (2===loginData.status) && (theUI.showStoryAsync(dialogs, interval=0), theUI.scrollToNow());
         theUI.storeChatLogs(dialogs, dialogs.length, 'gameLogs');
 
-        if (loginData.uuid === data.hidden){
+        if (!1 === localData.isMuted && !1 === toggle.focus){
+            document.getElementById("audio-inform").play();
+        }
+        if (!0 === data.toSelf){
+            // pass
+        }else if (loginData.uuid === data.hidden){
             loginData.tag_int = 3, loginData.tag_json['interact'][data.from] = 7, refreshGameTag(data.from);
             showNotice('與 '+others[data.from][0]+' 成功配對。 已建立房間，等待中...');
             theWS.callSendWs('enter_match');
         }else{
-            refresh_after_accept(data.from), refresh_after_accept(data.hidden);
+            loginData.tag_json['interact'][data.from] = 7, refreshGameTag(data.from);
+            loginData.tag_json['interact'][data.hidden] = 7, refreshGameTag(data.hidden);
+            loginData.tag_int = (loginData.tag_json['interact'][loginData.uuid]===1)? 1: 0;
+            // refresh_after_accept(data.from), refresh_after_accept(data.hidden);
         }
+        /*
         function refresh_after_accept(uuid){
             loginData.tag_json['interact'][uuid] = 7;
             refreshGameTag(uuid);
         }
+        */
     }
 }
 
-function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
-    $("#send-text").off('keypress');
-    $("#send-text").on('keypress',function(a){
-        if (13 == a.which || 13 == a.keyCode){
-            a.preventDefault();
-            var text = $("#send-text").val();
-            if (void 0 !== text && null !== text &&'' !== text){
-                (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? $("#send-form").submit(): theUI.showSys('你還未進入房間哦！'));
-                theUI.scrollToNow();
-            } 
-            $("#send-text").val('');
-            $("#send-text").blur(), $("#send-text").focus();
-        }       
-    })
-}
-
 var GAMETITLE = '作弊遊戲',
+    game_name = 'game_cheat_game',
     gameGate = gameCheckGate(),
     self = [],
     others = {},

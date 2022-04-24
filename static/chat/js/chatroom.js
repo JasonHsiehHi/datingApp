@@ -63,6 +63,9 @@ function chatroomWS(){
                     var dialog = [text_only, false, 'a'];  // data.isImg is false, sending_img hasn't been available.
                     theUI.showOneMsg(dialog), theUI.storeChatLogs([dialog]);                        
                     theWS.statusRespWs(data.sender, 2);  // have received msg and then response st_type:2(已送達)
+                    if (!1 === localData.isMuted && !1 === toggle.focus){
+                        document.getElementById("audio-inform").play();
+                    }
                     break;
 
                 case 'MSGS':
@@ -71,14 +74,20 @@ function chatroomWS(){
                         theUI.storeChatLogs(dialog, dialog.length);
                     });
                     theWS.statusRespWs(data.sender, 2); // have received msgs and then response st_type:2(已送達)
+                    if (!1 === localData.isMuted && !1 === toggle.focus){
+                        document.getElementById("audio-inform").play();
+                    }
                     break;
 
                 case 'ERROR':
                     console.log(data.error);
                     break;
 
-                case 'UPDATE':
-                    loginData.onoff_dict = data.onoff_dict, loginData.tag_int = data.tag_int, loginData.tag_json = data.tag_json;
+                case 'UPDATE': // probably cause error: sequence of update and prolog 
+                    loginData.player_dict = data.player_dict, loginData.onoff_dict = data.onoff_dict;
+                    loginData.tag_int = data.tag_int, loginData.tag_json = data.tag_json;
+                    loadTagfromDB(loginData.tag_json['role']);
+
                     refreshPlayerAll();
                     if (2 === loginData.status){
                         (null !== loginData.tag_int && null !== loginData.tag_json) && refreshGameTagAll();
@@ -100,9 +109,11 @@ function chatroomWS(){
                 case 'START':
                     showNotice('遊戲開始！');
                     if (!1 === localData.isMuted && !1 === toggle.focus){
-                        var audio = document.getElementById("audio-enter");
-                        audio.play();
+                        document.getElementById("audio-enter").play();
                     }
+
+                    (null !== term.timerId_later) && clearTimeout(term.timerId_later);
+                    ('later' in localData.time_str) && (delete localData.time_str['later'], localStorage.time_str = JSON.stringify(localData.time_str));
 
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
                         window.location.href = "/chat/start_game/"+data['game']; 
@@ -128,8 +139,7 @@ function chatroomWS(){
                 case 'ENTER':
                     showNotice(' 進入房間');
                     if (!1 === localData.isMuted && !1 === toggle.focus){
-                        var audio = document.getElementById("audio-enter");
-                        audio.play();
+                        document.getElementById("audio-enter").play();
                     }
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
                         window.location.assign(window.location.href);
@@ -182,8 +192,8 @@ function chatroomWS(){
 
                 case 'ALIVE':
                     showGameNotice('ALIVE', self[3]);
-                    $('#notice-modal').on('hide.bs.modal', function(e) { 
-                        window.location.assign(window.location.href)
+                    $('#notice-modal').on('hide.bs.modal', function(e) {
+                        window.location.assign(window.location.href);
                     });
                     break;
 
@@ -274,7 +284,7 @@ function getLocalData(){
         time_str:{},
         isMuted:false,
     };
-
+    // todo 必須多做一個自動更新器 localStorage有問題時做更新 
     if ('undefined' !== typeof(Storage)){
         if ('true'===localStorage.isSaved){ 
             data.name = localStorage.name,
@@ -351,6 +361,10 @@ function enabledElmtCss(elmt_css){
     (void 0 !== $(elmt_css).attr('disabled')) && $(elmt_css).removeAttr('disabled');
 }
 
+function changeBtnColor(css_id, class_name){  
+    // class_name:btn-primary, btn-secondary, btn-success, btn-danger, btn-warning, btn-info, btn-light, btn-dark
+    $(css_id).removeClass(), $(css_id).addClass('btn '+ class_name);
+}
 
 function loadLoginData(){ // login and logout will redirect, so loginData will be loaded then.
     if (!0 === loginData.isLogin){
@@ -404,7 +418,6 @@ function refreshStatus(status){  // handle all UI work about status
     switch (status){  // status: change IntegerField to CharField
         case 0:
             enabledElmtCss('#goto-btn'), enabledElmtCss('#name-btn');
-            enabledElmtCss('#normal-radio'), enabledElmtCss('#adult-radio'), enabledElmtCss('#male-radio'), enabledElmtCss('#female-radio');
             enabledElmtCss('#start-btn'), $('#start-btn').text('開始遊戲');
             disabledElmtCss('#leave-btn');
 
@@ -414,7 +427,6 @@ function refreshStatus(status){  // handle all UI work about status
             
         case 1:
             disabledElmtCss('#goto-btn'), disabledElmtCss('#name-btn');
-            disabledElmtCss('#normal-radio'), disabledElmtCss('#adult-radio'), disabledElmtCss('#male-radio'), disabledElmtCss('#female-radio');
             disabledElmtCss('#start-btn'), $('#start-btn').text('等待中...');
             enabledElmtCss('#leave-btn');
 
@@ -433,7 +445,6 @@ function refreshStatus(status){  // handle all UI work about status
         case 2:
         case 3:
             disabledElmtCss('#goto-btn'), disabledElmtCss('#name-btn');
-            disabledElmtCss('#normal-radio'), disabledElmtCss('#adult-radio'), disabledElmtCss('#male-radio'), disabledElmtCss('#female-radio');
             enabledElmtCss('#leave-btn');
             break;
     }
@@ -475,6 +486,7 @@ function bindMsgSend() {  // probably to be overloaded by bindGameMsgSend() in g
     })
     $("#send-text").on('focus',function(a){
         toggle.focus = !0;
+        theUI.unreadTitle(!0);
     })
     $("#send-text").on('blur',function(a){
         toggle.focus = !1;
@@ -778,6 +790,7 @@ function leaveMethod(){
                         loginData.waiting_time= '', loginData.status = 0, refreshStatus(loginData.status);
                         theUI.showSys('已停止等待');
                         (null !== term.timerId_later) && clearTimeout(term.timerId_later);
+                        ('later' in localData.time_str) && (delete localData.time_str['later'], localStorage.time_str = JSON.stringify(localData.time_str));
                         $('#modal').modal('hide');
                     }else{
                         $('#leave-modal-form p.a-error').text(data['msg']);
@@ -825,32 +838,33 @@ function leaveMethod(){
 
 }
 
-var startMethod = function(){ // 如果game_{game_name}要使用執行鍵 必須先解除startMethod綁定
-    $("#start-btn").on('click',function(e){  // no modal form, only use notice-modal
-        $("#start-modal-form").removeClass('d-none');
-        $('#modal .modal-title').text('開始遊戲');
-        $('#modal').modal('show');
-        disabledElmtCss('#normal-check'), disabledElmtCss('#adult-check');
-    })
-
-    $("#start-modal-form").on('submit',function(e){  
-        e.preventDefault();
-        if (loginData.status !== 0)
-            return false
-        else if (localData.name.length===0){
-            $('#start-modal-form p.a-error').text('你尚未取新的遊戲暱稱哦！');
-            return false
-        }else if (localData.city.length===0){
-            $('#start-modal-form p.a-error').text('你尚未選擇所在城市哦！');
-            return false
-        }
-
-        // isLater因為還在等待時間故不會受此影響 當結束等待時也要關閉isLater的計時器
-        var formArray = $(this).serializeArray();
-        formArray.push({name:"isLater",value: false});
-        sendJson(formArray);
-
-    })
+var startMethod = function(){
+    function b(){
+        $("#start-btn").on('click',function(e){
+            $("#start-modal-form").removeClass('d-none');
+            $('#modal .modal-title').text('開始遊戲');
+            $('#modal').modal('show');
+            disabledElmtCss('#normal-check'), disabledElmtCss('#adult-check');  // need to push 'mode-radio' data to formArray
+        })
+    
+        $("#start-modal-form").on('submit',function(e){  
+            e.preventDefault();
+            if (loginData.status !== 0)
+                return false
+            else if (localData.name.length===0){
+                $('#start-modal-form p.a-error').text('你尚未取新的遊戲暱稱哦！');
+                return false
+            }else if (localData.city.length===0){
+                $('#start-modal-form p.a-error').text('你尚未選擇所在城市哦！');
+                return false
+            }
+    
+            var formArray = $(this).serializeArray();
+            formArray.push({name:"mode-radio",value: '1'});  // cuz mode-radio has been disabled
+            formArray.push({name:"isLater",value: '0'});
+            sendJson(formArray);
+        })
+    }
 
     function sendJson(formArray){
         $.ajax({
@@ -865,15 +879,15 @@ var startMethod = function(){ // 如果game_{game_name}要使用執行鍵 必須
                     }else{
                         if (!0 === data['later']){
                             term.timerId_later = setTimeout(function(){
-                                formArray[3] = ({name:"isLater",value: true});
+                                formArray[3] = ({name:"isLater",value: '1'});
                                 sendJson(formArray);
-                            }, 2*60*1000);
+                            }, 2*60*1000);  // 2 mins later_start
                             var later_time_str = (new Date( (new Date()).getTime() + 5*60000 )).getTime();
                             localData.time_str['later'] = later_time_str, localStorage.time_str = JSON.stringify(localData.time_str);
                         }
                         loginData.status = 1, refreshStatus(loginData.status); // into waiting phase
                     }
-                    $('#sidebar').offcanvas('hide');
+                    $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
                     showNotice(data['msg']);
                 }
@@ -889,10 +903,11 @@ var startMethod = function(){ // 如果game_{game_name}要使用執行鍵 必須
                 {name: 'csrfmiddlewaretoken', value: $('input[name="csrfmiddlewaretoken"]').val()},
                 {name:'sex-radio', value: $('input[name="sex-radio"]:checked').val()},
                 {name:'mode-radio', value: $('input[name="mode-radio"]:checked').val()},
-                {name:'isLater', value: true}
+                {name:'isLater', value: '1'}
             ];
             sendJson(formArray);
-        }
+        },
+        bind:b
     }
 }
 
@@ -907,8 +922,7 @@ function prepareMethod(game_id){
                 setTimeout(function(){
                     showNotice('遊戲開始！');
                     if (!1 === localData.isMuted && !1 === toggle.focus){
-                        var audio = document.getElementById("audio-enter");
-                        audio.play();
+                        document.getElementById("audio-enter").play();
                     }
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
                         window.location.href = "/chat/start_game/"+data['game']; 
@@ -923,7 +937,7 @@ function prepareMethod(game_id){
 
 function settings(){
     $("input[name='sound-radio']").change(function() {
-        if (this.value == '1'){
+        if (this.value === '1'){
             localData.isMuted = !0, localStorage.isMuted = 'true';
         }else{
             localData.isMuted = !1, localStorage.isMuted = 'false';
@@ -1319,6 +1333,6 @@ var loginData = JSON.parse(document.getElementById('loginData').textContent),
     
 $(document).ready(function() {
     bindMsgSend(), installToolTip(), bindModalHide(), bindUpMore(); 
-    loginMethodSet(), profileMethodSet(), leaveMethod();
+    loginMethodSet(), profileMethodSet(), leaveMethod(), theStart.bind();
     settings(), loadLoginData(), loadLocalData();
 });
