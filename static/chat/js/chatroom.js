@@ -112,7 +112,7 @@ function chatroomWS(){
                         document.getElementById("audio-enter").play();
                     }
 
-                    (null !== term.timerId_later) && clearTimeout(term.timerId_later);
+                    (null !== term.timerId_later) && (clearTimeout(term.timerId_later), term.timerId_later=null);
                     ('later' in localData.time_str) && (delete localData.time_str['later'], localStorage.time_str = JSON.stringify(localData.time_str));
 
                     $('#notice-modal').on('hide.bs.modal', function(e) { 
@@ -284,22 +284,28 @@ function getLocalData(){
         time_str:{},
         isMuted:false,
     };
-    // todo 必須多做一個自動更新器 localStorage有問題時做更新 
-    if ('undefined' !== typeof(Storage)){
-        if ('true'===localStorage.isSaved){ 
-            data.name = localStorage.name,
-            data.school = localStorage.school,
-            data.city = localStorage.city,
-            data.lastSaid = localStorage.lastSaid,
-            data.text_in_discon = JSON.parse(localStorage.text_in_discon),
-            data.imgUrl_adult = localStorage.imgUrl_adult,
-            data.chatLogs = JSON.parse(localStorage.chatLogs),
-            data.gameLogs = JSON.parse(localStorage.gameLogs),
-            data.answers = JSON.parse(localStorage.answers),
-            data.cache = JSON.parse(localStorage.cache),
-            data.time_str = JSON.parse(localStorage.time_str),
-            data.isMuted = ('true'===localStorage.isMuted)? true : false;
 
+    if ('undefined' !== typeof(Storage)){
+        if ('true'===localStorage.isSaved){
+            try{
+                data.name = localStorage.name,
+                data.school = localStorage.school,
+                data.city = localStorage.city,
+                data.lastSaid = localStorage.lastSaid,
+                data.text_in_discon = JSON.parse(localStorage.text_in_discon),
+                data.imgUrl_adult = localStorage.imgUrl_adult,
+                data.chatLogs = JSON.parse(localStorage.chatLogs),
+                data.gameLogs = JSON.parse(localStorage.gameLogs),
+                data.answers = JSON.parse(localStorage.answers),
+                data.cache = JSON.parse(localStorage.cache),
+                data.time_str = JSON.parse(localStorage.time_str),
+                data.isMuted = ('true'===localStorage.isMuted)? true : false;
+            }catch(e){
+                if(e instanceof SyntaxError){
+                    localStorage.isSaved = 'false';
+                    window.location.assign(window.location.href);
+                }
+            }
 
         }else{
             localStorage.isSaved = 'true',
@@ -430,13 +436,14 @@ function refreshStatus(status){  // handle all UI work about status
             disabledElmtCss('#start-btn'), $('#start-btn').text('等待中...');
             enabledElmtCss('#leave-btn');
 
-            setNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>'), theUI.showClock(); // theUI.showClock 顯示 NaN:NaN (safari)？
+            setNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>');
+            (null === term.timerId_clock) && theUI.showClock(); // theUI.showClock 顯示 NaN:NaN (safari)？
             
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
 
             if ('later' in localData.time_str){
                 var time = localData.time_str['later'] - new Date().getTime();
-                (time>0) && setTimeout(function(){ theStart.later_start(); }, time);
+                (time>0) && (term.timerId_later = setTimeout(function(){ theStart.later_start(); }, time));
             }
 
             setTimeout(function(){ theWS.callSendWs('waiting'); }, 5000);
@@ -789,7 +796,8 @@ function leaveMethod(){
                     if (!0 === data['result']){
                         loginData.waiting_time= '', loginData.status = 0, refreshStatus(loginData.status);
                         theUI.showSys('已停止等待');
-                        (null !== term.timerId_later) && clearTimeout(term.timerId_later);
+                        (null !== term.timerId_clock) && (clearTimeout(term.timerId_clock), term.timerId_clock = null);
+                        (null !== term.timerId_later) && (clearTimeout(term.timerId_later), term.timerId_later = null);
                         ('later' in localData.time_str) && (delete localData.time_str['later'], localStorage.time_str = JSON.stringify(localData.time_str));
                         $('#modal').modal('hide');
                     }else{
@@ -881,11 +889,13 @@ var startMethod = function(){
                             term.timerId_later = setTimeout(function(){
                                 formArray[3] = ({name:"isLater",value: '1'});
                                 sendJson(formArray);
-                            }, 2*60*1000);  // 2 mins later_start
-                            var later_time_str = (new Date( (new Date()).getTime() + 5*60000 )).getTime();
+                            }, 2*60000);  // 2 mins later_start
+
+                            var later_time_str = (new Date( (new Date()).getTime() + 2*60000 )).getTime();
                             localData.time_str['later'] = later_time_str, localStorage.time_str = JSON.stringify(localData.time_str);
                         }
                         loginData.status = 1, refreshStatus(loginData.status); // into waiting phase
+                        console.log('start_game later:'+data['later']);
                     }
                     $('#modal').modal('hide'), $('#sidebar').offcanvas('hide');
                 }else{
@@ -1018,7 +1028,6 @@ var chatUI = function(){
         $('#writing').before(newElmt), st(newElmt,1);
         localData.lastSaid = 'm',localStorage.lastSaid='m';
         ut(!1), toggle.focus === !0 &&toggle.scroll === !1 && (now(), ut(!0));
-        // todo now()不能使用： 可能是toggle判別式問題
         return newElmt
     }
 

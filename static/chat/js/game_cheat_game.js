@@ -341,7 +341,6 @@ function replyMethod(){
                     var text = '感謝你的回答！ 你已在<span class="a-point">紙條</span>上留下答案，可開啟左側玩家名單將<span class="a-point">紙條</span>傳給其他人。';
                     theUI.showSys(text);
                     theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
-                    //theUI.scrollToNow();
                     theWS.callSendWs('inform',['target', 'room'], ['meInGroup', true], ['message', 'reply'], ['tag', 1]);
                 }else{
                     theUI.showSys(data['msg']);
@@ -361,7 +360,7 @@ function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
             var text = $("#send-text").val();
             if (void 0 !== text && null !== text &&'' !== text){
                 (3 === loginData.status) ? theWS.msgSendWs(text) : ((2 === loginData.status) ? $("#send-form").submit(): theUI.showSys('你還未進入房間哦！'));
-                // theUI.scrollToNow();
+                theUI.scrollToNow();
             } 
             $("#send-text").val('');
             $("#send-text").blur(), $("#send-text").focus();

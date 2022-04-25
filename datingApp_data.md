@@ -68,6 +68,7 @@ JS進行編碼做防盜措施
 創辦獨立遊戲開發團隊：使用patron, facebook, instagram
 前期只要先做IG就好 之後再由IG導到FB和patron
 
+之後加入tag_json2 用於存放除了interact之外的其他道具
 篩選不符合條件的瀏覽器 通知
 流量超載就自動斷線 通知
 研究nginx的優化方式

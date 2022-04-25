@@ -14,7 +14,7 @@ const card = [
         '<span class="a-point">遊戲規則2</span>：遊戲中僅能向一位玩家寄送邀請，如果對方接受邀請則成功配對。',
         '<span class="a-point">遊戲規則3</span>：只要能找到<span class="a-point">槍手</span>，寄送邀請並完成配對，則該名玩家勝利。',
         '<span class="a-point">遊戲規則4</span>：若<span class="a-point">槍手</span>主動找其他玩家寄送邀請，則接受配對的該名玩家勝利。',
-        '<span class="a-point">遊戲規則5</span>：如果要寄送邀請，只能選擇有在你<span class="a-point">現在拿到的紙條</span>留下答案的玩家。(沒有留下答案，怎麼能知道這個人是不是<span class="a-point">槍手</span>)',
+        '<span class="a-point">遊戲規則5</span>：如果要寄送邀請，只能選擇有在你<span class="a-point">現在拿到的紙條</span>留下答案的玩家。(沒有留下答案，怎麼能知道這個人是不是<span class="a-point">槍手</span>呢！)',
         '<span class="a-point">遊戲規則6</span>：遊戲過程中系統不會透露性別。',
         '<span class="a-point">遊戲規則7</span>：在異性模式下，<span class="a-point">槍手</span>往往是性別人數較少的那一方。在同性模式下，則會從所有玩家中隨機抽出一位。'
     ]

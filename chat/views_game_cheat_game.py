@@ -213,10 +213,10 @@ def prepare(request):  # only the game creator needs to do prepare()
             uuid = str(player.uuid)
             onoff_dict[uuid] = 1 if player.isOn is True else 0
             gender = player.gender if game.showGender is True else 'n'
-            player_dict[uuid] = [player.name, gender, 0]
+            player_dict[uuid] = [player.name, gender]
 
             if player.gender == 'f':
-                gender_ratio[0] += 1
+                gender_ratio[0] += 1  # gender_ratio: [f, m]
                 roles[uuid] = 1
             else:
                 gender_ratio[1] += 1
@@ -226,12 +226,14 @@ def prepare(request):  # only the game creator needs to do prepare()
             content[0] = '<span class="a-point">問題：</span>' + content[0]
             papers[uuid] = ['作弊紙條-' + a, [], [], content, ['<span class="a-point">回答：</span>']]
 
-        if gender_ratio[1] == 0:
+        if gender_ratio[1] == 0:  # all female
+            for uuid in roles.keys():
+                roles[uuid] = 0
             player = choice(list(players))
             roles[str(player.uuid)] = 1
-        elif gender_ratio[0] == 0:
+        elif gender_ratio[0] == 0:  # all male
             player = choice(list(players))
-            roles[str(player.uuid)] = 0
+            roles[str(player.uuid)] = 1
 
         answer_dict['gender_ratio'] = gender_ratio
         answer_dict['roles'] = roles

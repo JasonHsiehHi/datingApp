@@ -6,7 +6,7 @@ from .models import Game, Room, Match, Player, Dialogue, City, GameRole, GameEve
 class GameAdmin(admin.ModelAdmin):
     list_display = ('name', 'id', 'game_id', 'best_ratio', 'threshold_ratio',
                     'noPlayerNum', 'showGender', 'available')
-    search_fields = ('name',)
+    search_fields = ('name', )
 
 
 @admin.register(GameRole)
@@ -23,7 +23,7 @@ class GameEventAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ('id', 'create_date', 'city', 'game', 'onoff_dict', 'player_dict', 'answer')
+    list_display = ('id', 'create_date', 'city', 'game', 'onoff_dict', 'player_dict')
     ordering = ('-create_date',)
 
 
@@ -34,11 +34,11 @@ class MatchAdmin(admin.ModelAdmin):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('user', 'gender', 'name', 'isOn', 'isPrepared', 'waiting_time', 'status', 'tag_int', 'tag_json',
-                    'room', 'match', 'city', 'isAdult', 'isHetero', 'game', 'isBanned', 'create_date')
-    list_filter = ('gender', 'isOn', 'status', 'city', 'room', 'match', 'game')
+    list_display = ('user', 'gender', 'name', 'isOn', 'isPrepared', 'waiting_time', 'status', 'tag_int',
+                    'room', 'match', 'isAdult', 'isHetero', 'isBanned')
+    list_filter = ('gender', 'isOn', 'status', 'room', 'match')
     ordering = ('-isOn',)
-    search_fields = ('uuid', 'name',)
+    search_fields = ('uuid', 'name', 'user__username')
     save_as = True
 
 
