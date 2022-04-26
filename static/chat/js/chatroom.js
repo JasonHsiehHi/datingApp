@@ -1188,7 +1188,7 @@ var chatUI = function(){
         while(cnt<reversed.length && cnt<n){
             dialog = reversed[cnt];
             elmt = om(dialog, 'up');
-            // todo if localData.text_in_discon.length > n, llm() need to adjust.
+            // todo if localData.text_in_discon.length > n, llm() 可能發生問題
             (dialog[2] === 'm') && st(elmt, 2); // probably some dialogs haven't sent.
             cnt++;
         }

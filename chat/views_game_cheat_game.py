@@ -4,7 +4,38 @@ from django.db.models import Q
 from .models import Match, Player, GameEvent
 
 from random import sample, choice
-# from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta
+
+
+def retake(request):
+    if request.is_ajax and request.method == "GET":
+        self_player = request.user.profile
+        self_uuid = str(self_player.uuid)
+        if self_player.tag_int != 2:
+            return JsonResponse({"result": False, "msg": '你還沒有把紙條傳出去或寄送出配對邀請哦！'})
+        retake_uuid = self_player.tag_json['retake'][0]
+        retake_str = '紙條' if self_player.tag_json['interact'][retake_uuid] == 2 else '邀請'
+
+        opposite = Player.objects.get(uuid=retake_uuid)
+        now = datetime.now(tz=timezone.utc)
+        t = datetime.strptime(self_player.tag_json['retake'][1], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+
+        if opposite.room == self_player.room:
+            if now < t:
+                return JsonResponse({"result": False, "msg": '對方可能正在猶豫與思考，必須超過5分種，才能收回你的'+retake_str+'！'})
+            else:
+                opposite.tag_json['interact'][self_uuid] -= 2
+                opposite.save()
+
+        self_player.tag_int = 1
+        self_player.tag_json['retake'] = ['', None]
+        self_player.tag_json['interact'][retake_uuid] -= 1
+        self_player.save()
+
+        return JsonResponse({"result": True})
+
+    else:
+        print("error: it's not through ajax.")
 
 
 def reply(request):
@@ -50,9 +81,11 @@ def pass_paper(request, uuid):
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 2
+        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        self_player.tag_json['retake'] = [uuid, t_str]
         self_player.save()
 
-        return JsonResponse({"result": True})
+        return JsonResponse({"result": True, "time": t_str})
     else:
         print("error: it's not through ajax.")
 
@@ -149,9 +182,11 @@ def match(request, uuid):
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 5
+        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        self_player.tag_json['retake'] = [uuid, t_str]
         self_player.save()
 
-        return JsonResponse({"result": True})
+        return JsonResponse({"result": True, "time": t_str})
     else:
         print("error: it's not through ajax.")
 
@@ -179,7 +214,8 @@ def accept(request, uuid):
                 player.status = 3
                 player.tag_int = 3
             else:
-                player.tag_int = 1 if player.tag_json['interact'][player_uuid] == 1 else 0
+                if player.tag_json['retake'][0] in [self_uuid, uuid]:
+                    player.tag_int = 1 if player.tag_json['interact'][player_uuid] == 1 else 0
             player.tag_json['interact'][uuid] = 7
             player.tag_json['interact'][self_uuid] = 7
             player.save()
@@ -262,7 +298,8 @@ def prolog(request):  # every game participant needs to do prolog()
                 'interact': {uuid: 0 for uuid in dict(room.player_dict).keys()},
                 'msgbox': ['私信箱'],
                 'paper': room.answer['papers'][self_uuid],
-                'role': '槍手' if room.answer['roles'][self_uuid] == 1 else '一般考生'
+                'role': '槍手' if room.answer['roles'][self_uuid] == 1 else '一般考生',
+                'retake': ['', None]
             }
             self_player.tag_json = di
             self_player.tag_int = 0
@@ -285,7 +322,7 @@ def prolog(request):  # every game participant needs to do prolog()
         print("error: it's not through ajax.")
 
 
-def report(request):  # 檢舉功能 : let people leave match
+def report(request):  # todo 檢舉功能 : let people leave match
     if request.is_ajax and request.method == "POST":
         self_player = request.user.profile
         match = self_player.match

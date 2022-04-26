@@ -8,5 +8,6 @@ urlpatterns = [
     path('start_game/cheat_game/change/<str:uuid>', views_game_cheat_game.change_paper, name='cg_change'),
     path('start_game/cheat_game/match/<str:uuid>', views_game_cheat_game.match, name='cg_match'),
     path('start_game/cheat_game/accept/<str:uuid>', views_game_cheat_game.accept, name='cg_accept'),
-    path('start_game/cheat_game/reply', views_game_cheat_game.reply, name='cg_reply')
+    path('start_game/cheat_game/reply', views_game_cheat_game.reply, name='cg_reply'),
+    path('start_game/cheat_game/retake', views_game_cheat_game.retake, name='cg_retake'),
 ]
