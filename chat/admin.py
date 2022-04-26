@@ -32,6 +32,8 @@ class MatchAdmin(admin.ModelAdmin):
     list_display = ('id', 'room', 'player_list', 'secret')
 
 
+
+
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
     list_display = ('user', 'gender', 'name', 'isOn', 'isPrepared', 'waiting_time', 'status', 'tag_int',
@@ -39,7 +41,14 @@ class PlayerAdmin(admin.ModelAdmin):
     list_filter = ('gender', 'isOn', 'status', 'room', 'match')
     ordering = ('-isOn',)
     search_fields = ('uuid', 'name', 'user__username')
+    actions = ['back_to_status0']
     save_as = True
+
+    def back_to_status0(self, request, queryset):
+        queryset.update(status=0, tag_int=None, tag_json=None, room=None, match=None,
+                        isPrepared=False, waiting_time=None)
+
+    back_to_status0.short_description = "Back players to status 0"
 
 
 @admin.register(Dialogue)

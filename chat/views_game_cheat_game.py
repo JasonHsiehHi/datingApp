@@ -81,7 +81,7 @@ def pass_paper(request, uuid):
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 2
-        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=4)).strftime('%Y-%m-%dT%H:%M:%SZ')
         self_player.tag_json['retake'] = [uuid, t_str]
         self_player.save()
 
@@ -182,7 +182,7 @@ def match(request, uuid):
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 5
-        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=4)).strftime('%Y-%m-%dT%H:%M:%SZ')
         self_player.tag_json['retake'] = [uuid, t_str]
         self_player.save()
 
