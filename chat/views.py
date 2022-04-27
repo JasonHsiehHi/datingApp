@@ -331,6 +331,13 @@ def log_in(request):
         except ValidationError:
             return JsonResponse({"result": False, "msg": '不符合電子信箱格式！'})
 
+        try:
+            findUser = User.objects.get(username__iexact=email)
+        except User.DoesNotExist:
+            findUser = None
+        if findUser is not None:
+            email = findUser.username
+
         user = authenticate(request, username=email, password=password)
         if user is None or user.is_active is False:
             return JsonResponse({"result": False, "msg": '登入失敗，密碼錯誤或信箱還未完成註冊驗證。'})

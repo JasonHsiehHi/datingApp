@@ -1,5 +1,5 @@
 const story_dialogs = [
-    ['<span class="a-point">作弊遊戲</span><br>(designed by: <span class="a-point">雪人清酒</span>)', !1, "s"]
+    ['<span class="a-point">作弊遊戲</span><br>(designed by: <a href="https://www.instagram.com/anonlarp_tw/" target="_blank" class="a-point">雪人清酒[前往]</a>)', !1, "s"]
 ];
 
 const card = [
@@ -39,12 +39,3 @@ const paper = {
         ]
     ]
 }
-
-const end_dialogs = [
-    ["", !1, "w"],
-    ["", !1, "w"],
-    ["", !1, "w"],
-    // 還需要寫一個勝利或失敗宣言
-    //["問題環節結束！請打開左側玩家選單，向一位參加者寄送邀請。 如果不想與任何參加者配對，則可按右上方的離開鍵。", !1, "s"],
-    ["平台目前仍在處在beta階段，目前還沒有適合的劇本可以使用，非常想要獲得大家的意見，也歡迎對平台有興趣的朋友加入！ https://forms.gle/Z4HBacchG9yif3QGA",!1, "s"]
-];

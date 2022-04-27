@@ -55,7 +55,7 @@ var gameCheckGate = function(){
         var article = loginData.tag_json[article_name];
         $('#atag-'+article_name).removeAttr('onclick').removeAttr('id');
         // gameLogs的資料沒變 重整後會回到原來的狀況 影響不大
-        
+
         var text = '獲得物品<a style="text-decoration:none;" id="atag-'+article_name+'" onclick="$(\'#'+ article_name +'-btn\').click()" class="a-point">'+ article[0]+ '[查看]</a>！';
         if (!0 === isDirected){
             theUI.showSys(text);
@@ -516,7 +516,6 @@ function refreshGameStatus(status){  // refresh status, tag_json and tag_int acc
 
     switch (status){   // second, refresh self status as well as tag_json and tag_int
         case 2:
-
             (null !== loginData.tag_int && null !== loginData.tag_json) && refreshGameTagAll();  
             // refresh player css btn according to current tag_json or tag_int
             // replyMethod only on status=2, when status=3 with theWS.msgSendWs(text)
@@ -739,11 +738,6 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
 
             showNotice('成功與 '+others[data.from][0]+'互換紙條！');
             di = [[gameGate.articleName('paper'), !1, 's'],...gameGate.articlePart('paper', [3])];
-
-            //theUI.showStoryAsync(di, interval=0);
-            //theUI.scrollToNow();
-            //theUI.storeChatLogs(di, di.length, 'gameLogs');
-
         }else{
             var intToChange = false;
             [loginData.tag_json['interact'][data.from], intToChange] = refresh_after_change(loginData.tag_json['interact'][data.from], intToChange), refreshGameTag(data.from);
@@ -755,10 +749,6 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
         }
         var text = '<span class="a-point">'+loginData.player_dict[data.hidden][0]+'</span> 和 <span class="a-point">'+loginData.player_dict[data.from][0]+'</span> 成功交換了紙條。';
         di.push([text,!1,'s']);
-
-        //theUI.showSys(text);
-        //theUI.scrollToNow();
-        //theUI.storeChatLogs([[text, !1, 's']], 1, 'gameLogs');
 
         (2===loginData.status) && (theUI.showStoryAsync(di, interval=0), theUI.scrollToNow());
         theUI.storeChatLogs(di, di.length, 'gameLogs');
@@ -807,6 +797,7 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
             msgs_li.push(text+text2);
             var winText = (!0 === [data.hidden, data.from].includes(loginData.uuid))? '遊戲勝利！': '遊戲失敗，你未能領先其他人找到槍手。';
             msgs_li.push(winText);
+            msgs_li.push("平台目前仍在處在beta階段，目前還沒有適合的劇本可以使用，非常想要獲得大家的意見，也歡迎對平台有興趣的朋友加入！ https://forms.gle/Z4HBacchG9yif3QGA");
         }else{
             text2 = '兩人都不是槍手，目前槍手還混在玩家之中。';
             msgs_li.push(text+text2);
