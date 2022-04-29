@@ -797,7 +797,7 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
             msgs_li.push(text+text2);
             var winText = (!0 === [data.hidden, data.from].includes(loginData.uuid))? '遊戲勝利！': '遊戲失敗，你未能領先其他人找到槍手。';
             msgs_li.push(winText);
-            msgs_li.push("平台目前仍在處在beta階段，目前還沒有適合的劇本可以使用，非常想要獲得大家的意見，也歡迎對平台有興趣的朋友加入！ https://forms.gle/Z4HBacchG9yif3QGA");
+            msgs_li.push('平台目前仍在處在beta階段，目前還沒有適合的劇本可以使用，非常想要獲得大家的意見，也歡迎對平台有興趣的朋友加入！ <a href="https://forms.gle/Z4HBacchG9yif3QGA" target="_blank" class="a-point">Google表單</a>');
         }else{
             text2 = '兩人都不是槍手，目前槍手還混在玩家之中。';
             msgs_li.push(text+text2);

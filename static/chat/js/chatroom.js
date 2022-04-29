@@ -1059,7 +1059,7 @@ var chatUI = function(){
     }
 
     function sm(msg){
-        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span>'+msgWrapper(msg)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span>'+msg+'</span></p></div>';
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 's',localStorage.lastSaid = 's';
@@ -1088,6 +1088,8 @@ var chatUI = function(){
                 newElmt = $('<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+content+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>');
                 break;
             case 's':
+                if (!1 === dialog[1])
+                    content = dialog[0];
                 newElmt = $('<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span>'+content+'</span></p></div>');
                 break;
         }

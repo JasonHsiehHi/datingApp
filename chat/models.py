@@ -66,8 +66,8 @@ class Game(models.Model):
     best_ratio = models.JSONField(max_length=10)
     threshold_ratio = models.JSONField(max_length=10)
     story = models.JSONField(null=True, blank=True)
-    showGender = models.BooleanField()
     available = models.BooleanField()
+    showGender = models.BooleanField()
     noPlayerNum = models.IntegerField(null=True, blank=True, default=0)
 
     def __str__(self):

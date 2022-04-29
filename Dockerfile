@@ -7,6 +7,9 @@ COPY . /app/datingApp/
 RUN pip install --upgrade pip 
 RUN pip install -r requirements.txt
 
+RUN apt-get update 
+RUN apt-get install -y vim
+
 VOLUME /app
 
 EXPOSE 8003 8089

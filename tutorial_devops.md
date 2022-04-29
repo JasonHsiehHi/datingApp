@@ -52,7 +52,7 @@ python3 manage.py loaddata whole.json -i 在由whole.json匯入pqsql -i可忽略
 
 python3 manage.py flush 刪除資料庫的record數據
 python3 manage.py sqlflush 刪除資料庫的tabel架構和record數據
-manage.py migrate myapp zero 則用於刪除myapp的所有data
+python3 manage.py migrate myapp zero 則用於刪除myapp的所有data
 
 python manage.py runserver 
 等價於：python manage.py runserver 127.0.0.1:8000
@@ -1529,12 +1529,14 @@ psql -U username -d database < db.sql
 python manage.py dumpdata > whole.json
 python manage.py loaddata whole.json
 (
-過程中把*/migrations/*.py 和 */migrations/*.pyc清除並重做makemigrations和migrate
+過程中把*/migrations/*.py 和 */migrations/*.pyc清除並重做makemigrations和migrate 最後再進到django的shell把ContentType清掉:
+
 find . -path '*/migrations/*.py' -not -name '__init__.py' -delete && find . -path '*/migrations/*.pyc' -delete
-python manage.py makemigrations && python manage.py migrate
-最後再進到django的shell把ContentType清掉:
+
+python manage.py makemigrations && python manage.py migrate chat zero && python manage.py migrate
+
 python manage.py shell
-from django.contrib.contenttypes.models import ContentType 
+from django.contrib.contenttypes.models import ContentType
 ContentType.objects.all().delete()
 )
 
