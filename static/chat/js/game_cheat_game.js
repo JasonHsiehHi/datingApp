@@ -409,6 +409,12 @@ function retakeMethod(){
 }
 
 function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
+    if (2 === loginData.status){
+        $("#send-text").attr('placeholder', '在此回答問題...');
+    }else if (3 === loginData.status){
+        $("#send-text").attr('placeholder', '說點什麼呢...');
+    }
+    
     $("#send-text").off('keypress');
     $("#send-text").on('keypress',function(a){
         if (13 == a.which || 13 == a.keyCode){

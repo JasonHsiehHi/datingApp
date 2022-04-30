@@ -25,12 +25,14 @@ def retake(request):
                 return JsonResponse({"result": False, "msg": '對方可能正在猶豫與思考，必須超過5分種，才能收回你的'+retake_str+'！'})
             else:
                 opposite.tag_json['interact'][self_uuid] -= 2
-                opposite.save()
+                # opposite.save(update_fields=["tag_json"])
+                Player.objects.filter(uuid=opposite.uuid).update(tag_json=opposite.tag_json)
 
         self_player.tag_int = 1
         self_player.tag_json['retake'] = ['', None]
         self_player.tag_json['interact'][retake_uuid] -= 1
-        self_player.save()
+        # self_player.save(update_fields=["tag_json", "tag_int"])
+        Player.objects.filter(uuid=self_player.uuid).update(tag_json=self_player.tag_json, tag_int=self_player.tag_int)
 
         return JsonResponse({"result": True})
 
@@ -49,16 +51,14 @@ def reply(request):
         self_player.tag_json['paper'][4].append(answer)
         self_player.tag_json['interact'][self_uuid] = 1
         self_player.tag_int = 1
-        self_player.save()
+        # self_player.save(update_fields=["tag_json", "tag_int"])
+        Player.objects.filter(uuid=self_player.uuid).update(tag_json=self_player.tag_json, tag_int=self_player.tag_int)
 
         room = self_player.room
         for player in room.players.all().exclude(uuid=self_uuid):
-            if player.tag_json['interact'][self_uuid] in [0, 2, 3]:
+            if player.tag_json is not None and player.tag_json['interact'][self_uuid] in [0, 2, 3]:
                 player.tag_json['interact'][self_uuid] = 1
-                player.save()
-
-        # room.player_dict[self_uuid][2] = 1  # update room instead of updating tag_json of every player
-        # room.save()
+                Player.objects.filter(uuid=player.uuid).update(tag_json=player.tag_json)
 
         return JsonResponse({"result": True, 'answer': answer})
     else:
@@ -77,13 +77,15 @@ def pass_paper(request, uuid):
             return JsonResponse({"result": False, "msg": '對方現在不能與你交換紙條哦！'})
 
         opposite.tag_json['interact'][self_uuid] = 3
-        opposite.save()
+        # opposite.save(update_fields=["tag_json"])
+        Player.objects.filter(uuid=opposite.uuid).update(tag_json=opposite.tag_json)
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 2
         t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=4)).strftime('%Y-%m-%dT%H:%M:%SZ')
         self_player.tag_json['retake'] = [uuid, t_str]
-        self_player.save()
+        # self_player.save(update_fields=["tag_json", "tag_int"])
+        Player.objects.filter(uuid=self_player.uuid).update(tag_json=self_player.tag_json, tag_int=self_player.tag_int)
 
         return JsonResponse({"result": True, "time": t_str})
     else:
@@ -124,8 +126,10 @@ def change_paper(request, uuid):
         self_player.tag_int = 0
         opposite.tag_json['interact'] = change_btn_two(term, uuid, self_uuid)
         opposite.tag_int = 0
-        self_player.save()
-        opposite.save()
+        # self_player.save(update_fields=["tag_json", "tag_int"])
+        Player.objects.filter(uuid=self_player.uuid).update(tag_json=self_player.tag_json, tag_int=self_player.tag_int)
+        # opposite.save(update_fields=["tag_json", "tag_int"])
+        Player.objects.filter(uuid=opposite.uuid).update(tag_json=opposite.tag_json, tag_int=opposite.tag_int)
 
         def refresh_after_change(value, toSave, intToChange):
             if intToChange is False and value in [2, 5]:
@@ -142,18 +146,16 @@ def change_paper(request, uuid):
         toSave = False
         intToChange = False
         for player in room.players.all().exclude(uuid__in=[self_uuid, uuid]):
-            player.tag_json['interact'][self_uuid], toSave, intToChange = \
-                refresh_after_change(player.tag_json['interact'][self_uuid], toSave, intToChange)
-            player.tag_json['interact'][uuid], toSave, intToChange = \
-                refresh_after_change(player.tag_json['interact'][uuid], toSave, intToChange)
-            if intToChange is True:
-                player.tag_int = 1 if player.tag_json['interact'][str(player.uuid)] == 1 else 0
-            if toSave is True:
-                player.save()
-
-        # room.player_dict[self_uuid][2] = 0  # update room instead of updating tag_json of every player
-        # room.player_dict[uuid][2] = 0
-        # room.save()
+            if player.tag_json is not None:
+                player.tag_json['interact'][self_uuid], toSave, intToChange = \
+                    refresh_after_change(player.tag_json['interact'][self_uuid], toSave, intToChange)
+                player.tag_json['interact'][uuid], toSave, intToChange = \
+                    refresh_after_change(player.tag_json['interact'][uuid], toSave, intToChange)
+                if intToChange is True:
+                    player.tag_int = 1 if player.tag_json['interact'][str(player.uuid)] == 1 else 0
+                if toSave is True:
+                    Player.objects.filter(uuid=player.uuid).update(tag_json=player.tag_json, tag_int=player.tag_int)
+                    # player.save(update_fields=["tag_json", "tag_int"])
 
         opposite_data = {
             'paper': opposite.tag_json['paper'],
@@ -178,13 +180,15 @@ def match(request, uuid):
             return JsonResponse({"result": False, "msg": '對方現在不能與你配對！'})
 
         opposite.tag_json['interact'][self_uuid] = 6
-        opposite.save()
+        # opposite.save(update_fields=["tag_json"])
+        Player.objects.filter(uuid=opposite.uuid).update(tag_json=opposite.tag_json)
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 5
         t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=4)).strftime('%Y-%m-%dT%H:%M:%SZ')
         self_player.tag_json['retake'] = [uuid, t_str]
-        self_player.save()
+        # self_player.save(update_fields=["tag_json", "tag_int"])
+        Player.objects.filter(uuid=self_player.uuid).update(tag_json=self_player.tag_json, tag_int=self_player.tag_int)
 
         return JsonResponse({"result": True, "time": t_str})
     else:
@@ -213,12 +217,19 @@ def accept(request, uuid):
                 player.match = match
                 player.status = 3
                 player.tag_int = 3
+                player.tag_json['interact'][uuid] = 7
+                player.tag_json['interact'][self_uuid] = 7
+                # player.save(update_fields=["match", "status", "tag_json", "tag_int"])
+                Player.objects.filter(uuid=player.uuid).update(tag_json=player.tag_json, tag_int=3,
+                                                               status=3, match=match)
+
             else:
-                if player.tag_json['retake'][0] in [self_uuid, uuid]:
-                    player.tag_int = 1 if player.tag_json['interact'][player_uuid] == 1 else 0
-            player.tag_json['interact'][uuid] = 7
-            player.tag_json['interact'][self_uuid] = 7
-            player.save()
+                if player.tag_json is not None:
+                    if player.tag_json['retake'][0] in [self_uuid, uuid]:
+                        player.tag_int = 1 if player.tag_json['interact'][player_uuid] == 1 else 0
+                    player.tag_json['interact'][uuid] = 7
+                    player.tag_json['interact'][self_uuid] = 7
+                    Player.objects.filter(uuid=player.uuid).update(tag_json=player.tag_json, tag_int=player.tag_int)
 
         isWon = True if room.answer['roles'][self_uuid] == 1 or room.answer['roles'][uuid] == 1 else False
         return JsonResponse({"result": True, "isWon": isWon})
