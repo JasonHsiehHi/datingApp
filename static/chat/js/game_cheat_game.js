@@ -86,12 +86,14 @@ var gameCheckGate = function(){
                 }
             }
         }else{
-            var text_li;
+            var text_li = [];
             for (let i of indexs){
                 if (article[i].length > 0) {
-                    text_li = result.concat(article[i]);
+                    text_li = text_li.concat(article[i]);
+                    text_li.push('<br>');
                 }
             }
+            text_li.pop();
             result = [[text_li.join('<br>'), !1, 'a']];
         }
         return result
@@ -176,9 +178,10 @@ function passMethod(css_id, player_uuid){
                 success: function(data) {
                     if (!0 === data['result']){
                         loginData.tag_json['interact'][player_uuid] = 2, refreshGameTag(player_uuid);
-                        loginData.tag_int = 2, refreshStartBtn();
+                        loginData.tag_int = 2;
                         loginData.tag_json['retake'] = [player_uuid, data['time']];
-                        
+                        refreshStartBtn();
+
                         showNotice('已將紙條傳給 '+others[player_uuid][0]+' ！');
                         theWS.callSendWs('inform',['target', player_uuid], ['meInGroup', false], ['message', 'pass'],['hidden', player_uuid] ,['tag', 2]);
                         $('#sidebar').offcanvas('hide');
@@ -213,14 +216,15 @@ function changeMethod(css_id, player_uuid){
             success: function(data) {
                 if (!0 === data['result']){
                     loginData.tag_json['interact'] = data['self_interact'], refreshGameTagAll();
-                    loginData.tag_int = 0, refreshStartBtn();
+                    loginData.tag_int = 0;
+                    refreshStartBtn();
                     loginData.tag_json['paper'] = data['self_paper'];
                     loadTagfromDB(loginData.tag_json['role']);
                     refreshInventory('paper');
 
                     theWS.callSendWs('inform',['target', 'room'], ['meInGroup', true], ['message', data['opposite_data']],['hidden', player_uuid], ['tag', 3]);
                     showNotice('成功與 '+others[player_uuid][0]+' 互換紙條！');
-                    var di = [[gameGate.articleName('paper'), !1, 's'],...gameGate.articlePart('paper', [3])];
+                    var di = [[gameGate.articleName('paper'), !1, 's'],...gameGate.articlePart('paper', [3, 4], false)];
                     theUI.showStoryAsync(di, interval=0);
                     theUI.scrollToNow();
                     theUI.storeChatLogs(di, di.length, 'gameLogs');
@@ -274,9 +278,10 @@ function matchMethod(css_id, player_uuid){
                 success: function(data) {
                     if (!0 === data['result']){
                         loginData.tag_json['interact'][player_uuid] = 5; refreshGameTag(player_uuid);
-                        loginData.tag_int = 2, refreshStartBtn();
+                        loginData.tag_int = 2;
                         loginData.tag_json['retake'] = [player_uuid, data['time']];
-                        
+                        refreshStartBtn();
+
                         showNotice('已送出配對邀請給 '+others[player_uuid][0]+' ！');
                         theWS.callSendWs('inform', ['target', player_uuid], ['meInGroup', false], ['message', 'match'], ['hidden', player_uuid], ['tag', 4]);
                         $('#sidebar').offcanvas('hide');
@@ -310,7 +315,9 @@ function acceptMethod(css_id, player_uuid){
             success: function(data) {
                 if (!0 === data['result']){
                     loginData.tag_json['interact'][player_uuid] = 7, refreshGameTag(player_uuid);
-                    loginData.tag_int = 3, refreshStartBtn();
+                    loginData.tag_int = 3;
+                    refreshStartBtn();
+
                     showNotice('與 '+others[player_uuid][0]+' 成功配對。 已建立房間，等待中...');
                     theWS.callSendWs('inform', ['target', 'room'], ['meInGroup', true], ['message', data['isWon']],['hidden', player_uuid], ['tag', 5]);
                 }else{
@@ -376,7 +383,7 @@ function retakeMethod(){
             return false
         }
         if (-1 !== loginData.onoff_dict[retake_uuid] && new Date() < new Date(loginData.tag_json['retake'][1])){  // last check
-            showNotice('對方可能正在猶豫與思考，必須超過5分種，才能收回你的'+retake_str+'哦！');
+            showNotice('對方可能正在猶豫與思考，必須超過3分種，才能收回你的'+retake_str+'哦！');
             return false
         }
 
@@ -391,8 +398,9 @@ function retakeMethod(){
                     else
                         refreshPlayer(retake_uuid);
 
-                    loginData.tag_int = 1, refreshStartBtn();
+                    loginData.tag_int = 1; 
                     loginData.tag_json['retake'] = ['', null];
+                    refreshStartBtn();
                     
                     showNotice('收回了寄給'+others[retake_uuid][0]+'的'+retake_str+'！');
                     theWS.callSendWs('inform', ['target', retake_uuid], ['meInGroup', false], ['message', retake_str],['hidden', retake_uuid], ['tag', 6]);
@@ -743,7 +751,7 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
             refreshInventory('paper');
 
             showNotice('成功與 '+others[data.from][0]+'互換紙條！');
-            di = [[gameGate.articleName('paper'), !1, 's'],...gameGate.articlePart('paper', [3])];
+            di = [[gameGate.articleName('paper'), !1, 's'],...gameGate.articlePart('paper', [3, 4], false)];
         }else{
             var intToChange = false;
             [loginData.tag_json['interact'][data.from], intToChange] = refresh_after_change(loginData.tag_json['interact'][data.from], intToChange), refreshGameTag(data.from);

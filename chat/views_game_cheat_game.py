@@ -82,7 +82,7 @@ def pass_paper(request, uuid):
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 2
-        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=4)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=3)).strftime('%Y-%m-%dT%H:%M:%SZ')
         self_player.tag_json['retake'] = [uuid, t_str]
         # self_player.save(update_fields=["tag_json", "tag_int"])
         Player.objects.filter(uuid=self_player.uuid).update(tag_json=self_player.tag_json, tag_int=self_player.tag_int)
@@ -185,7 +185,7 @@ def match(request, uuid):
 
         self_player.tag_int = 2
         self_player.tag_json['interact'][uuid] = 5
-        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=4)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        t_str = (datetime.now(tz=timezone.utc) + timedelta(minutes=3)).strftime('%Y-%m-%dT%H:%M:%SZ')
         self_player.tag_json['retake'] = [uuid, t_str]
         # self_player.save(update_fields=["tag_json", "tag_int"])
         Player.objects.filter(uuid=self_player.uuid).update(tag_json=self_player.tag_json, tag_int=self_player.tag_int)
@@ -312,6 +312,14 @@ def prolog(request):  # every game participant needs to do prolog()
                 'role': '槍手' if room.answer['roles'][self_uuid] == 1 else '一般考生',
                 'retake': ['', None]
             }
+
+            for player in room.players.all().exclude(uuid=self_uuid):
+                if player.tag_int is not None:
+                    if player.tag_int == 3:
+                        di['interact'][str(player.uuid)] = 7
+                    elif player.tag_int == 1 or 2:
+                        di['interact'][str(player.uuid)] = 1
+
             self_player.tag_json = di
             self_player.tag_int = 0
             self_player.save()
