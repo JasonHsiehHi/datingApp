@@ -151,7 +151,7 @@ def change_paper(request, uuid):
                     refresh_after_change(player.tag_json['interact'][self_uuid], toSave, intToChange)
                 player.tag_json['interact'][uuid], toSave, intToChange = \
                     refresh_after_change(player.tag_json['interact'][uuid], toSave, intToChange)
-                if intToChange is True:
+                if intToChange is True and player.tag_int != 3:
                     player.tag_int = 1 if player.tag_json['interact'][str(player.uuid)] == 1 else 0
                 if toSave is True:
                     Player.objects.filter(uuid=player.uuid).update(tag_json=player.tag_json, tag_int=player.tag_int)
@@ -225,7 +225,7 @@ def accept(request, uuid):
 
             else:
                 if player.tag_json is not None:
-                    if player.tag_json['retake'][0] in [self_uuid, uuid]:
+                    if player.tag_json['retake'][0] in [self_uuid, uuid] and player.tag_int != 3:
                         player.tag_int = 1 if player.tag_json['interact'][player_uuid] == 1 else 0
                     player.tag_json['interact'][uuid] = 7
                     player.tag_json['interact'][self_uuid] = 7

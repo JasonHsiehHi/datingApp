@@ -756,10 +756,9 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
             var intToChange = false;
             [loginData.tag_json['interact'][data.from], intToChange] = refresh_after_change(loginData.tag_json['interact'][data.from], intToChange), refreshGameTag(data.from);
             [loginData.tag_json['interact'][data.hidden], intToChange] = refresh_after_change(loginData.tag_json['interact'][data.hidden], intToChange), refreshGameTag(data.hidden);
-            if (!0 === intToChange)
+            if (!0 === intToChange && loginData.tag_int !== 3)
                 loginData.tag_int = (loginData.tag_json['interact'][loginData.uuid]===1)? 1: 0;
                 refreshStartBtn();
-            //refresh_after_change(data.from), refresh_after_change(data.hidden);
         }
         var text = '<span class="a-point">'+loginData.player_dict[data.hidden][0]+'</span> 和 <span class="a-point">'+loginData.player_dict[data.from][0]+'</span> 成功交換了紙條。';
         di.push([text,!1,'s']);
@@ -779,13 +778,6 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
             else if (!0 === [5,6].includes(value))
                 value = 4;
 
-            // loginData.player_dict[uuid][2] = 0;
-            /* 
-            if (!0 === [2,3].includes(loginData.tag_json['interact'][uuid]))
-                loginData.tag_json['interact'][uuid] = 0;
-            else if (!0 === [5,6].includes(loginData.tag_json['interact'][uuid]))
-                loginData.tag_json['interact'][uuid] = 4;
-            */
             return [value, intToChange]
         }
 
@@ -833,18 +825,11 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
         }else{
             loginData.tag_json['interact'][data.from] = 7, refreshGameTag(data.from);
             loginData.tag_json['interact'][data.hidden] = 7, refreshGameTag(data.hidden);
-            loginData.tag_int = (loginData.tag_json['interact'][loginData.uuid]===1)? 1: 0;
-            refreshStartBtn()
-            // refresh_after_accept(data.from), refresh_after_accept(data.hidden);
+            if (loginData.tag_int !== 3)
+                loginData.tag_int = (loginData.tag_json['interact'][loginData.uuid]===1)? 1: 0;
+            refreshStartBtn();
         }
         
-        /*
-        function refresh_after_accept(uuid){
-            loginData.tag_json['interact'][uuid] = 7;
-            refreshGameTag(uuid);
-        }
-        */
-
     }else if (6 === data.tag){
         var retake_str = data.msgs;
         if (!1 === data.toSelf){
