@@ -74,7 +74,7 @@
     margin-top: 0.25rem!important;
 }
 .a-stripbar-body{
-    overflow-y: hidden;
+    overflow: hidden;
     padding-bottom: 60px;
 }
 
