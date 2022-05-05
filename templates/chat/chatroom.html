@@ -22,11 +22,11 @@
     <script src="{% static 'chat/js/jquery-ui.min.js'%}"></script>
     <script src="{% static 'chat/js/jquery.fileupload.js'%}"></script>
 
-    <link rel="stylesheet" href="{% static 'chat/css/chatroom.css'%}"/>
+    <link rel="stylesheet" href="{% static 'chat/css/chatroom.css'%}?ver=20220505"/>
     
-    <script src="{% static 'chat/js/db.js'%}"></script>
+    <script src="{% static 'chat/js/db.js'%}?ver=20220505"></script>
     {{ login_dict|json_script:"loginData" }}
-    <script src="{% static 'chat/js/chatroom.js'%}"></script>
+    <script src="{% static 'chat/js/chatroom.js'%}?ver=20220505"></script>
 
     {% block script_file %}{% endblock %}
 
