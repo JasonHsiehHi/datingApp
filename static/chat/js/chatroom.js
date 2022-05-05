@@ -273,19 +273,56 @@ function getLocalData(){
     var data = {
         name: '取個暱稱吧',
         school: '',
-        city:'',
+        city: '',
         lastSaid: 's',
         text_in_discon: [],
         imgUrl_adult: '',
-        chatLogs:[],
-        gameLogs:[],
-        answers:{},
-        cache:{},
-        time_str:{},
-        isMuted:false,
+        chatLogs: [],
+        gameLogs: [],
+        answers: {},
+        cache: {},
+        time_str: {},
+        isMuted: false,
+        version: VERSION
+    };
+
+    var storage = {
+        isSaved: 'true',
+        name: '取個暱稱吧',
+        school: '',
+        city: '',
+        lastSaid: 's',
+        text_in_discon: '[]',
+        imgUrl_adult: '',
+        chatLogs: '[]',
+        gameLogs: '[]',
+        answers: '{}',
+        cache: '{}',
+        time_str: '{}',
+        isMuted: 'false',
+        version: VERSION
     };
 
     if ('undefined' !== typeof(Storage)){
+        for (let key in data){
+            if (void 0 === localStorage[key]){
+                localStorage[key] = storage[key];
+            }else{
+                switch (typeof(data[key])){
+                    case 'string':
+                        data[key] = localStorage[key];
+                        break;
+                    case 'object':
+                        data[key] = JSON.parse(localStorage[key]);
+                        break;
+                    case 'boolean':
+                        data[key] = ('true'===localStorage[key])? true : false;
+                        break;
+                }
+            }
+        }
+
+        /*
         if ('true'===localStorage.isSaved){
             try{
                 data.name = localStorage.name,
@@ -299,7 +336,8 @@ function getLocalData(){
                 data.answers = JSON.parse(localStorage.answers),
                 data.cache = JSON.parse(localStorage.cache),
                 data.time_str = JSON.parse(localStorage.time_str),
-                data.isMuted = ('true'===localStorage.isMuted)? true : false;
+                data.isMuted = ('true'===localStorage.isMuted)? true : false,
+                data.version = localStorage.version;
             }catch(e){
                 if(e instanceof SyntaxError){
                     localStorage.isSaved = 'false';
@@ -320,12 +358,22 @@ function getLocalData(){
             localStorage.answers = '{}',
             localStorage.cache = '{}',
             localStorage.time_str = '{}',
-            localStorage.isMuted = 'false';
+            localStorage.isMuted = 'false',
+            localStorage.version = '1.0.8_20220505';
         }
+        */
+
     }else{
         console.log('瀏覽器不支援或已關閉Storage功能，無法離線保留聊天記錄。');
     }
+    updateVersion();
     return data
+}
+function updateVersion(){
+    if (localStorage.version !== void 0 && localStorage.version !== VERSION) {
+        localStorage.version = VERSION;
+        location.reload();
+    }
 }
 
 function getTermData(){
@@ -1401,10 +1449,12 @@ Array.prototype.remove = function(val) {
 
 var loginData = JSON.parse(document.getElementById('loginData').textContent),
     TITLE = "A-LARP - 匿名劇本殺 | 2022年台灣校園交友平台",
+    VERSION = '1.0.8_20220505',
     unreadMsg = 0,
     queuedMsg = 1,
-    place_url = '/static/chat/img/mark/',
-    chatSocket = null,
+    place_url = '/static/chat/img/mark/';
+    
+var chatSocket = null,
     theWS = WSManager(),
     theUI = chatUI(), 
     theGate = checkGate(),
