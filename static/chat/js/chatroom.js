@@ -367,9 +367,66 @@ function enabledElmtCss(elmt_css){
     (void 0 !== $(elmt_css).attr('disabled')) && $(elmt_css).removeAttr('disabled');
 }
 
+function disabledElmtCssAll(elmt_css_list){
+    for (elmt_css of elmt_css_list){
+        disabledElmtCss(elmt_css);
+    }
+}
+
+function enabledElmtCssAll(elmt_css_list){
+    for (elmt_css of elmt_css_list){
+        enabledElmtCss(elmt_css);
+    }
+}
+
 function changeBtnColor(css_id, class_name){  
     // class_name:btn-primary, btn-secondary, btn-success, btn-danger, btn-warning, btn-info, btn-light, btn-dark
-    $(css_id).removeClass(), $(css_id).addClass('btn '+ class_name);
+    if ($(css_id).hasClass('btn')){
+        $(css_id).removeClass().addClass('btn '+ class_name);
+    }
+}
+
+function changeStripBtnTitle(css_id, title=null){
+    if ($(css_id).parents('#stripbar').length > 0){
+        var parent = $(css_id).parent();
+        var str = (void 0 === $(elmt_css).attr('disabled'))? '': '(disabled)';
+        (null === title) && ( title = parent.attr('data-bs-original-title').replace('(disabled)','') );
+        parent.attr('data-bs-original-title', title+str);
+    }
+}
+
+function bindStripbarBtn(){
+    var stripbar_btn = $('#stripbar-btn');
+    stripbar_btn.on('click',function(e){
+        if ('false' === stripbar_btn.attr('ishided')){ // to hide stripbar-btn
+            stripbar_btn.find('.material-icons-outlined').text('arrow_forward_ios');
+            $('.a-footer,.navbar').animate({
+                left: '5px'
+            },{ duration:300, easing:"swing"});
+            $('.a-section').animate({
+                left: '0px'
+            },{ duration:300, easing:"swing"});
+            $('.a-stripbar').animate({
+                left: '-60px'
+            },{ duration:300, easing:"swing"});
+
+            stripbar_btn.attr('ishided', 'true');
+
+        }else{  // to show stripbar-btn
+            stripbar_btn.find('.material-icons-outlined').text('arrow_back_ios');
+            $('.a-footer,.navbar').animate({
+                left: '65px'
+            },{ duration:300, easing:"swing",});
+            $('.a-section').animate({
+                left: '60px'
+            },{ duration:300, easing:"swing"});
+            $('.a-stripbar').animate({
+                left: '0px'
+            },{ duration:300, easing:"swing"});
+
+            stripbar_btn.attr('ishided', 'false');
+        }
+    })
 }
 
 function loadLoginData(){ // login and logout will redirect, so loginData will be loaded then.
@@ -381,7 +438,7 @@ function loadLoginData(){ // login and logout will redirect, so loginData will b
 
         $('#user-info>span:eq(0)').text(loginData.email);
         $('#user-info>span:eq(1)').text( '性別:' + ((loginData.gender === 'm')?'男':'女') );
-        $('#user-tag').removeClass('a-off').addClass( ((loginData.gender === 'm')? 'a-male':'a-female') );
+        $('#user-tag,#user-strip-tag').removeClass('a-off').addClass( ((loginData.gender === 'm')? 'a-male':'a-female') );
         localData.name = loginData.name, localStorage.name = loginData.name;
         localData.city = loginData.city, localStorage.city = loginData.city;
 
@@ -411,7 +468,7 @@ function refreshProfile(){  // handle text of navbar and sidebar
         setNavTitle('A-LARP匿名劇本殺');
     }
     
-    $('#user-tag').text(localData.name[0]);
+    $('#user-tag,#user-strip-tag').text(localData.name[0]);
     $('#user-name').text(localData.name).attr('data-bs-original-title', localData.name);
     $('#user-role').text('(還未進入遊戲)');
 }
@@ -423,20 +480,28 @@ function setNavTitle(msg){
 function refreshStatus(status){  // handle all UI work about status
     switch (status){  // status: change IntegerField to CharField
         case 0:
-            enabledElmtCss('#goto-btn'), enabledElmtCss('#name-btn');
-            enabledElmtCss('#start-btn'), $('#start-btn').text('開始遊戲');
+            // enabledElmtCss('#goto-btn'), enabledElmtCss('#name-btn'), enabledElmtCss('#start-btn');
+            enabledElmtCssAll(['#goto-btn', '#name-btn', '#start-btn', '#goto-strip-btn', '#name-strip-btn', '#start-strip-btn']);
             disabledElmtCss('#leave-btn');
+
+            changeStripBtnTitle('#goto-strip-btn'), changeStripBtnTitle('#name-strip-btn');
+            $('#start-btn').text('開始遊戲');
+            changeStripBtnTitle('#start-strip-btn', '開始遊戲');
 
             (localData.gameLogs.length>0) && theUI.clearChatLogs('gameLogs');
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
             break;
             
         case 1:
-            disabledElmtCss('#goto-btn'), disabledElmtCss('#name-btn');
-            disabledElmtCss('#start-btn'), $('#start-btn').text('等待中...');
+            // disabledElmtCss('#goto-btn'), disabledElmtCss('#name-btn'), disabledElmtCss('#start-btn');
+            disabledElmtCssAll(['#goto-btn', '#name-btn', '#start-btn', '#goto-strip-btn', '#name-strip-btn', '#start-strip-btn']);
             enabledElmtCss('#leave-btn');
 
-            setNavTitle('等待其他玩家中...  <span class="a-clock a-point"></span>');
+            changeStripBtnTitle('#goto-strip-btn'), changeStripBtnTitle('#name-strip-btn');
+            $('#start-btn').text('等待中...');
+            changeStripBtnTitle('#start-strip-btn', '等待中...');
+
+            setNavTitle('等待其他玩家.. <span class="a-clock a-point"></span>');
             (null === term.timerId_clock) && theUI.showClock(); // theUI.showClock 顯示 NaN:NaN (safari)？
             
             (!0 === toggle.first) && (theGate.greet(), toggle.first = !1);
@@ -451,8 +516,10 @@ function refreshStatus(status){  // handle all UI work about status
 
         case 2:
         case 3:
-            disabledElmtCss('#goto-btn'), disabledElmtCss('#name-btn');
+            // disabledElmtCss('#goto-btn'), disabledElmtCss('#name-btn');
+            disabledElmtCssAll(['#goto-btn', '#name-btn', '#goto-strip-btn', '#name-strip-btn']);
             enabledElmtCss('#leave-btn');
+            changeStripBtnTitle('#goto-strip-btn'), changeStripBtnTitle('#name-strip-btn');
             break;
     }
 }
@@ -522,7 +589,7 @@ function bindUpMore(){
     $("#show-more-btn").on('click',function(a){
         var isMore = (2 === loginData.status)?theUI.loadChatLogsMore('gameLogs'):theUI.loadChatLogsMore('chatLogs');
         (!0 === isMore)?appearElmtCss('#show-more'): disappearElmtCss('#show-more');
-    }) 
+    })
 }
 
 function showNotice(msg){
@@ -683,7 +750,8 @@ function profileMethodSet(){
         'name':'遊戲暱稱'
     }
     for (let prop in modalName){
-        $("#"+prop+"-btn").on('click',function(a){
+        // $("#"+prop+"-btn")
+        $('#'+prop+'-btn,#'+prop+'-strip-btn').on('click',function(a){
             $("#"+prop+"-modal-form").removeClass('d-none');
             $('#modal .modal-title').text(modalName[prop]);
             $('#modal').modal('show');
@@ -848,7 +916,8 @@ function leaveMethod(){
 
 var startMethod = function(){
     function b(){
-        $("#start-btn").on('click',function(e){
+        // $("#start-btn")
+        $("#start-btn,#start-strip-btn").on('click',function(e){
             $("#start-modal-form").removeClass('d-none');
             $('#modal .modal-title').text('開始遊戲');
             $('#modal').modal('show');
@@ -1023,7 +1092,7 @@ function imgWrapper(imgUrl){
 
 var chatUI = function(){
     function mm(msg){
-        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgWrapper(msg)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat justify-content-end d-flex js-generated"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+msgWrapper(msg)+'</span></p></div>';
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt), st(newElmt,1);
         localData.lastSaid = 'm',localStorage.lastSaid='m';
@@ -1032,7 +1101,7 @@ var chatUI = function(){
     }
 
     function mi(imgUrl){
-        var newElmt_text = '<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgWrapper(imgUrl)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat justify-content-end d-flex js-generated"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+imgWrapper(imgUrl)+'</span></p></div>';
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt), st(newElmt,1);
         localData.lastSaid = 'm',localStorage.lastSaid='m';
@@ -1041,7 +1110,7 @@ var chatUI = function(){
     }
 
     function m(msg){
-        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgWrapper(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        var newElmt_text = '<div class="a-chat d-flex js-generated"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+msgWrapper(msg)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 'a',localStorage.lastSaid = 'a';
@@ -1050,7 +1119,7 @@ var chatUI = function(){
     }
 
     function i(imgUrl){
-        var newElmt_text = '<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgWrapper(imgUrl)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
+        var newElmt_text = '<div class="a-chat d-flex js-generated"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+imgWrapper(imgUrl)+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>';
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 'a',localStorage.lastSaid = 'a';
@@ -1059,7 +1128,7 @@ var chatUI = function(){
     }
 
     function sm(msg){
-        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span>'+msg+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat text-center js-generated"><p class="a-dialogdiv a-sys a-clr"><span>'+msg+'</span></p></div>';
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 's',localStorage.lastSaid = 's';
@@ -1068,7 +1137,7 @@ var chatUI = function(){
     }
 
     function si(imgUrl){
-        var newElmt_text = '<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span>'+imgWrapper(imgUrl)+'</span></p></div>';
+        var newElmt_text = '<div class="a-chat text-center js-generated"><p class="a-dialogdiv a-sys a-clr"><span>'+imgWrapper(imgUrl)+'</span></p></div>';
         var newElmt = $(newElmt_text);
         $('#writing').before(newElmt); 
         localData.lastSaid = 's',localStorage.lastSaid = 's';
@@ -1081,16 +1150,16 @@ var chatUI = function(){
         var content = (!0 === dialog[1])? imgWrapper(dialog[0]): msgWrapper(dialog[0]);
         switch (dialog[2]){
             case 'm':
-                newElmt = $('<div class="a-chat justify-content-end d-flex"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+content+'</span></p></div>');
+                newElmt = $('<div class="a-chat justify-content-end d-flex js-generated"><span class="a-status a-self text-end"><span class="d-block"></span><span class="d-block">'+timeAMPM(new Date())+'</span></span><p class="a-dialogdiv a-self a-clr d-inline-flex"><span class="a-tri a-self"></span><span>'+content+'</span></p></div>');
                 st(newElmt, 1);
                 break;
             case 'a':
-                newElmt = $('<div class="a-chat d-flex"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+content+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>');
+                newElmt = $('<div class="a-chat d-flex js-generated"><p class="a-dialogdiv a-matcher a-clr d-inline-flex"><span class="a-tri a-matcher"></span><span>'+content+'</span></p><span class="a-status a-matcher">'+timeAMPM(new Date())+'</span></div>');
                 break;
             case 's':
                 if (!1 === dialog[1])
                     content = dialog[0];
-                newElmt = $('<div class="a-chat text-center"><p class="a-dialogdiv a-sys a-clr"><span>'+content+'</span></p></div>');
+                newElmt = $('<div class="a-chat text-center js-generated"><p class="a-dialogdiv a-sys a-clr"><span>'+content+'</span></p></div>');
                 break;
         }
         localData.lastSaid = dialog[2], localStorage.lastSaid=dialog[2];
@@ -1102,13 +1171,13 @@ var chatUI = function(){
     function q(question, choice_list, choice_num=2){
         if (2 == choice_num){
             var newElmt_text = 
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q js-generated"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div></div>'
         }else if(4 == choice_num){
             var newElmt_text =  
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q js-generated"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+ msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-mid a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-0">'+choice_list[0]+'</p><p class="a-choice a-right d-inline-flex a-1">'+choice_list[1]+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-left d-inline-flex a-2">'+choice_list[2]+'</p><p class="a-choice a-right d-inline-flex a-3">'+choice_list[3]+'</p></div></div>'
         }else if(1 == choice_num){
             var newElmt_text =
-            '<div class="a-chat flex-column d-flex a-q"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
+            '<div class="a-chat flex-column d-flex a-q js-generated"><div class="a-dialogdiv a-matcher a-question a-clr d-inline"><p class="m-2">'+msgWrapper(question)+'</p></div><div class="a-dialogdiv a-matcher a-answer a-clr justify-content-evenly d-flex"><p class="a-choice a-top d-inline-flex a-0">'+choice_list[0]+'</p></div></div>'
         }else{
             console.log('select: 1,2,4 for choice_num(param)');
             return false
@@ -1131,7 +1200,7 @@ var chatUI = function(){
     }
     function now(){
         toggle.scroll = !0;
-        $('.outer-scrollbar').animate({
+        $('.a-container>.outer-scrollbar').animate({
             scrollTop:$('#dialog').height()
         },{
             duration:500,
@@ -1290,7 +1359,9 @@ var chatUI = function(){
 function installToolTip() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger : 'hover'
+            });
     })
 }
 
@@ -1343,7 +1414,7 @@ var loginData = JSON.parse(document.getElementById('loginData').textContent),
     theStart = startMethod();  // to use private method from startMethod
     
 $(document).ready(function() {
-    bindMsgSend(), installToolTip(), bindModalHide(), bindUpMore(); 
+    bindMsgSend(), installToolTip(), bindModalHide(), bindUpMore(), bindStripbarBtn();
     loginMethodSet(), profileMethodSet(), leaveMethod(), theStart.bind();
     settings(), loadLoginData(), loadLocalData();
 });

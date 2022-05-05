@@ -38,7 +38,7 @@
 {% block players %}
 <div class='list-group list-group-flush w-100' id='player-list'>
     {% for i in range %}
-    <div class='list-group-item list-group-item-action a-div d-flex d-none' id="player-{{i}}">
+    <div class="list-group-item list-group-item-action a-div d-flex d-none" id="player-{{i}}">
         <div class='a-circle a-sidebar'></div>
         <div class='ps-1 pt-1 flex-grow-1'>
             <div class='d-flex justify-content-between'>
@@ -55,8 +55,25 @@
 {% block sidebar %}
 <div class="a-div a-sidebar">
     <p class="h5">物品欄：</p>
-    <div class="mx-3 " id="game-inventory">
+    <div class="list-group list-group-flush mx-2" id="game-inventory">
     </div>
+</div>
+{% endblock %}
+
+{% block stripbar_players %}
+<div class="a-stripbar-div py-1 d-flex flex-column align-items-center" id="stripbar-players">
+    {% for i in range %}
+    <div id="player-{{i}}-strip" class="d-none" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="互動(disabled)">
+        <button type="button" class="btn my-1" id="player-{{i}}-strip-btn" disabled="disabled">
+            <div class="a-circle"></div>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block stripbar %}
+<div class="a-stripbar-div py-1 d-flex flex-column align-items-center" id="stripbar-inventory">
 </div>
 {% endblock %}
 
@@ -66,6 +83,7 @@
         <div class="modal-content">
             <div class="modal-header justify-content-center">
                 <p class="h5 modal-title">物 品 名 稱</p>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="close"></button>
             </div>
             <form id="inventory-modal-content">
             </form>

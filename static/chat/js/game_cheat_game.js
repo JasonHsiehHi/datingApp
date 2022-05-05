@@ -372,9 +372,9 @@ function retakeMethod(){
     if (!0 === hasBound_retakeMethod)
         return false
     hasBound_retakeMethod = !0;
-
-    $('#start-btn').off('click');
-    $('#start-btn').on('click',function(e){
+    // $('#start-btn')
+    $('#start-btn,#start-strip-btn').off('click');
+    $('#start-btn,#start-strip-btn').on('click',function(e){
         var retake_uuid = loginData.tag_json['retake'][0];
         var tag = loginData.tag_json['interact'][retake_uuid];
         var retake_str = (2===tag)?'紙條':'邀請';
@@ -439,7 +439,8 @@ function bindGameMsgSend() {  // to overload bindMsgSend() in chatroom.js
 }
 
 function articleMethod(name){
-    $('#'+name+'-btn').on('click',function(a){
+    // $('#'+name+'-btn')
+    $('#'+name+'-btn,#'+name+'-strip-btn').on('click',function(a){
         var article = loginData.tag_json[name];
         var article_name = article[0].split('').map(s => s+' ').join('');
         $('#inventory-modal .modal-title').text(article_name);
@@ -461,8 +462,10 @@ function articleMethod(name){
 function putIntoInventory(name){
     var article = loginData.tag_json[name];
     var article_name = article[0].split('').map(s => s+' ').join('');
-    var newElmt_text = '<div class="list-group-item a-div d-flex" id="article-'+ name+'"><div class="a-circle a-sidebar"><img src="/static/chat/img/'+ game_name +'/' + name + '.png" alt="'+ name + '"></div><div class="ps-1 pt-1 flex-grow-1"><div class="d-flex justify-content-between"><div class="mb-0 a-article a-sidebar"><span class="a-title a-sidebar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="'+article_name+'">'+article_name+'</span></div><button class="btn btn-warning a-sidebar btn-sm" id='+name+'-btn type="button">查看</button></div></div></div>';
-    $('#game-inventory').append($(newElmt_text));
+    var sidebarElmt_text = '<div class="list-group-item a-div d-flex js-generated" id="article-'+ name+'"><div class="a-circle a-sidebar"><img src="/static/chat/img/'+ game_name +'/' + name + '.png" alt="'+ name + '"></div><div class="ps-1 pt-1 flex-grow-1"><div class="d-flex justify-content-between"><div class="mb-0 a-article a-sidebar"><span class="a-title a-sidebar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="'+article_name+'">'+article_name+'</span></div><button class="btn btn-warning a-sidebar btn-sm" id="'+name+'-btn" type="button">查看</button></div></div></div>';
+    var stripbarElmt_text = '<div data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="查看"><button type="button" class="btn my-1 js-generated" id="'+name+'-strip-btn"><div class="a-circle"><img src="/static/chat/img/'+ game_name +'/' + name + '.png" alt="'+ name + '"></div></button></div>';
+    $('#game-inventory').append($(sidebarElmt_text));
+    $('#stripbar-inventory').append($(stripbarElmt_text));
     articleMethod(name);
 }
 
@@ -482,7 +485,7 @@ function loadTagfromDB(role){
 function loadSidebarbyRole(role){
     loadTagfromDB(role);
     $('#user-role').text( '('+role+')');
-    putIntoInventory('card'), putIntoInventory('paper');
+    putIntoInventory('card'), putIntoInventory('paper'), installToolTip();
 }
 
 function loadRoleData(){  // to display sidebar content according to individual role
@@ -497,9 +500,9 @@ function loadRoleData(){  // to display sidebar content according to individual 
         css_id = '#player-' + i.toString();
         name = others[uuid][0], gender = (others[uuid][1]==='m')? 'a-male':((others[uuid][1]==='f')?'a-female': 'a-nogender');
         
-        $(css_id).removeClass('d-none');
+        $(css_id+','+css_id+'-strip').removeClass('d-none');
         $(css_id).data('uuid', uuid), position[uuid] = css_id;  // bind the variable player's css_id to player's uuid
-        $(css_id).find('.a-circle').addClass(gender).text(name[0]);
+        $(css_id+','+css_id+'-strip').find('.a-circle').addClass(gender).text(name[0]);
         $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name);
         i++;
     }
@@ -515,12 +518,15 @@ function refreshStartBtn(){
     if (2 === loginData.tag_int){
         var retake_uuid = loginData.tag_json['retake'][0];
         var retake_str = (2===loginData.tag_json['interact'][retake_uuid])?'收回紙條':'收回邀請';
-        $('#start-btn').text(retake_str).removeAttr('disabled');
-        changeBtnColor('#start-btn', 'btn-danger');
+
+        enabledElmtCssAll(['#start-btn','#start-strip-btn']);
+        changeBtnColor('#start-btn', 'btn-danger'), $('#start-btn').text(retake_str);
+        changeStripBtnTitle('#start-strip-btn', retake_str);
     }
     else{
-        $('#start-btn').text('行 動').attr('disabled', true);
-        changeBtnColor('#start-btn', 'btn-warning');
+        disabledElmtCssAll(['#start-btn', '#start-strip-btn']);
+        changeBtnColor('#start-btn', 'btn-warning'), $('#start-btn').text('行 動');
+        changeStripBtnTitle('#start-strip-btn', '行 動');
     }
 }
 
@@ -570,30 +576,35 @@ function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPla
     var name = others[player_uuid][0];
     switch (loginData.onoff_dict[player_uuid]){
         case 0:
-            (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
+            (!$(css_id+','+css_id+'-strip').find('.a-circle').hasClass('a-off')) && $(css_id+','+css_id+'-strip').find('.a-circle').addClass('a-off');
             $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(離線)');
             $(css_id).find('.a-onoff').text('(離線)');
 
-            disabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm');
+            disabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeBtnColor(css_id+'-btn', 'btn-warning btn-sm');
+            changeStripBtnTitle(css_id+'-strip-btn');
             
             (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !0);
             break;
         case 1:
-            ($(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').removeClass('a-off');
+            ($(css_id+','+css_id+'-strip').find('.a-circle').hasClass('a-off')) && $(css_id+','+css_id+'-strip').find('.a-circle').removeClass('a-off');
             $(css_id).find('.a-title').attr('data-bs-original-title', name);
             $(css_id).find('.a-onoff').text('');
 
-            enabledElmtCss(css_id+'-btn');
+            enabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeStripBtnTitle(css_id+'-strip-btn');
 
             (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !1);
             break;
         case -1:
-            (!$(css_id).find('.a-circle').hasClass('a-off')) && $(css_id).find('.a-circle').addClass('a-off');
+            (!$(css_id+','+css_id+'-strip').find('.a-circle').hasClass('a-off')) && $(css_id+','+css_id+'-strip').find('.a-circle').addClass('a-off');
             $(css_id).find('.a-title').text(name).attr('data-bs-original-title', name + '(已退出)');
             $(css_id).find('.a-onoff').text('(已退出)');
-            $(css_id).find('.a-circle').text('');
+            $(css_id+','+css_id+'-strip').find('.a-circle').text(' ');
 
-            disabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('已退出');
+            disabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('已退出');
+            changeStripBtnTitle(css_id+'-strip-btn', '已退出');
 
             (loginData.status === 3 && loginData.player_list.includes(player_uuid)) && (toggle.discon = !0);
             break;
@@ -602,7 +613,7 @@ function refreshPlayer(player_uuid){  // refreshGameSingle() can call refreshPla
 
 function disablePlayerBtnAll(){  // like refreshGameTagAll(), but don't use tag_json&tag_int
     for (let uuid in position){
-        (1 === loginData.onoff_dict[uuid]) && disabledElmtCss(position[uuid]+'-btn');
+        (1 === loginData.onoff_dict[uuid]) && (disabledElmtCssAll([position[uuid]+'-btn', position[uuid]+'-strip-btn']), changeStripBtnTitle(position[uuid]+'-strip-btn'));
     }
 }
 
@@ -616,45 +627,49 @@ function refreshGameTagAll(){  // refresh tag_int&tag_json only be called on sta
 function refreshGameTag(player_uuid){  // refreshGameSingle() can call refreshGameTag() instead of refreshGameTagAll()
     // everyone in game is same, so self_group isn't used.
     var css_id = position[player_uuid];
-    /* 
-    if ( 0 === loginData.player_dict[player_uuid][2] ){
-        if (!0 === [2,3].includes(loginData.tag_json['interact'][player_uuid]))
-            loginData.tag_json['interact'][player_uuid] = 0;
-        else if (!0 === [5,6].includes(loginData.tag_json['interact'][player_uuid]))
-            loginData.tag_json['interact'][player_uuid] = 4;
-    }else  // 1 === loginData.player_dict[player_uuid][2]
-        if (0 === loginData.tag_json['interact'][player_uuid])
-            loginData.tag_json['interact'][player_uuid] = 1;
-    */
-
     switch(loginData.tag_json['interact'][player_uuid]){
         case null:
             break;
         case 0:  // '傳遞前未填完'
         case 1:  // '傳遞前已填完'
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('傳紙條'), passMethod(css_id+'-btn', player_uuid);  
+            enabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('傳紙條'), passMethod(css_id+'-btn,'+css_id+'-strip-btn', player_uuid);
+            changeStripBtnTitle(css_id+'-strip-btn', '傳紙條');
             break;
         case 2:
-            disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已傳遞');
+            disabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']); 
+            $(css_id+'-btn').text('已傳遞');
+            changeStripBtnTitle(css_id+'-strip-btn', '已傳遞');
             break;
         case 3:
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-danger btn-sm'), $(css_id+'-btn').text('換紙條'), changeMethod(css_id+'-btn', player_uuid);
+            enabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeBtnColor(css_id+'-btn', 'btn-danger btn-sm'), $(css_id+'-btn').text('換紙條'), changeMethod(css_id+'-btn,'+css_id+'-strip-btn', player_uuid);
+            changeStripBtnTitle(css_id+'-strip-btn', '換紙條');
             break;
         case 4:
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('配對'), matchMethod(css_id+'-btn', player_uuid);  
+            enabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('配對'), matchMethod(css_id+'-btn,'+css_id+'-strip-btn', player_uuid);  
+            changeStripBtnTitle(css_id+'-strip-btn', '配對');
             break;
         case 5:
-            disabledElmtCss(css_id+'-btn'), $(css_id+'-btn').text('已邀請');
+            disabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            $(css_id+'-btn').text('已邀請');
+            changeStripBtnTitle(css_id+'-strip-btn', '已邀請');
             break;
         case 6:
-            enabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-danger btn-sm'), $(css_id+'-btn').text('接受'), acceptMethod(css_id+'-btn', player_uuid);
+            enabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeBtnColor(css_id+'-btn', 'btn-danger btn-sm'), $(css_id+'-btn').text('接受'), acceptMethod(css_id+'-btn,'+css_id+'-strip-btn', player_uuid);
+            changeStripBtnTitle(css_id+'-strip-btn', '接受');
             break;
         case 7:
-            disabledElmtCss(css_id+'-btn'), changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('已配對');
+            disabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+            changeBtnColor(css_id+'-btn', 'btn-warning btn-sm'), $(css_id+'-btn').text('已配對');
+            changeStripBtnTitle(css_id+'-strip-btn', '已配對');
             break;
     }
     if (3 === loginData.tag_int){
-        disabledElmtCss(css_id+'-btn');
+        disabledElmtCssAll([css_id+'-btn', css_id+'-strip-btn']);
+        changeStripBtnTitle(css_id+'-strip-btn');
     }
 }
 
@@ -667,7 +682,12 @@ function refreshGameSingle(ws_type, player_uuid, ...args){  // refresh one playe
     switch (ws_type){  // react the ws_type according to induvidual role
         case 'CONN':
             refreshPlayer(player_uuid);
-            (2===loginData.status)? refreshGameTag(player_uuid): disabledElmtCss(position[player_uuid]+'-btn'); // (status is 2 or 3)
+            if (2===loginData.status){  // (status is 2 or 3)
+                refreshGameTag(player_uuid);
+            }else{
+                disabledElmtCssAll([position[player_uuid]+'-btn', position[player_uuid]+'-strip-btn']);
+                changeStripBtnTitle(position[player_uuid]+'-strip-btn');
+            }  
             // tag_json & tag_int will affect the result only if the player is online.
             // theUI.showSys('<span class="a-point">'+loginData.player_dict[player_uuid][0]+'</span> 已上線！');
             break;
@@ -696,8 +716,10 @@ function showGameNotice(ws_type, ...args){  // sent by websocket.onmessage
 function disabledGameBtns(){  // only be called in websocket.onmessage 'OVER'
     var css_id; 
     for (let uuid in position)
-        css_id = position[uuid], disabledElmtCss(css_id+'-btn');
-    disabledElmtCss('#start-btn');
+        css_id = position[uuid], disabledElmtCssAll([css_id+'-btn',css_id+'-strip-btn']), changeStripBtnTitle(css_id+'-strip-btn');
+    
+    // disabledElmtCss('#start-btn');
+    disabledElmtCssAll(['#start-btn', '#start-strip-btn']), changeStripBtnTitle('#start-strip-btn');
 
     $('body').off('click', "#leave-btn");
     $("#leave-btn").on('click',function(a){  // status is still 2 on front-end until redirect to /chat  
@@ -803,7 +825,7 @@ function informGameMessage(data){  // only be called in websocket.onmessage 'INF
             msgs_li.push(text+text2);
             var winText = (!0 === [data.hidden, data.from].includes(loginData.uuid))? '遊戲勝利！': '遊戲失敗，你未能領先其他人找到槍手。';
             msgs_li.push(winText);
-            msgs_li.push('平台目前仍在處在beta階段，目前還沒有適合的劇本可以使用，非常想要獲得大家的意見，也歡迎對平台有興趣的朋友加入！ <a href="https://forms.gle/Z4HBacchG9yif3QGA" target="_blank" class="a-point">Google表單</a>');
+            msgs_li.push('平台目前仍處在beta階段，目前能用的劇本數量不多，非常想要獲得大家的意見，也歡迎對平台有興趣的朋友加入！ <a href="https://forms.gle/Z4HBacchG9yif3QGA" target="_blank" class="a-point">Google表單</a>');
         }else{
             text2 = '兩人都不是槍手，目前槍手還混在玩家之中。';
             msgs_li.push(text+text2);

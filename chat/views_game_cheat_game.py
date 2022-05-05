@@ -317,7 +317,7 @@ def prolog(request):  # every game participant needs to do prolog()
                 if player.tag_int is not None:
                     if player.tag_int == 3:
                         di['interact'][str(player.uuid)] = 7
-                    elif player.tag_int == 1 or 2:
+                    elif player.tag_int == 1 or player.tag_int == 2:
                         di['interact'][str(player.uuid)] = 1
 
             self_player.tag_json = di

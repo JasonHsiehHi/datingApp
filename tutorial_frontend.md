@@ -57,8 +57,11 @@ url是django模板標籤 必須要在urls.py中設置urlpatterns的path(name='in
 window.open(strurl,'_blank') 為非同步方法
 獲取strUrl的資源 並在另一視窗打開('_blank',或可用<a>元素的id值)
 
+<a href="#" class="link-dark">Dark link</a> link-dark專門處理link底線的樣式
+<a href="#" class="text-decoration-none">No Underline Link</a> 沒有底線的樣式
+
 另一種用法：
-<a href="javascript:function1()">运行 function1</a> 可用於執行<script>內部的方法
+<a href="javascript:function1()">运行 function1</a> 可用於執行script內部的方法
 
 ## html_tag <form>和<input>:
 {% if next %}
@@ -672,6 +675,10 @@ margin 元素與外部元素之間的邊界間距 padding 元素與內部內容�
 margin用於全裝置統一留空的部分 而padding則用來微調不同裝置填空的部分
 對於有背景色的元素而言border相當重要 此時mg,pa就不能混用
 
+任何頁面上的尺寸表達法 都是(x,y) => (width, height) 不能再搞混
+如果內部元素只有一個時 那margin和padding基本可以互用 
+但如果有多個元素則要注意 margin會推到別的元素 padding基本上就是內縮
+
 border 則是元素外框 用來設定邊框寬度與樣式 (border之內就算是content)
 故外部元素的padding會和內部元素的margin相互影
 padding-right:15px 和 padding-left:15px
@@ -700,6 +707,8 @@ row alignment system：row的重點在對齊方式
 
 <div class="row justify-content-around"> 表示裡面元素分開排列 但不靠右側和左側
 <div class="row justify-content-between"> 表示一樣是元素分開排列 但靠右側和左側
+
+<div class="row justify-content-center"> 當然置中效果還是最長內使用
 
 justify則為主軸相關main axis(左右) align開頭都是副軸相關cross axis(上下)
 亦即將同一寬度的元素歸為content 而讓多個元素等高對齊則用items
@@ -766,13 +775,16 @@ border-top: 1px solid #E5E5E5; 必須指定三種參數 分別為width, style, c
 border-top-width:1px; 可直接指定其中一種
 - - -------------------------------------
 ## bootstrap_font:
-字體大小選擇有分為'h1'~'h6'和'display-1'~'display-6'兩種：
+字體大小選擇有分為'h1''h6' 和 'display-1''display-6' 兩種：
 <p class="h1">h1. Bootstrap heading</p> 
 等同<h1>h1. Bootstrap heading</h1> 為早期用html元素標籤的方式
 
 <h1 class="display-1">Display 1</h1> 和 <h1 class="display-2">Display 2</h1> 
 同樣是<h1>標籤 但前者"display-1"比後者"display-2"大
 當已經決定所用字體大小<h1>時 在用display區分同等標籤<h1>的大小
+
+h1 為 font-size: 40px; h2 為 font-size: 30px;
+而一般的p 則為font-size: 14px;
 
 font-size大小：
 medium：預設值，等於 16px ( h4 預設值 )
@@ -821,12 +833,32 @@ larger：約為父層的 120%
   <span class="navbar-text">Navbar text with an inline element</span>
   
 navbar-brand, navbar-text, nav-link...等皆為navbar選項元件 可放在：
+navbar-brand 適合放logo或公司商標 有針對link或font做調整
+navbar-text 擇適合放純文字 不能做連接 
+nav-link 則也是放文字但適合做連接
+navbar-toggler 則轉為按鈕 會有點擊的外框樣式
+
 與navbar-collapse元素同層的地方 表示不會縮進toggler中 無論任何寬度都會顯示
 而navbar-collapse元素的內部 則需用navbar-nav元素和navbar-item元素組成
 並將navbar選項元件放入navbar-item元素中
 
 collapse屬性表示此元素會回應collapse事件 navbar-collapse屬性則為在navbar的佈局
 通常兩者同時出現 同樣的方式還出現在accordion元件中：<div class='accordion-collapse collapse'> 
+
+## navs 列表型導航
+<ul class="nav flex-column nav-fill">
+  <li class="nav-item">
+    <a class="nav-link active" href="#">Active</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="#">Link</a>
+  </li>
+</ul>
+不同於navbar大多用圖示 這裡的nav則大多會使用link的方式呈現 用來做同頁面的超連結
+大多時間會跟flex-colum連用 可放在左側欄 
+nav-fill則會將側欄全部填滿 nav-justified則除了填滿之外還會平均分配寬度
+<ul class="nav nav-tabs"></ul> 或改用nav-tabs 可以標示目前所在的超連結
+<ul class="nav nav-pills"></ul> 與nav-tabs相同 但樣式不同 螢幕上呈現被點擊的橢圓按鈕(pills) 
 
 ## bootstrap_list:
 <ul class="list-unstyled"> 將<ul>清單形式轉成多行的文字內容
@@ -1058,6 +1090,9 @@ offcanvas-start表示從右側出現
 data-bs-dismiss用於取消data-bs-toggle觸發的物件 
 因為通常會是其物件的子元素 故不需要額外再指定data-bs-target
 
+如果要做固定橫欄sidebar 則要用d-flex flex-column style="width: 280px;"
+作法跟offcanvas不太一樣
+
 tooltip 不會改變任何佈局 又能提供更多訊息
 tooltip和popover都需要引入popper.js(包含於bootstrap.bundle.js)
 要使用前必須在js中安裝data-bs-toggle="tooltip"
@@ -1221,9 +1256,9 @@ display的五大屬性：
 <div class="d-block"> 本身元素<div>為block(如同<div>) 單一元素就會自動換行 並可設定bloc長寬屬性
 <div class="d-inline-block"> 本身元素<div>有inline和block性質 會向右擺放溢出才換行 且可設block長寬屬性
 
-d-flex和d-inline-flex的內部元素都是flex 不會有差異:
 <div class="d-flex"> 本身元素等同<div class="d-block"> 會直接換行 
 <div class="d-inline-flex"> 本身元素則為<div class="d-inline-block"> 溢出後才換行
+(d-flex和d-inline-flex的內部元素都是flex 不會有差異)
 
 ## flex佈局模式：
 block與flex差別在於: (差別只在影響內部元素(flew-item)的擺放 本身元素並不受影響)
@@ -1257,7 +1292,6 @@ flex-shrink則是當多個子元素的總寬度超過flexbox的所有空間時 �
 .box2{flex-shrink:1;}
 此時box1不做任何壓縮 box2則會壓縮大剛好等於flexbox的所有空間
 預設值為flex-shrink:1 表示所有子元素的壓縮比例都相同
-
 
 
 ## grid佈局模式:
@@ -1342,6 +1376,7 @@ thumbnail縮圖會有1px的邊框
 <p class="text-center">Center aligned text on all viewport sizes.</p>
 <p class="text-end">End aligned text on all viewport sizes.</p>
 同理用text也能達到依樣的效果 (不能給flex元素使用)
+用於取代flexm元素的justify-content-center 同樣是置中效果 
 
 - - --------------------------------
 
@@ -1463,8 +1498,12 @@ style="background:whitesmoke!important"
 
 .avatar{
     z-index: 9999 !important; 將頭像放在最前面 表示不會被任何元素阻擋
-    (z-index:auto; 推疊的順序與父層一樣 即為default 對於其他元素而言為z-index:0;)
+    z-index:auto; 推疊的順序與父層一樣 即為default 對於其他元素而言為 z-index:0; (會被有數字的z-index壓過去)
 }
+z-index 並不是直接比數值大小 必須先比所在父層元素的z-index大小後 如果沒有差異才會比當層的
+如果沒有發生覆蓋時 z-index數值沒有任何用處 只有在覆蓋發生時才會有用
+如果都是同層元素又沒有設置z-index 則後者會壓過前者 也就是html中越下方的元素會壓過上方元素 (都使用absolute來讓每個元素之位置相同時)
+用同層元素的順序來做覆蓋其實才是最好的方式 一目瞭然又不會被z-index而搞亂
 
 .row_center{
   align-items:center; row元素交叉軸對齊 即垂直對齊
@@ -1488,6 +1527,9 @@ justify-content:end和text-align:right的差異：兩者都是把內部元素往
 justify-content適用於內部有多個block的時候(<div>) 此外justify-content只能用於flexbox父元素
 而text-align則用於內部都是inline元素的時候(<span>)
 
+
+justify 為辯解, 證明...合法, 證明...無罪 用於印刷業可以指將版面排整齊 故css用justify-content
+
 用start-end取代left-right 
 是因為不是所有語言書寫都是由左到右 (ex:阿拉伯語是從右到左)
 並可設置 direction:ltr從左到右(預設) 或 direction:rtl從右到左
@@ -1499,21 +1541,24 @@ justify-content適用於內部有多個block的時候(<div>) 此外justify-conte
 常見作法是讓css屬性轉成class類別以方便使用(如同自行設置一份bootstrap.css檔)
 
 .pos_rlt{
-  position:relative; 由調整元素的預設位置(static)而來 使whtrblz等屬性有效
-  (position:static 即為元素的預設位置 此時whtrblz等任何屬性皆無效)
-  top:20px; 表示與原先的預設位置的偏移距離 即元素會往下偏移20px
+  position: static; 即為元素的預設位置 此時whtrblz等任何屬性皆無效
+  position: relative; 由調整元素的預設位置(static)而來 使whtrblz等屬性有效
+
+  top: 20px; 表示與原先的預設位置的偏移距離 即元素會往下偏移20px(relative才有效)
 } 
 此外其他同層元素仍受relative的元素的原始預設位置所影響 而非新的偏移位置
-即relative的元素仍會佔據原本的預設空間
+即relative的元素仍會佔據原本的預設空間 relatice只會影響本身位置
 
 .pos_abs{
-  position:absolute; 表示元素的絕對位置 其數值以被定位的父元素之相對位置來配置
-  (position:fixed 也表示元素的絕對位置 但其數值以viewport視窗相對位置來配置)
+  position: absolute; 表示元素的絕對位置 其數值以被定位的父元素之相對位置來配置
+  position: fixed; 也表示元素的絕對位置 但其數值以viewport視窗相對位置來配置
+
   top: 10px; 表示與父元素邊界的偏移距離
-  (top: 5%; 依據父元素大小來算比例) 
+  top: 10%; 依據父元素大小來算比例
 }
 不同於static和relative 使用absolute和fixed的元素不會佔據原先的預設空間
 (DOM都有預設的static document flow：即position:static所擺放的位置)
+
 此外block元素的特性預設寬度會撐開整個父元素 但因為absolute和fixed元素跳脫原先的預設空間 
 此時的寬度會以內部元素為基準 
 因此通常絕對位置屬性較常使用whtrblz等屬性 且會搭配margin:auto來調整位置
@@ -1525,6 +1570,14 @@ justify-content適用於內部有多個block的時候(<div>) 此外justify-conte
 
 這點對於巢狀結構極為重要 
 最好的辦法是父元素的position屬性用relative取代static 來解決父元素沒有定位的問題
+
+position: sticky的用途為：
+在還沒有碰到 scrolling ancestor，就像是 position: relative 一樣
+在碰到 scrolling ancestor 後，就像是 position: absolute 一樣
+位置會固定在相對於參考點的絕對位置上，而這個參考點就是 scrolling ancestor 當滑到特定位置時會固定在螢幕中 不會被滑掉 等同事在relative和absolute之中轉換
+
+如果是需要固定在螢幕特定位置的div 則會使用absolute或fixed (不需要特別用sticky)
+而如果是需要放在元素內部作為內容的div 則會用static或relative (並搭配適合的display)
 
 
 margin-top與top之差別:
@@ -1539,6 +1592,7 @@ top只會考慮與父元素邊界之距離 不會推壓到同層的其他元素
   box-sizing: border-box;  設定的寬度包含padding,border
   (box-sizing:content-box 則表示設定的寬度只包含內部的content)
 }
+
 height:100%和width:100% 有些許不同：
 由於在內容為空且未被定位的父元素中height:0 若內部子元素用height:100%則不會顯示
 而父元素即使內容為空仍會填滿width(block元素的特性) 故內部子元素可用width:100%正常運行
@@ -2277,9 +2331,12 @@ $("li").css({  // 若有多項則使用{}
 })
 $("li").find("ul").each(function(){...}) 遍及所有find()元素來做執行
 
-$("ul").parent() 只為回傳上一層的父元素
-$("ul").closest('div') 不一定是上一層 直到遇到符合條件的'一個'父元素為止
-$("ul").parents('div') 回傳所有符合的父元素
+$("ul").parent() 只為回傳上一層的父元素 
+$("ul").parent('div') 則只為回傳找到的第一個符合條件父元素
+$("ul").parent()的用於判別的作法就是透過.length來辨識 可能回傳1 or 0
+
+$("ul").closest('div') 不一定是上一層 本含自己本身 直到遇到符合條件的'一個'父元素為止 (只有可能是1 or 0)
+$("ul").parents('div') 回傳所有符合的父元素 (可能回傳 多個元素)
 由於有多元素 故如同find()一樣 可以使用each(function(){...})執行
 
 $("ul:eq(0)").next() 或 $("ul:eq(1)").prev()

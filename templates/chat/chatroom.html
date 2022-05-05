@@ -27,9 +27,6 @@
     <script src="{% static 'chat/js/db.js'%}"></script>
     {{ login_dict|json_script:"loginData" }}
     <script src="{% static 'chat/js/chatroom.js'%}"></script>
-    <!--
-    <script src="{% static 'chat/js/phaser.min.js'%}"></script>
-    -->
 
     {% block script_file %}{% endblock %}
 
@@ -108,7 +105,7 @@
                             <input type="password" class="form-control" id="signup-input-confirm" name="signup-input-confirm" pattern="^(?=.*[\d])(?=.*[a-zA-Z]).{8,30}$" required>
                         </div>
                         <p class='border border-3 border-warning'>
-                        提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會像其他玩家透露個人電子信箱。<br>
+                        提醒：註冊帳號僅用於防止廣告機器人破壞遊戲體驗，遊戲過程中不會向其他玩家透露個人電子信箱。<br>
                         提醒：性別綁定電子信箱，一經註冊便不得更改哦。
                         </p>
                         <p class='text-danger p-1 a-error'></p>
@@ -312,15 +309,17 @@
 
     {% block gameModal %}{% endblock %}
 
-    <nav class="navbar sticky-top a-div a-clr">
+    <nav class="navbar a-div a-clr">
         <div class="container-fluid">
+            <!--
             <button class="navbar-toggler btn a-div a-clr" id='sidebar-btn' type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
                 <i class="material-icons-outlined md-28">ads_click</i>
             </button>
-            <span class="navbar-text a-font d-inline-flex align-items-center"></span>
+            -->
+            <span class="navbar-text a-font ms-2 d-inline-flex align-items-center"></span>
             <span class="navbar-text">
                 <button class="navbar-toggler btn a-div a-clr" id='leave-btn' type="button" disabled>
-                    <i class="material-icons-outlined md-28">meeting_room</i>
+                    <i class="material-icons-outlined md-28">logout</i>
                 </button>
                 <div class="btn-group">
                     <button class="navbar-toggler dropdown-toggle btn a-div a-clr" id='settings-btn' type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -359,6 +358,48 @@
         </div>
     </nav>
 
+    <div id="stripbar" class="a-stripbar d-flex flex-column a-clr">
+        <div class="a-stripbar-header d-flex justify-content-center">
+            <button type="button" class="btn" id="sidebar-btn" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+                <i class="material-icons-outlined md-28">list_alt</i>
+            </button>
+        </div>
+        <div class="a-stripbar-body">
+            <div class="outer-scrollbar">
+                <div class="inner-scrollbar">
+                    <div class="a-stripbar-div py-2 d-flex justify-content-center">
+                        <div data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="前往...">
+                            <button type="button" class="btn" id="goto-strip-btn">
+                                <i class="material-icons-outlined md-28">pin_drop</i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="a-stripbar-div py-2 d-flex justify-content-center">
+                        <div data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="改名...">
+                            <button type="button" class="btn" id="name-strip-btn">
+                                <div class="a-circle a-off" id="user-strip-tag">取</div>
+                            </button>
+                        </div>
+                    </div>
+                    {% block stripbar_players %}{% endblock %}
+                    {% block stripbar %}{% endblock %}
+                </div>
+            </div>
+        </div>
+        <div class="a-stripbar-footer d-flex justify-content-center">
+            <div data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="遊戲開始">
+                <button type="button" class="btn" id="start-strip-btn">
+                    <i class="material-icons-outlined md-28">touch_app</i>
+                </button>
+            </div>
+        </div>
+        <div class="a-stripbar-btn">
+            <button type="button" class="btn" id="stripbar-btn" ishided="false">
+                <i class="material-icons-outlined md-28">arrow_back_ios</i>
+            </button>
+        </div>
+    </div>
+
     <div id='sidebar' class='offcanvas offcanvas-start a-sidebar' tabindex="-1" aria-labelledby="sidebar-btn" data-bs-scroll="true">
         <div class="offcanvas-header">
             <div class='offcanvas-title a-sidebar h5'>A-LARP 匿名劇本殺</div>
@@ -381,7 +422,7 @@
                         <div class='ps-1 flex-grow-1'>
                             <div class='d-flex justify-content-between'>
                                 <span id="user-name" class='a-title a-sidebar' data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title='取個暱稱吧'>取個暱稱吧</span>
-                                <button class="btn btn-link a-sidebar" id="name-btn" type="button">更改..</button>
+                                <button id="name-btn" class="btn btn-link a-sidebar" type="button">改名..</button>
                             </div>
                             <div class='a-sub a-sidebar' id='user-role'></div>
                         </div>
@@ -403,11 +444,8 @@
         </div>
         
     </div>
-    <!--
-    <div id="phaser-chatroom"></div>
-    <script src="{% static 'chat/js/phaser_chatroom.js'%}"></script>
-    -->
-    <div class="a-section a-height">
+
+    <div class="d-flex a-section a-height">
         <div class="a-container a-clr">
             <div class="outer-scrollbar">
                 <div class="inner-scrollbar" id='dialog'>
