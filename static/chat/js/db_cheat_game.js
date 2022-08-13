@@ -1,5 +1,5 @@
 const story_dialogs = [
-    ['<span class="a-point">作弊遊戲</span><br>(designed by: <a href="https://www.instagram.com/anonlarp_tw/" target="_blank" class="a-point">雪人清酒[前往]</a>)', !1, "s"]
+    ['<span class="a-point">《作弊遊戲》</span><br>(designed by: <a href="https://www.instagram.com/anonlarp_tw/" target="_blank" class="a-point">雪人清酒[前往]</a>)', !1, "s"]
 ];
 
 const card = [

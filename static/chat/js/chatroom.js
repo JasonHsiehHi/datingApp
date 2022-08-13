@@ -1098,6 +1098,14 @@ var checkGate = function(){
         return dialog
     }
 
+    function dra(isDirected=false){
+        var dialog;
+        var rand = Math.random()*dramas.length | 0;
+        dialog = dramas[rand];
+        (!0 === isDirected) && theUI.showMsg(dialog[0]);
+        return dialog
+    }
+
     function grt(){
         $.ajax({
             type: 'GET',
@@ -1107,9 +1115,9 @@ var checkGate = function(){
                 if (!0 === data['result']){
                     var li = data['dialogs'];
                     if (0 === loginData.status)
-                        li.splice(1,0, itr(), tut()); // insert dialogs of theGate into data['dialog']
+                        li.splice(1,0, itr(), tut(), dra()); // insert dialogs of theGate into data['dialog']
                     else if(1 === loginData.status)
-                        li.splice(1,0, itr());
+                        li.splice(1,0, itr(), dra());
                     theUI.showMsgsAsync(li);
                 }else{
                     showNotice(data['msg']);
@@ -1123,7 +1131,8 @@ var checkGate = function(){
     return {
         tutor:tut,
         intro:itr,
-        greet:grt
+        greet:grt,
+        drama:dra
     }
 }
 

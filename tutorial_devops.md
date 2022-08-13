@@ -705,6 +705,7 @@ docker tag busybox asia.gcr.io/my-project/busybox 如果需要放到特定雲端
 docker push asia.gcr.io/my-project/busybox
 
 docker images 列出目前所有的images (等同 docker image ls)
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}" 自訂格式 可查看玩詳盡日期
 docker commit -m "Added Git package" -a "Starter" 59f3e3615488 當修改container之後 可用commit更新 讓docker hub與本地端同步 
 但可以會使得原先在service掛載的secret或config無法使用
 
@@ -790,7 +791,7 @@ docker image rm <ImageID>  同理也可以把存放在本地端的image刪除
 docker images --digests 當tag為<none>而無法指定時使用 可用@{digest}取代原先的:{tag}
 docker image rmi test1:latest 用於刪除image tag 但不會刪除image檔
 
-docker images -f “dangling=true” -q 顯示所有tag為<none>的image的id (dangling表示懸空) -f為filter用於過濾 -q為quiet用於只顯示id 
+docker images -f 'dangling=true' -q 顯示所有tag為<none>的image的id (dangling表示懸空) -f為filter用於過濾 -q為quiet用於只顯示id (可搭配 docker image rmi 做刪除)
 docker images --no-trunc 不截斷輸出 則image的ID會是最原始的sha256碼
 
 
@@ -1323,6 +1324,14 @@ npm run test 會執行寫在package.json下script屬性下的'test'指令 (npx t
 node test_basic.js 則會執行當前所有資料夾的js檔 
 
 - - ---------------------------------------------------
+# yarn套件管理工具: 
+yarn cache list會暫存所有你可能會用到的開發配件 
+故通常還會搭配yarn cache clean做清除
+
+yarn則用的時機在用建立mono-repo
+可搭配lerna使用 幫助repo統理子專案所使用的套件
+
+- - ---------------------------------------------------
 ## scss:
 為最多人使用的CSS_preprocessor
 webpack為自動化編譯工具 能夠處理多種不同的應用與框架
@@ -1796,15 +1805,28 @@ Continuous Integration & Delivery (CI/CD) 持續整合與持續交付
 其中包含machine:設置環境 dependencies:相依套件與框架 test:需進行的測試
 
 Git-Flow 為針對開發時git使用流程的規範(workflow)
-通常以release分支為基礎 每個release分支會有一隻develop分支 
-最後會將開發完成的develop併回release 此時release是已完成新功能且已修復完bug 確認後再併回master
+一定會有master主支和develop分支存在 develop會放目前正在開發的版本 而master則會放已經穩定的版本 
+直接將develop上的分支merge到master上即可 而之後的版本develop在繼續開發
+release分支作為發佈前的測試基礎：通常由develop分支出來 最後會合併到master上
 
 Github-Flow 也是一種git流程規範(workflow)
-但以master為基礎 只要是master上的版本都一定要通過測試 
+通常是15~20的小團隊 且產品有頻繁發布的需求
+每個人都有一個共用遠倉(remote reposity) 通常是公司帳號
+每個人要先做fork到自己的遠端reposity 之後再拿到本地端做開發
+最後要合併到master時 再發起PR給項目管理人 (也就是共用遠倉的管理人)
+
+以master為基礎 只要是master上的版本都一定要通過測試
 且任何開發功能或修復bug等所有分支都必須從master延伸 不會在分為release和develop兩分支
 
 Github-Flow與Git-Flow最大的差異：
 在於Github-Flow是以CI/CD為目的 強調上線部署後仍能不中斷開發
+
+GitLab-Flow也是一種git流程規範(workflow)
+master作為開發分支 另有pre-production作為發布前測試 和 production做為發布的生產環境
+可知master是所有分支的上流(upsteam first) 不會有人跟他並行 
+上下游關係不能混淆 master -> pre-production -> production
+當prodciotion出現問題時 必須重新拉回master做開發後在走一次上游到下游
+
 
 常見資料庫系統：
 MySQL, SQLite,postgreSQL 都是關聯式資料庫(RDBMS) 追求一致性與準確性且能處理大量資料
