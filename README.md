@@ -6,7 +6,11 @@ PS:建議不細看，此為團隊第一個專案
 僅作為團隊針對MUD遊戲的一次試驗品  
 
 # 相關遊戲截圖
-
+![image](https://github.com/JasonHsiehHi/datingApp/blob/master/readme/%E9%81%8A%E6%88%B2%E7%95%AB%E9%9D%A22.jpg)
+![image](https://github.com/JasonHsiehHi/datingApp/blob/master/readme/A-LARP%E5%8C%BF%E5%90%8D%E5%8A%87%E6%9C%AC%E6%AE%BA2.jpg)
+![image](https://github.com/JasonHsiehHi/datingApp/blob/master/readme/A-LARP%E5%8C%BF%E5%90%8D%E5%8A%87%E6%9C%AC%E6%AE%BA1.jpg)
+![image](https://github.com/JasonHsiehHi/datingApp/blob/master/readme/%E9%81%8A%E6%88%B2%E7%95%AB%E9%9D%A21.jpg)
+![image](https://github.com/JasonHsiehHi/datingApp/blob/master/readme/wireframe2.jpg)
 
 # project 2021
 start from 2021/03
